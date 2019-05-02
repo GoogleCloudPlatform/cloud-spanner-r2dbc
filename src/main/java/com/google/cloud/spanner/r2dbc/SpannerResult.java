@@ -67,7 +67,7 @@ public class SpannerResult implements Result {
 
   @Override
   public <T> Flux<T> map(BiFunction<Row, RowMetadata, ? extends T> f) {
-    return (Flux<T>) Flux.fromIterable(() -> new Iterator<Struct>() {
+    return Flux.fromIterable(() -> new Iterator<T>() {
 
       private Boolean hasNext;
 
@@ -82,16 +82,16 @@ public class SpannerResult implements Result {
       }
 
       @Override
-      public Struct next() {
+      public T next() {
         if (!hasNext()) {
           throw new UnsupportedOperationException("This ResultSet has no more rows to get.");
         }
         this.currentStruct = SpannerResult.this.resultSet.getCurrentRowAsStruct();
         this.hasNext = SpannerResult.this.resultSet.next();
-        return this.currentStruct;
+        return f
+            .apply(new SpannerRow(this.currentStruct), new SpannerRowMetadata(this.currentStruct));
       }
-    }).map(struct -> f.apply(new SpannerRow(struct), new SpannerRowMetadata(struct)))
-        .doOnComplete(this.resultSet::close)
+    }).doOnComplete(this.resultSet::close)
         .doOnError(error -> this.resultSet.close())
         .doOnCancel(this.resultSet::close);
   }
