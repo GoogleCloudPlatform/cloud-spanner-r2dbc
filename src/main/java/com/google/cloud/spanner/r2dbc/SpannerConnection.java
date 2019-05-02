@@ -37,7 +37,7 @@ public class SpannerConnection implements Connection {
 
   private final DatabaseClient databaseClient;
 
-  public Optional<SpannerTransaction> currentTransaction = Optional.empty();
+  private Optional<SpannerTransaction> currentTransaction = Optional.empty();
 
   public SpannerConnection(DatabaseClient databaseClient) {
     this.databaseClient = databaseClient;
