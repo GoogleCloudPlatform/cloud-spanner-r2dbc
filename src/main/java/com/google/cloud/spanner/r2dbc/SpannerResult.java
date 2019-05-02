@@ -67,7 +67,7 @@ public class SpannerResult implements Result {
 
   @Override
   public <T> Flux<T> map(BiFunction<Row, RowMetadata, ? extends T> f) {
-    return Flux.fromIterable(() -> new Iterator<Struct>() {
+    return (Flux<T>) Flux.fromIterable(() -> new Iterator<Struct>() {
 
       private Boolean hasNext;
 
@@ -90,9 +90,9 @@ public class SpannerResult implements Result {
         this.hasNext = SpannerResult.this.resultSet.next();
         return this.currentStruct;
       }
-    }).doOnComplete(this.resultSet::close)
-        .doOnCancel(this.resultSet::close)
+    }).map(struct -> f.apply(new SpannerRow(struct), new SpannerRowMetadata(struct)))
+        .doOnComplete(this.resultSet::close)
         .doOnError(error -> this.resultSet.close())
-        .map(struct -> f.apply(new SpannerRow(struct), new SpannerRowMetadata(struct)));
+        .doOnCancel(this.resultSet::close);
   }
 }
