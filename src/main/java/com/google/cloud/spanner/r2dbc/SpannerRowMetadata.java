@@ -16,6 +16,8 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import com.google.cloud.spanner.Struct;
+import com.google.common.annotations.VisibleForTesting;
 import io.r2dbc.spi.ColumnMetadata;
 import io.r2dbc.spi.RowMetadata;
 
@@ -23,6 +25,22 @@ import io.r2dbc.spi.RowMetadata;
  * {@link RowMetadata} implementation for Cloud Spanner.
  */
 public class SpannerRowMetadata implements RowMetadata {
+
+  private final Struct struct;
+
+  /**
+   * Constructor.
+   *
+   * @param struct the row from Cloud Spanner.
+   */
+  public SpannerRowMetadata(Struct struct) {
+    this.struct = struct;
+  }
+
+  @VisibleForTesting
+  Struct getStruct(){
+    return this.struct;
+  }
 
   @Override
   public ColumnMetadata getColumnMetadata(Object identifier) {

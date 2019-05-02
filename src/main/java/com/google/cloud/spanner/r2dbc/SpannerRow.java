@@ -16,15 +16,32 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import com.google.cloud.spanner.Struct;
+import com.google.common.annotations.VisibleForTesting;
 import io.r2dbc.spi.Row;
 
 /**
  * {@link Row} implementation for Cloud Spanner.
+ *
+ * @author Elena Felder
+ * @author Chengyuan Zhao
  */
 public class SpannerRow implements Row {
 
+  private final Struct struct;
 
-  public SpannerRow() {
+  /**
+   * Constructor.
+   *
+   * @param struct the row from Cloud Spanner.
+   */
+  public SpannerRow(Struct struct) {
+    this.struct = struct;
+  }
+
+  @VisibleForTesting
+  Struct getStruct(){
+    return this.struct;
   }
 
   @Override
