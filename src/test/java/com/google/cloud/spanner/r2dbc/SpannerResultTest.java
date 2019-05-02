@@ -17,6 +17,9 @@
 package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.ResultSet;
 import com.google.cloud.spanner.Struct;
@@ -25,11 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Test for {@link SpannerResult}.
@@ -60,11 +59,17 @@ public class SpannerResultTest {
   }
 
   @Test
-  public void mapDummyImplementation() {
-    SpannerResult result = new SpannerResult();
-    Flux<String> mappingResult = result.map((row, rowMetadata) -> "dummy result");
-    assertThat(mappingResult).isNotNull();
-    assertThat(mappingResult.blockFirst()).isEqualTo("dummy result");
+  public void nullResultSetTest() {
+    assertThatThrownBy(() -> new SpannerResult(null))
+        .hasMessage("A non-null ResultSet is required.");
+  }
+
+  @Test
+  public void mapTest() {
+    assertThat(new SpannerResult(this.resultSet).map((row, metadata) ->
+        ((SpannerRow) row).getStruct().getString("id") + "-" + ((SpannerRowMetadata) metadata)
+            .getStruct().getString("id")).collectList().block())
+        .containsExactly("key1-key1", "key2-key2");
   }
 
   static class MockResults {

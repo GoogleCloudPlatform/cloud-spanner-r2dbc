@@ -27,14 +27,14 @@ public class SpannerRowMetadataTest {
 
   @Test
   public void getColumnMetadataDummyImplementation() {
-    SpannerRowMetadata metadata = new SpannerRowMetadata();
+    SpannerRowMetadata metadata = new SpannerRowMetadata(null);
     assertThat(metadata.getColumnMetadata("columnName"))
         .isInstanceOf(SpannerColumnMetadata.class);
   }
 
   @Test
   public void getColumnMetadatasDummyImplementation() {
-    SpannerRowMetadata metadata = new SpannerRowMetadata();
+    SpannerRowMetadata metadata = new SpannerRowMetadata(null);
     assertThat(metadata.getColumnMetadatas()).isNull();
   }
 
