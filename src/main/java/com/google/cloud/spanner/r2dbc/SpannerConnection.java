@@ -22,7 +22,6 @@ import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.Statement;
-import java.util.Optional;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +36,11 @@ public class SpannerConnection implements Connection {
 
   private final DatabaseClient databaseClient;
 
-  private Optional<SpannerTransaction> currentTransaction = Optional.empty();
+  private SpannerTransaction currentTransaction;
 
   public SpannerConnection(DatabaseClient databaseClient) {
     this.databaseClient = databaseClient;
+    this.currentTransaction = null;
   }
 
   @Override
@@ -51,24 +51,24 @@ public class SpannerConnection implements Connection {
             logger.debug(
                 "A transaction has already been started for this connection; "
                     + "beginTransaction() is a no-op.");
-            return Mono.just(currentTransaction.get());
+            return Mono.just(currentTransaction);
           } else {
             return SpannerTransaction.startTransaction(databaseClient);
           }
         })
         .doOnSuccess(spannerTransaction -> {
-          if (currentTransaction.isPresent()) {
-            currentTransaction.get().close();
+          if (currentTransaction != null) {
+            currentTransaction.close();
           }
-          currentTransaction = Optional.of(spannerTransaction);
+          currentTransaction = spannerTransaction;
         }).then();
   }
 
   @Override
   public Publisher<Void> close() {
     return Mono.fromRunnable(() -> {
-      if (currentTransaction.isPresent()) {
-        currentTransaction.get().close();
+      if (currentTransaction != null) {
+        currentTransaction.close();
       }
     });
   }
@@ -82,7 +82,7 @@ public class SpannerConnection implements Connection {
                 "Transaction is already in a terminal state; commitTransaction() is a no-op.");
             return Mono.empty();
           } else {
-            return currentTransaction.get().commit();
+            return currentTransaction.commit();
           }
         });
   }
@@ -123,8 +123,12 @@ public class SpannerConnection implements Connection {
   }
 
   private Mono<TransactionManager.TransactionState> getTransactionState() {
-    return (currentTransaction.isPresent())
-        ? currentTransaction.get().getTransactionState()
-        : Mono.just(TransactionManager.TransactionState.ABORTED);
+    return Mono.defer(() -> {
+      if (currentTransaction != null) {
+        return currentTransaction.getTransactionState();
+      } else {
+        return Mono.just(TransactionManager.TransactionState.ABORTED);
+      }
+    });
   }
 }
