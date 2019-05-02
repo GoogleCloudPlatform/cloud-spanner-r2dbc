@@ -72,13 +72,10 @@ public class SpannerResult implements Result {
 
     return Flux.fromIterable(() -> new Iterator<T>() {
 
-      private Boolean hasNext;
+      private boolean hasNext = SpannerResult.this.resultSet.next();
 
       @Override
       public boolean hasNext() {
-        if (this.hasNext == null) {
-          this.hasNext = SpannerResult.this.resultSet.next();
-        }
         return this.hasNext;
       }
 
