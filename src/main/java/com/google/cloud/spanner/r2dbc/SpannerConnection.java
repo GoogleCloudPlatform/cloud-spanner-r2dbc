@@ -57,9 +57,6 @@ public class SpannerConnection implements Connection {
           }
         })
         .doOnSuccess(spannerTransaction -> {
-          if (currentTransaction != null) {
-            currentTransaction.close();
-          }
           currentTransaction = spannerTransaction;
         }).then();
   }
