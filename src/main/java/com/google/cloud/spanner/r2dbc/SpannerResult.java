@@ -65,6 +65,11 @@ public class SpannerResult implements Result {
 
   @Override
   public <T> Flux<T> map(BiFunction<Row, RowMetadata, ? extends T> f) {
+
+    if (resultSet == null) {
+      return Flux.empty();
+    }
+
     return Flux.fromIterable(() -> new Iterator<T>() {
 
       private Boolean hasNext;
