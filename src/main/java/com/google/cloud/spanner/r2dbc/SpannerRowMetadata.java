@@ -38,7 +38,7 @@ public class SpannerRowMetadata implements RowMetadata {
   }
 
   @VisibleForTesting
-  Struct getStruct(){
+  Struct getStruct() {
     return this.struct;
   }
 

@@ -40,7 +40,7 @@ public class SpannerRow implements Row {
   }
 
   @VisibleForTesting
-  Struct getStruct(){
+  Struct getStruct() {
     return this.struct;
   }
 

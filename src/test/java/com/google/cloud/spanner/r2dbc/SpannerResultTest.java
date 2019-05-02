@@ -41,6 +41,9 @@ public class SpannerResultTest {
 
   private ResultSet resultSet;
 
+  /**
+   * Setup.
+   */
   @Before
   public void setup() {
     Struct struct1 = Struct.newBuilder().set("id").to(Value.string("key1")).build();
@@ -56,8 +59,8 @@ public class SpannerResultTest {
 
   @Test
   public void getRowsUpdatedTest() {
-    assertThat(((Mono)new SpannerResult(this.resultSet).getRowsUpdated()).block()).isEqualTo(0);
-    assertThat(((Mono)new SpannerResult(2).getRowsUpdated()).block()).isEqualTo(2);
+    assertThat(((Mono) new SpannerResult(this.resultSet).getRowsUpdated()).block()).isEqualTo(0);
+    assertThat(((Mono) new SpannerResult(2).getRowsUpdated()).block()).isEqualTo(2);
   }
 
   @Test
@@ -87,6 +90,7 @@ public class SpannerResultTest {
   }
 
   static class MockResults {
+
     List<Struct> structs;
 
     int counter = -1;
