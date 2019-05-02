@@ -31,8 +31,6 @@ import reactor.core.publisher.Mono;
 /**
  * {@link Result} implementation for Cloud Spanner.
  *
- * @author Elena Felder
- * @author Chengyuan Zhao
  */
 public class SpannerResult implements Result {
 
@@ -71,8 +69,6 @@ public class SpannerResult implements Result {
 
       private Boolean hasNext;
 
-      private Struct currentStruct;
-
       @Override
       public boolean hasNext() {
         if (this.hasNext == null) {
@@ -86,10 +82,10 @@ public class SpannerResult implements Result {
         if (!hasNext()) {
           throw new UnsupportedOperationException("This ResultSet has no more rows to get.");
         }
-        this.currentStruct = SpannerResult.this.resultSet.getCurrentRowAsStruct();
+        Struct currentStruct = SpannerResult.this.resultSet.getCurrentRowAsStruct();
         this.hasNext = SpannerResult.this.resultSet.next();
         return f
-            .apply(new SpannerRow(this.currentStruct), new SpannerRowMetadata(this.currentStruct));
+            .apply(new SpannerRow(currentStruct), new SpannerRowMetadata(currentStruct));
       }
     }).doOnComplete(this.resultSet::close)
         .doOnError(error -> this.resultSet.close())

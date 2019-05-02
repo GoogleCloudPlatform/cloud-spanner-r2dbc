@@ -23,8 +23,6 @@ import io.r2dbc.spi.Row;
 /**
  * {@link Row} implementation for Cloud Spanner.
  *
- * @author Elena Felder
- * @author Chengyuan Zhao
  */
 public class SpannerRow implements Row {
 

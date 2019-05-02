@@ -34,8 +34,6 @@ import reactor.core.publisher.Mono;
 
 /**
  * Test for {@link SpannerResult}.
- *
- * @author Chengyuan Zhao
  */
 public class SpannerResultTest {
 
@@ -84,7 +82,9 @@ public class SpannerResultTest {
       new SpannerResult(this.resultSet).map((row, metadata) -> {
         throw new RuntimeException();
       }).onErrorStop().collectList().block();
-    } catch (RuntimeException e) {
+    } catch (RuntimeException ignored) {
+
+    } finally {
       verify(this.resultSet, times(1)).close();
     }
   }
