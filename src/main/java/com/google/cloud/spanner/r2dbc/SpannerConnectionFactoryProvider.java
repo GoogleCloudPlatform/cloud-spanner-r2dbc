@@ -27,7 +27,6 @@ import io.r2dbc.spi.ConnectionFactoryProvider;
  * An implementation of {@link ConnectionFactoryProvider} for creating {@link
  * SpannerConnectionFactory}s.
  *
- * @author Mike Eltsufin
  */
 public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvider {
 
