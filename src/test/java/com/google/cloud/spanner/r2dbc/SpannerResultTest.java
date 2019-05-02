@@ -89,7 +89,7 @@ public class SpannerResultTest {
         throw new RuntimeException();
       }).onErrorStop().collectList().block();
     } catch (RuntimeException ignored) {
-
+      // do nothing
     } finally {
       verify(this.resultSet, times(1)).close();
     }
