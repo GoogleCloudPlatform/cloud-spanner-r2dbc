@@ -19,6 +19,8 @@ package com.google.cloud.spanner.r2dbc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.ResultSet;
@@ -70,6 +72,7 @@ public class SpannerResultTest {
         ((SpannerRow) row).getStruct().getString("id") + "-" + ((SpannerRowMetadata) metadata)
             .getStruct().getString("id")).collectList().block())
         .containsExactly("key1-key1", "key2-key2");
+    verify(this.resultSet, times(1)).close();
   }
 
   static class MockResults {
