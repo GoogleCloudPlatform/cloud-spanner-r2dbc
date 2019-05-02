@@ -91,9 +91,8 @@ public class SpannerResult implements Result {
         return this.currentStruct;
       }
     }).doOnComplete(this.resultSet::close)
-        .doOnError(error -> {
-          this.resultSet.close();
-        })
+        .doOnCancel(this.resultSet::close)
+        .doOnError(error -> this.resultSet.close())
         .map(struct -> f.apply(new SpannerRow(struct), new SpannerRowMetadata(struct)));
   }
 }

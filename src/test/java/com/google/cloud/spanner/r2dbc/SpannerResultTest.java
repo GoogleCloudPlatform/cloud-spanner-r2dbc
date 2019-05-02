@@ -75,6 +75,17 @@ public class SpannerResultTest {
     verify(this.resultSet, times(1)).close();
   }
 
+  @Test
+  public void mapErrorTest() throws InterruptedException {
+    try {
+      new SpannerResult(this.resultSet).map((row, metadata) -> {
+        throw new RuntimeException();
+      }).onErrorStop().collectList().block();
+    } catch (RuntimeException e) {
+      verify(this.resultSet, times(1)).close();
+    }
+  }
+
   static class MockResults {
     List<Struct> structs;
 
