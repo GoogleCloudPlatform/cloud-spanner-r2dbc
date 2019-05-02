@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -74,6 +75,11 @@ public class SpannerResultTest {
             .getStruct().getString("id")).collectList().block())
         .containsExactly("key1-key1", "key2-key2");
     verify(this.resultSet, times(1)).close();
+  }
+
+  @Test
+  public void noResultsMapTest() {
+    assertThat(new SpannerResult(2).map((x, y) -> "unused")).isEqualTo(Flux.empty());
   }
 
   @Test
