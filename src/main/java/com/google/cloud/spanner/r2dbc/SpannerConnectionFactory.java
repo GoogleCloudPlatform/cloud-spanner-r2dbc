@@ -36,8 +36,8 @@ public class SpannerConnectionFactory implements ConnectionFactory {
 
   @Override
   public Publisher<? extends Connection> create() {
-
-    return Mono.just(new SpannerConnection());
+    // TODO: Change this to provide non-null DatabaseClient
+    return Mono.just(new SpannerConnection(null));
   }
 
   @Override
