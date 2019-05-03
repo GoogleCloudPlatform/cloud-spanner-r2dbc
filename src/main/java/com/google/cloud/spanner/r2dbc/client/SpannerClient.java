@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc;
+package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.TransactionContext;
@@ -22,36 +22,18 @@ import com.google.cloud.spanner.TransactionManager;
 import reactor.core.publisher.Mono;
 
 /**
- * Represents a transaction in Spanner.
+ * A client wrapper around the Spanner {@link DatabaseClient}.
  */
-public final class SpannerTransaction {
+public class SpannerClient implements Client {
 
-  private final TransactionManager transactionManager;
-  private final TransactionContext transactionContext;
+  private final DatabaseClient databaseClient;
 
-  SpannerTransaction(TransactionManager transactionManager, TransactionContext transactionContext) {
-    this.transactionManager = transactionManager;
-    this.transactionContext = transactionContext;
+  public SpannerClient(DatabaseClient databaseClient) {
+    this.databaseClient = databaseClient;
   }
 
-  public Mono<TransactionManager.TransactionState> getTransactionState() {
-    return Mono.fromSupplier(() -> transactionManager.getState());
-  }
-
-  public Mono<Void> rollback() {
-    return Mono.fromRunnable(() -> transactionManager.rollback());
-  }
-
-  public Mono<Void> close() {
-    return Mono.fromRunnable(() -> transactionManager.close());
-  }
-
-  public Mono<Void> commit() {
-    return Mono.fromRunnable(() -> transactionManager.commit());
-  }
-
-  /** Starts a new Spanner transaction. */
-  public static Mono<SpannerTransaction> startTransaction(DatabaseClient databaseClient) {
+  @Override
+  public Mono<SpannerTransaction> startTransaction() {
     return Mono.fromSupplier(() -> {
       TransactionManager transactionManager = databaseClient.transactionManager();
       TransactionContext transactionContext = transactionManager.begin();

@@ -20,10 +20,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.TransactionContext;
 import com.google.cloud.spanner.TransactionManager;
 import com.google.cloud.spanner.TransactionManager.TransactionState;
+import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.client.SpannerTransaction;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -34,19 +35,19 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerConnectionTest {
 
-  private DatabaseClient databaseClient;
+  private Client databaseClient;
   private TransactionManager transactionManager;
   private TransactionContext transactionContext;
 
   /** Initializes the mocks for the test. */
   @Before
   public void setupMocks() {
-    this.databaseClient = Mockito.mock(DatabaseClient.class);
+    this.databaseClient = Mockito.mock(Client.class);
     this.transactionManager = Mockito.mock(TransactionManager.class);
     this.transactionContext = Mockito.mock(TransactionContext.class);
 
-    when(this.databaseClient.transactionManager()).thenReturn(this.transactionManager);
-    when(this.transactionManager.begin()).thenReturn(this.transactionContext);
+    when(this.databaseClient.startTransaction()).thenReturn(
+        Mono.just(new SpannerTransaction(this.transactionManager, this.transactionContext)));
   }
 
   @Test
@@ -54,12 +55,12 @@ public class SpannerConnectionTest {
     SpannerConnection connection = new SpannerConnection(databaseClient);
 
     Mono.from(connection.beginTransaction()).block();
-    verify(this.transactionManager, times(1)).begin();
+    verify(this.databaseClient, times(1)).startTransaction();
 
     // Repeated begin() is a no-op.
     when(this.transactionManager.getState()).thenReturn(TransactionState.STARTED);
     Mono.from(connection.beginTransaction()).block();
-    verify(this.transactionManager, times(1)).begin();
+    verify(this.databaseClient, times(1)).startTransaction();
   }
 
   @Test
@@ -68,12 +69,12 @@ public class SpannerConnectionTest {
 
     Mono.from(connection.beginTransaction()).block();
     when(this.transactionManager.getState()).thenReturn(TransactionState.STARTED);
-    verify(this.transactionManager, times(1)).begin();
+    verify(this.databaseClient, times(1)).startTransaction();
 
     Mono.from(connection.commitTransaction()).block();
     when(this.transactionManager.getState()).thenReturn(TransactionState.COMMITTED);
 
     Mono.from(connection.beginTransaction()).block();
-    verify(this.transactionManager, times(2)).begin();
+    verify(this.databaseClient, times(2)).startTransaction();
   }
 }

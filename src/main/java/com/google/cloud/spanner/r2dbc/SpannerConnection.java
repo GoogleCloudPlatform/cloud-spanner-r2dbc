@@ -16,8 +16,9 @@
 
 package com.google.cloud.spanner.r2dbc;
 
-import com.google.cloud.spanner.DatabaseClient;
-import com.google.cloud.spanner.TransactionManager;
+import com.google.cloud.spanner.TransactionManager.TransactionState;
+import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.client.SpannerTransaction;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
@@ -34,31 +35,31 @@ public class SpannerConnection implements Connection {
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-  private final DatabaseClient databaseClient;
+  private final Client client;
 
   private SpannerTransaction currentTransaction;
 
-  public SpannerConnection(DatabaseClient databaseClient) {
-    this.databaseClient = databaseClient;
+  public SpannerConnection(Client client) {
+    this.client = client;
     this.currentTransaction = null;
   }
 
   @Override
   public Publisher<Void> beginTransaction() {
-    return getTransactionState()
-        .flatMap(transactionState -> {
-          if (transactionState == TransactionManager.TransactionState.STARTED) {
+    return isInTransaction()
+        .flatMap(isInTransaction -> {
+          if (isInTransaction) {
             logger.debug(
                 "A transaction has already been started for this connection; "
                     + "beginTransaction() is a no-op.");
-            return Mono.just(currentTransaction);
+            return Mono.empty();
           } else {
-            return SpannerTransaction.startTransaction(databaseClient);
+            return client.startTransaction()
+                .doOnSuccess(newTransaction -> currentTransaction = newTransaction)
+                .then();
           }
         })
-        .doOnSuccess(spannerTransaction -> {
-          currentTransaction = spannerTransaction;
-        }).then();
+        .then();
   }
 
   @Override
@@ -72,11 +73,10 @@ public class SpannerConnection implements Connection {
 
   @Override
   public Publisher<Void> commitTransaction() {
-    return getTransactionState()
-        .flatMap(transactionState -> {
-          if (transactionState != TransactionManager.TransactionState.STARTED) {
-            logger.debug(
-                "Transaction is already in a terminal state; commitTransaction() is a no-op.");
+    return isInTransaction()
+        .flatMap(isInTransaction -> {
+          if (!isInTransaction) {
+            logger.debug("Transaction is not active; commitTransaction() is a no-op.");
             return Mono.empty();
           } else {
             return currentTransaction.commit();
@@ -119,12 +119,13 @@ public class SpannerConnection implements Connection {
     return null;
   }
 
-  private Mono<TransactionManager.TransactionState> getTransactionState() {
+  private Mono<Boolean> isInTransaction() {
     return Mono.defer(() -> {
       if (currentTransaction != null) {
-        return currentTransaction.getTransactionState();
+        return currentTransaction.getTransactionState()
+            .map(transactionState -> transactionState == TransactionState.STARTED);
       } else {
-        return Mono.just(TransactionManager.TransactionState.ABORTED);
+        return Mono.just(false);
       }
     });
   }
