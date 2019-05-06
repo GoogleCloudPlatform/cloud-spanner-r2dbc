@@ -16,13 +16,11 @@
 
 package com.google.cloud.spanner.r2dbc;
 
-import com.google.cloud.spanner.ResultSet;
 import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
-import java.util.Iterator;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -34,7 +32,7 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerResult implements Result {
 
-  private final ResultSet resultSet;
+  private final Flux<Struct> resultSet;
 
   private final Mono<Integer> rowsUpdated;
 
@@ -43,8 +41,8 @@ public class SpannerResult implements Result {
    *
    * @param resultSet the underlying result from Cloud Spanner.
    */
-  public SpannerResult(ResultSet resultSet) {
-    this.resultSet = Assert.requireNonNull(resultSet, "A non-null ResultSet is required.");
+  public SpannerResult(Flux<Struct> resultSet) {
+    this.resultSet = Assert.requireNonNull(resultSet, "A non-null flux of rows is required.");
     this.rowsUpdated = Mono.just(0);
   }
 
@@ -66,31 +64,11 @@ public class SpannerResult implements Result {
   @Override
   public <T> Flux<T> map(BiFunction<Row, RowMetadata, ? extends T> f) {
 
-    if (resultSet == null) {
+    if (this.resultSet == null) {
       return Flux.empty();
     }
 
-    return Flux.fromIterable(() -> new Iterator<T>() {
-
-      private boolean hasNext = SpannerResult.this.resultSet.next();
-
-      @Override
-      public boolean hasNext() {
-        return this.hasNext;
-      }
-
-      @Override
-      public T next() {
-        if (!hasNext()) {
-          throw new UnsupportedOperationException("This ResultSet has no more rows to get.");
-        }
-        Struct currentStruct = SpannerResult.this.resultSet.getCurrentRowAsStruct();
-        this.hasNext = SpannerResult.this.resultSet.next();
-        return f
-            .apply(new SpannerRow(currentStruct), new SpannerRowMetadata(currentStruct));
-      }
-    }).doOnComplete(this.resultSet::close)
-        .doOnError(error -> this.resultSet.close())
-        .doOnCancel(this.resultSet::close);
+    return this.resultSet.map(row -> f
+        .apply(new SpannerRow(row), new SpannerRowMetadata(row)));
   }
 }

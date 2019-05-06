@@ -18,15 +18,9 @@ package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import com.google.cloud.spanner.ResultSet;
 import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.Value;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +32,7 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerResultTest {
 
-  private ResultSet resultSet;
+  private Flux<Struct> resultSet;
 
   /**
    * Setup.
@@ -47,13 +41,7 @@ public class SpannerResultTest {
   public void setup() {
     Struct struct1 = Struct.newBuilder().set("id").to(Value.string("key1")).build();
     Struct struct2 = Struct.newBuilder().set("id").to(Value.string("key2")).build();
-
-    MockResults mockResults = new MockResults();
-    mockResults.structs = Arrays.asList(struct1, struct2);
-    this.resultSet = mock(ResultSet.class);
-    when(this.resultSet.next()).thenAnswer((invocation) -> mockResults.next());
-    when(this.resultSet.getCurrentRowAsStruct())
-        .thenAnswer((invocation) -> mockResults.getCurrent());
+    this.resultSet = Flux.just(struct1, struct2);
   }
 
   @Test
@@ -65,7 +53,7 @@ public class SpannerResultTest {
   @Test
   public void nullResultSetTest() {
     assertThatThrownBy(() -> new SpannerResult(null))
-        .hasMessage("A non-null ResultSet is required.");
+        .hasMessage("A non-null flux of rows is required.");
   }
 
   @Test
@@ -74,25 +62,11 @@ public class SpannerResultTest {
         ((SpannerRow) row).getStruct().getString("id") + "-" + ((SpannerRowMetadata) metadata)
             .getStruct().getString("id")).collectList().block())
         .containsExactly("key1-key1", "key2-key2");
-    verify(this.resultSet, times(1)).close();
   }
 
   @Test
   public void noResultsMapTest() {
     assertThat(new SpannerResult(2).map((x, y) -> "unused")).isEqualTo(Flux.empty());
-  }
-
-  @Test
-  public void mapErrorTest() throws InterruptedException {
-    try {
-      new SpannerResult(this.resultSet).map((row, metadata) -> {
-        throw new RuntimeException();
-      }).onErrorStop().collectList().block();
-    } catch (RuntimeException ignored) {
-      // do nothing
-    } finally {
-      verify(this.resultSet, times(1)).close();
-    }
   }
 
   static class MockResults {
