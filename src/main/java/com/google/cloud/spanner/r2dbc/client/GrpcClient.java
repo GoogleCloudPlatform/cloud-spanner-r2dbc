@@ -88,6 +88,8 @@ public class GrpcClient implements Client {
             @Override
             public void beforeStart(ClientCallStreamObserver<ExecuteSqlRequest> requestStream) {
               requestStream.disableAutoInboundFlowControl();
+              sink.onRequest(demand -> requestStream.request((int) demand));
+              sink.onCancel(() -> requestStream.cancel(null, null));
             }
           };
       this.spanner.executeStreamingSql(request, clientResponseObserver);
