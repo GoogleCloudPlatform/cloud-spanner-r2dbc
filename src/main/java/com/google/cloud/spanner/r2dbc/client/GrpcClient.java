@@ -17,8 +17,11 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
+import com.google.spanner.v1.CreateSessionRequest;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import io.grpc.CallCredentials;
@@ -40,24 +43,37 @@ public class GrpcClient implements Client {
   public static final String HOST = "spanner.googleapis.com";
   public static final int PORT = 443;
 
-  private final SpannerStub spanner;
+  private SpannerStub spanner;
 
   /**
-   * Initializes the Cloud Spanner gRPC async stub.
+   * Creates the gRPC stub with authentication.
+   * @throws IOException if credentials could not be acquired
    */
-  public GrpcClient() throws IOException {
+  public void initialize() throws IOException {
+    // Create blocking and async stubs using the channel
+    CallCredentials callCredentials = MoreCallCredentials
+        .from(GoogleCredentials.getApplicationDefault());
+
     // Create a channel
     ManagedChannel channel = ManagedChannelBuilder
         .forAddress(HOST, PORT)
         .build();
 
-    // Create blocking and async stubs using the channel
-    CallCredentials callCredentials = MoreCallCredentials
-        .from(GoogleCredentials.getApplicationDefault());
-
     // Create the asynchronous stub for Cloud Spanner
     this.spanner = SpannerGrpc.newStub(channel)
         .withCallCredentials(callCredentials);
+  }
+
+  /**
+   * Creates a Spanner session to be used for any future operations.
+   * @param databaseName Fully qualified database name in {@code project/instance/database} format.
+   * @return {@link Mono} of the created session.
+   */
+  public Mono<Session> createSession(String databaseName) {
+    CreateSessionRequest request = CreateSessionRequest.newBuilder()
+        .setDatabase(databaseName)
+        .build();
+    return ObservableReactiveUtil.unaryCall((obs) -> this.spanner.createSession(request, obs));
   }
 
   @Override

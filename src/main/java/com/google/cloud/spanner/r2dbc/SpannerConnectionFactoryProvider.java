@@ -16,12 +16,14 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.ConnectionFactoryProvider;
+import io.r2dbc.spi.Option;
 
 /**
  * An implementation of {@link ConnectionFactoryProvider} for creating {@link
@@ -34,9 +36,20 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   /** R2DBC driver name for Google Cloud Spanner. */
   public static final String DRIVER_NAME = "spanner";
 
+  /** Option name for GCP Project. */
+  public static final Option<String> OPTION_PROJECT = Option.valueOf("project");
+
+  /** Option name for GCP Spanner instance. */
+  public static final Option<String> OPTION_INSTANCE = Option.valueOf("instance");
+
   @Override
   public ConnectionFactory create(ConnectionFactoryOptions connectionFactoryOptions) {
-    return new SpannerConnectionFactory(null);
+    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration(
+        connectionFactoryOptions.getValue(OPTION_PROJECT),
+        connectionFactoryOptions.getValue(OPTION_INSTANCE),
+        connectionFactoryOptions.getValue(DATABASE)
+    );
+    return new SpannerConnectionFactory(config);
   }
 
   @Override

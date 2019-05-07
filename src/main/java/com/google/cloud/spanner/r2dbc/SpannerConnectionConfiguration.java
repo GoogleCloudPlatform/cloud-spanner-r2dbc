@@ -23,6 +23,8 @@ import com.google.cloud.spanner.r2dbc.util.Assert;
  */
 public class SpannerConnectionConfiguration {
 
+  private String projectId;
+
   private String instanceName;
 
   private String databaseName;
@@ -33,12 +35,15 @@ public class SpannerConnectionConfiguration {
    * @param instanceName instance to connect to
    * @param databaseName database to connect to.
    */
-  public SpannerConnectionConfiguration(String instanceName, String databaseName) {
-    Assert.requireNonNull(instanceName, "instanceName must not be null");
-    Assert.requireNonNull(databaseName, "databaseName must not be null");
-
-    this.instanceName = instanceName;
-    this.databaseName = databaseName;
+  // TODO: set up builder.
+  public SpannerConnectionConfiguration(
+      String projectId, String instanceName, String databaseName) {
+    this.projectId
+        = Assert.requireNonNull(projectId, "projectId must not be null");
+    this.instanceName
+        = Assert.requireNonNull(instanceName, "instanceName must not be null");
+    this.databaseName
+        = Assert.requireNonNull(databaseName, "databaseName must not be null");
   }
 
   public String getInstanceName() {
@@ -47,6 +52,23 @@ public class SpannerConnectionConfiguration {
 
   public String getDatabaseName() {
     return databaseName;
+  }
+
+  public String getProjectId() {
+    return projectId;
+  }
+
+  /**
+   * Formats configuration properties into a fully qualified database name.
+   * @return fully qualified database name
+   */
+  public String getFullyQualifiedDatabaseName() {
+    return "projects/"
+        + this.projectId
+        + "/instances/"
+        + this.instanceName
+        + "/databases/"
+        + this.databaseName;
   }
 
 }

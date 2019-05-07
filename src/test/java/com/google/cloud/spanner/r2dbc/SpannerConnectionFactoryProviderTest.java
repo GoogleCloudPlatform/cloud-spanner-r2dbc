@@ -16,6 +16,10 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.OPTION_INSTANCE;
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.OPTION_PROJECT;
+import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,12 +36,19 @@ import org.junit.Test;
  */
 public class SpannerConnectionFactoryProviderTest {
 
+  public static final ConnectionFactoryOptions SPANNER_CONFIG = ConnectionFactoryOptions.builder()
+      .option(DRIVER, DRIVER_NAME)
+      .option(OPTION_PROJECT, "project-id")
+      .option(OPTION_INSTANCE, "an-instance")
+      .option(DATABASE, "db")
+      .build();
+
   @Test
   public void testCreate() {
     SpannerConnectionFactoryProvider spannerConnectionFactoryProvider =
         new SpannerConnectionFactoryProvider();
-    ConnectionFactory spannerConnectionFactory = spannerConnectionFactoryProvider
-        .create(null);
+    ConnectionFactory spannerConnectionFactory
+        = spannerConnectionFactoryProvider.create(SPANNER_CONFIG);
 
     assertThat(spannerConnectionFactory).isNotNull();
   }
@@ -76,10 +87,7 @@ public class SpannerConnectionFactoryProviderTest {
 
   @Test
   public void testR2dbcFindsSpannerConnectionFactoryProvider() {
-    ConnectionFactory connectionFactory =
-        ConnectionFactories.get(ConnectionFactoryOptions.builder()
-            .option(DRIVER, "spanner")
-            .build());
+    ConnectionFactory connectionFactory = ConnectionFactories.get(SPANNER_CONFIG);
 
     assertThat(connectionFactory).isInstanceOf(SpannerConnectionFactory.class);
   }

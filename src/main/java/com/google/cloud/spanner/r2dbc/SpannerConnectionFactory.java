@@ -16,9 +16,11 @@
 
 package com.google.cloud.spanner.r2dbc;
 
-import io.r2dbc.spi.Connection;
+import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryMetadata;
+import java.io.IOException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -30,19 +32,32 @@ public class SpannerConnectionFactory implements ConnectionFactory {
 
   private SpannerConnectionConfiguration config;
 
+  private Client client = new GrpcClient();
+
   public SpannerConnectionFactory(SpannerConnectionConfiguration config) {
     this.config = config;
   }
 
   @Override
-  public Publisher<? extends Connection> create() {
+  public Publisher<SpannerConnection> create() {
 
-    return Mono.just(new SpannerConnection());
+    return Mono.defer(() -> {
+      try {
+        this.client.initialize();
+        return Mono.just(new SpannerConnection(this.client, this.config));
+      } catch (IOException e) {
+        return Mono.error(e);
+      }
+    });
   }
 
   @Override
   public ConnectionFactoryMetadata getMetadata() {
     return SpannerConnectionFactoryMetadata.INSTANCE;
+  }
+
+  public void setClient(Client client) {
+    this.client = client;
   }
 
 }

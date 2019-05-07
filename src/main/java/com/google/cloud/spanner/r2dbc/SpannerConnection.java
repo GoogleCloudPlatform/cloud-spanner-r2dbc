@@ -16,16 +16,38 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.spanner.v1.Session;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.Statement;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
 /**
  * {@link Connection} implementation for Cloud Spanner.
  */
 public class SpannerConnection implements Connection {
+
+  private SpannerConnectionConfiguration config;
+
+  private Mono<Session> session;
+
+  private Client client;
+
+  /**
+   * Instantiates a Spanner session with given configuration.
+   * @param client client controlling low-level Spanner operations
+   * @param config database connection settings
+   */
+  public SpannerConnection(Client client, SpannerConnectionConfiguration config) {
+    this.config = config;
+
+    this.client = client;
+
+    this.session = this.client.createSession(config.getFullyQualifiedDatabaseName());
+  }
 
   public Publisher<Void> beginTransaction() {
     return null;
@@ -65,5 +87,9 @@ public class SpannerConnection implements Connection {
 
   public Publisher<Void> setTransactionIsolationLevel(IsolationLevel isolationLevel) {
     return null;
+  }
+
+  public Mono<String> getSessionName() {
+    return this.session.map(s -> s.getName());
   }
 }

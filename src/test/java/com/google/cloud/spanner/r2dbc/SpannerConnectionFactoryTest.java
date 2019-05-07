@@ -17,8 +17,13 @@
 package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
+import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.spanner.v1.Session;
 import org.junit.Test;
+import org.mockito.Mockito;
+import reactor.core.publisher.Mono;
 
 /**
  * Test for {@link SpannerConnectionFactory}.
@@ -32,4 +37,22 @@ public class SpannerConnectionFactoryTest {
     assertThat(factory.getMetadata()).isSameAs(SpannerConnectionFactoryMetadata.INSTANCE);
   }
 
+  @Test
+  public void createReturnsNewSpannerConnection() {
+    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration(
+        "a-project", "an-instance", "db");
+    SpannerConnectionFactory factory = new SpannerConnectionFactory(config);
+
+    Client mockClient = Mockito.mock(Client.class);
+    factory.setClient(mockClient);
+
+    Session session = Session.newBuilder().setName("jam session").build();
+    when(mockClient.createSession("projects/a-project/instances/an-instance/databases/db"))
+        .thenReturn(Mono.just(session));
+
+    SpannerConnection connection = Mono.from(factory.create()).block();
+
+    assertThat(connection.getSessionName().block()).isEqualTo("jam session");
+
+  }
 }
