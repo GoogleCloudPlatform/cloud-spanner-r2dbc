@@ -36,7 +36,7 @@ public class SpannerResult implements Result {
 
   private final Flux<List<Value>> resultRows;
 
-  private final ResultSetMetadata rowMetadata;
+  private final Mono<ResultSetMetadata> rowMetadata;
 
   private final Mono<Integer> rowsUpdated;
 
@@ -45,7 +45,7 @@ public class SpannerResult implements Result {
    *
    * @param resultRows the underlying result from Cloud Spanner.
    */
-  public SpannerResult(Flux<List<Value>> resultRows, ResultSetMetadata rowMetadata) {
+  public SpannerResult(Flux<List<Value>> resultRows, Mono<ResultSetMetadata> rowMetadata) {
     this.resultRows = Assert.requireNonNull(resultRows, "A non-null flux of rows is required.");
     this.rowMetadata = Assert.requireNonNull(rowMetadata, "Non-null row metadata is required.");
     this.rowsUpdated = Mono.just(0);
@@ -56,10 +56,10 @@ public class SpannerResult implements Result {
    *
    * @param rowsUpdated the number of rows affected by the operation.
    */
-  public SpannerResult(int rowsUpdated) {
+  public SpannerResult(Mono<Integer> rowsUpdated) {
     this.resultRows = null;
     this.rowMetadata = null;
-    this.rowsUpdated = Mono.just(rowsUpdated);
+    this.rowsUpdated = Assert.requireNonNull(rowsUpdated, "Non-null number of rows is required.");
   }
 
   @Override
@@ -74,7 +74,11 @@ public class SpannerResult implements Result {
       return Flux.empty();
     }
 
-    return this.resultRows.map(row -> f
-        .apply(new SpannerRow(row, this.rowMetadata), new SpannerRowMetadata(this.rowMetadata)));
+    return Flux.defer(() -> {
+      ResultSetMetadata resultSetMetadata = this.rowMetadata.block();
+      return this.resultRows.map(row -> f
+          .apply(new SpannerRow(row, resultSetMetadata),
+              new SpannerRowMetadata(resultSetMetadata)));
+    });
   }
 }

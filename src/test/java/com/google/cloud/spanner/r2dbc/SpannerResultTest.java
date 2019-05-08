@@ -35,7 +35,8 @@ public class SpannerResultTest {
 
   private Flux<List<Value>> resultSet;
 
-  private ResultSetMetadata resultSetMetadata = ResultSetMetadata.newBuilder().build();
+  private Mono<ResultSetMetadata> resultSetMetadata = Mono
+      .fromSupplier(() -> ResultSetMetadata.newBuilder().build());
 
   /**
    * Setup.
@@ -52,7 +53,8 @@ public class SpannerResultTest {
     assertThat(
         ((Mono) new SpannerResult(this.resultSet, this.resultSetMetadata).getRowsUpdated()).block())
         .isEqualTo(0);
-    assertThat(((Mono) new SpannerResult(2).getRowsUpdated()).block()).isEqualTo(2);
+    assertThat(((Mono) new SpannerResult(Mono.fromSupplier(() -> 2)).getRowsUpdated()).block())
+        .isEqualTo(2);
   }
 
   @Test
@@ -69,7 +71,7 @@ public class SpannerResultTest {
 
   @Test
   public void mapTest() {
-    String metadataString = this.resultSetMetadata.toString();
+    String metadataString = this.resultSetMetadata.block().toString();
     assertThat(new SpannerResult(this.resultSet, this.resultSetMetadata).map((row, metadata) ->
         ((SpannerRow) row).getValues().get(0).getStringValue() + "-"
             + ((SpannerRowMetadata) metadata).getRowMetadata().toString()).collectList().block())
@@ -78,6 +80,7 @@ public class SpannerResultTest {
 
   @Test
   public void noResultsMapTest() {
-    assertThat(new SpannerResult(2).map((x, y) -> "unused")).isEqualTo(Flux.empty());
+    assertThat(new SpannerResult(Mono.fromSupplier(() -> 2)).map((x, y) -> "unused"))
+        .isEqualTo(Flux.empty());
   }
 }
