@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
+import com.google.spanner.v1.Session;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryMetadata;
 import java.io.IOException;
@@ -44,7 +45,8 @@ public class SpannerConnectionFactory implements ConnectionFactory {
     return Mono.defer(() -> {
       try {
         this.client.initialize();
-        return Mono.just(new SpannerConnection(this.client, this.config));
+        Mono<Session> session = this.client.createSession(config.getFullyQualifiedDatabaseName());
+        return Mono.just(new SpannerConnection(this.client, session));
       } catch (IOException e) {
         return Mono.error(e);
       }

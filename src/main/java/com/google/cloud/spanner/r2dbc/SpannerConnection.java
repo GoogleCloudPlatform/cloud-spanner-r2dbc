@@ -30,8 +30,6 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerConnection implements Connection {
 
-  private SpannerConnectionConfiguration config;
-
   private Mono<Session> session;
 
   private Client client;
@@ -39,14 +37,13 @@ public class SpannerConnection implements Connection {
   /**
    * Instantiates a Spanner session with given configuration.
    * @param client client controlling low-level Spanner operations
-   * @param config database connection settings
+   * @param session Spanner session to use for all interactions on this connection.
    */
-  public SpannerConnection(Client client, SpannerConnectionConfiguration config) {
-    this.config = config;
+  public SpannerConnection(Client client, Mono<Session> session) {
 
     this.client = client;
 
-    this.session = this.client.createSession(config.getFullyQualifiedDatabaseName());
+    this.session = session;
   }
 
   public Publisher<Void> beginTransaction() {
