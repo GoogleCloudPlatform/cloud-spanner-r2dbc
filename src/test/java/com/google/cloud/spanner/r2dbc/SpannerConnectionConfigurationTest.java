@@ -30,7 +30,10 @@ public class SpannerConnectionConfigurationTest {
   public void nullInstanceNameTriggersException() {
     assertThatThrownBy(
         () -> {
-          new SpannerConnectionConfiguration("project1", null, "db");
+          new SpannerConnectionConfiguration.Builder()
+              .setProjectId("project1")
+              .setDatabaseName("db")
+              .build();
         })
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("instanceName must not be null");
@@ -40,7 +43,10 @@ public class SpannerConnectionConfigurationTest {
   public void nullDatabaseNameTriggersException() {
     assertThatThrownBy(
         () -> {
-          new SpannerConnectionConfiguration("project1", "an-instance", null);
+          new SpannerConnectionConfiguration.Builder()
+              .setProjectId("project1")
+              .setInstanceName("an-instance")
+              .build();
         })
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("databaseName must not be null");
@@ -49,7 +55,12 @@ public class SpannerConnectionConfigurationTest {
   @Test
   public void nonNullConstructorParametersPassPreconditions() {
     SpannerConnectionConfiguration config
-        = new SpannerConnectionConfiguration("project1", "an-instance", "db");
+        = new SpannerConnectionConfiguration.Builder()
+        .setProjectId("project1")
+        .setInstanceName("an-instance")
+        .setDatabaseName("db")
+        .build();
+    assertThat(config.getProjectId()).isEqualTo("project1");
     assertThat(config.getInstanceName()).isEqualTo("an-instance");
     assertThat(config.getDatabaseName()).isEqualTo("db");
   }

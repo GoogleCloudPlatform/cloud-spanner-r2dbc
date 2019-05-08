@@ -44,11 +44,11 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 
   @Override
   public ConnectionFactory create(ConnectionFactoryOptions connectionFactoryOptions) {
-    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration(
-        connectionFactoryOptions.getValue(OPTION_PROJECT),
-        connectionFactoryOptions.getValue(OPTION_INSTANCE),
-        connectionFactoryOptions.getValue(DATABASE)
-    );
+    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
+        .setProjectId(connectionFactoryOptions.getValue(OPTION_PROJECT))
+        .setInstanceName(connectionFactoryOptions.getValue(OPTION_INSTANCE))
+        .setDatabaseName(connectionFactoryOptions.getValue(DATABASE))
+        .build();
     return new SpannerConnectionFactory(config);
   }
 

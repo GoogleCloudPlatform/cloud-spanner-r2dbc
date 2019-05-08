@@ -32,7 +32,11 @@ public class SpannerConnectionTest {
   public void createStatementDummyImplementation() {
     Client mockClient = Mockito.mock(Client.class);
     SpannerConnectionConfiguration config
-        = new SpannerConnectionConfiguration("a-project", "an-instance", "db");
+        = new SpannerConnectionConfiguration.Builder()
+        .setProjectId("a-project")
+        .setInstanceName("an-instance")
+        .setDatabaseName("db")
+        .build();
     SpannerConnection connection = new SpannerConnection(mockClient, config);
     Statement statement = connection.createStatement("not actual sql");
     assertThat(statement).isInstanceOf(SpannerStatement.class);

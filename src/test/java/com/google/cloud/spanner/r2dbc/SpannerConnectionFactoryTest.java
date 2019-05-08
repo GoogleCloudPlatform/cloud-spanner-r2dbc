@@ -39,8 +39,11 @@ public class SpannerConnectionFactoryTest {
 
   @Test
   public void createReturnsNewSpannerConnection() {
-    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration(
-        "a-project", "an-instance", "db");
+    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
+        .setProjectId("a-project")
+        .setInstanceName("an-instance")
+        .setDatabaseName("db")
+        .build();
     SpannerConnectionFactory factory = new SpannerConnectionFactory(config);
 
     Client mockClient = Mockito.mock(Client.class);
