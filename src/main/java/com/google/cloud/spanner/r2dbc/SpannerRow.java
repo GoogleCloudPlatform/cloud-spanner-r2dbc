@@ -18,7 +18,7 @@ package com.google.cloud.spanner.r2dbc;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.Value;
-import com.google.spanner.v1.ResultSetMetadata;
+import com.google.spanner.v1.StructType;
 import io.r2dbc.spi.Row;
 import java.util.List;
 
@@ -30,17 +30,17 @@ public class SpannerRow implements Row {
 
   private final List<Value> values;
 
-  private final ResultSetMetadata rowMetadata;
+  private final StructType rowMetadata;
 
   /**
    * Constructor.
    *
    * @param values the list of values in each column.
-   * @param resultSetMetadata the type information for each column.
+   * @param rowMetadata the type information for each column.
    */
-  public SpannerRow(List<Value> values, ResultSetMetadata resultSetMetadata) {
+  public SpannerRow(List<Value> values, StructType rowMetadata) {
     this.values = values;
-    this.rowMetadata = resultSetMetadata;
+    this.rowMetadata = rowMetadata;
   }
 
   @VisibleForTesting
