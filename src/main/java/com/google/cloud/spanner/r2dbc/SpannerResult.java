@@ -75,8 +75,11 @@ public class SpannerResult implements Result {
       return Flux.empty();
     }
 
-    return this.resultRows.zipWith(this.resultSetMetadata).map(tuple -> f
-        .apply(new SpannerRow(tuple.getT1(), tuple.getT2().getRowType()),
-            new SpannerRowMetadata(tuple.getT2())));
+    return Flux.defer(() -> {
+      ResultSetMetadata resultSetMetadata = this.resultSetMetadata.block();
+      return this.resultRows.map(row -> f
+          .apply(new SpannerRow(row, resultSetMetadata.getRowType()),
+              new SpannerRowMetadata(resultSetMetadata)));
+    });
   }
 }
