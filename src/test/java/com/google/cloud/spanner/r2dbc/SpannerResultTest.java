@@ -19,8 +19,9 @@ package com.google.cloud.spanner.r2dbc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.ResultSetMetadata;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,59 +33,51 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerResultTest {
 
-  private Flux<Struct> resultSet;
+  private Flux<List<Value>> resultSet;
+
+  private ResultSetMetadata resultSetMetadata = ResultSetMetadata.newBuilder().build();
 
   /**
    * Setup.
    */
   @Before
   public void setup() {
-    Struct struct1 = Struct.newBuilder().set("id").to(Value.string("key1")).build();
-    Struct struct2 = Struct.newBuilder().set("id").to(Value.string("key2")).build();
-    this.resultSet = Flux.just(struct1, struct2);
+    this.resultSet = Flux
+        .just(Collections.singletonList(Value.newBuilder().setStringValue("key1").build()),
+            Collections.singletonList(Value.newBuilder().setStringValue("key2").build()));
   }
 
   @Test
   public void getRowsUpdatedTest() {
-    assertThat(((Mono) new SpannerResult(this.resultSet).getRowsUpdated()).block()).isEqualTo(0);
+    assertThat(
+        ((Mono) new SpannerResult(this.resultSet, this.resultSetMetadata).getRowsUpdated()).block())
+        .isEqualTo(0);
     assertThat(((Mono) new SpannerResult(2).getRowsUpdated()).block()).isEqualTo(2);
   }
 
   @Test
   public void nullResultSetTest() {
-    assertThatThrownBy(() -> new SpannerResult(null))
+    assertThatThrownBy(() -> new SpannerResult(null, null))
         .hasMessage("A non-null flux of rows is required.");
   }
 
   @Test
+  public void nullRowMetadataTest() {
+    assertThatThrownBy(() -> new SpannerResult(this.resultSet, null))
+        .hasMessage("Non-null row metadata is required.");
+  }
+
+  @Test
   public void mapTest() {
-    assertThat(new SpannerResult(this.resultSet).map((row, metadata) ->
-        ((SpannerRow) row).getStruct().getString("id") + "-" + ((SpannerRowMetadata) metadata)
-            .getStruct().getString("id")).collectList().block())
-        .containsExactly("key1-key1", "key2-key2");
+    String metadataString = this.resultSetMetadata.toString();
+    assertThat(new SpannerResult(this.resultSet, this.resultSetMetadata).map((row, metadata) ->
+        ((SpannerRow) row).getValues().get(0).getStringValue() + "-"
+            + ((SpannerRowMetadata) metadata).getRowMetadata().toString()).collectList().block())
+        .containsExactly("key1-" + metadataString, "key2-" + metadataString);
   }
 
   @Test
   public void noResultsMapTest() {
     assertThat(new SpannerResult(2).map((x, y) -> "unused")).isEqualTo(Flux.empty());
-  }
-
-  static class MockResults {
-
-    List<Struct> structs;
-
-    int counter = -1;
-
-    boolean next() {
-      if (this.counter < this.structs.size() - 1) {
-        this.counter++;
-        return true;
-      }
-      return false;
-    }
-
-    Struct getCurrent() {
-      return this.structs.get(this.counter);
-    }
   }
 }

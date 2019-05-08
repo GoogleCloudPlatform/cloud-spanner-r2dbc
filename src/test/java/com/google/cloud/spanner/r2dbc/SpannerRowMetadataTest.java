@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.spanner.v1.ResultSetMetadata;
 import org.junit.Test;
 
 /**
@@ -27,7 +28,7 @@ public class SpannerRowMetadataTest {
 
   @Test
   public void getColumnMetadataDummyImplementation() {
-    SpannerRowMetadata metadata = new SpannerRowMetadata(null);
+    SpannerRowMetadata metadata = new SpannerRowMetadata(ResultSetMetadata.newBuilder().build());
     assertThat(metadata.getColumnMetadata("columnName"))
         .isInstanceOf(SpannerColumnMetadata.class);
   }

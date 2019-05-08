@@ -16,11 +16,13 @@
 
 package com.google.cloud.spanner.r2dbc;
 
-import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.ResultSetMetadata;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
+import java.util.List;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -32,17 +34,20 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerResult implements Result {
 
-  private final Flux<Struct> resultSet;
+  private final Flux<List<Value>> resultRows;
+
+  private final ResultSetMetadata rowMetadata;
 
   private final Mono<Integer> rowsUpdated;
 
   /**
    * Constructor for read-only query execution.
    *
-   * @param resultSet the underlying result from Cloud Spanner.
+   * @param resultRows the underlying result from Cloud Spanner.
    */
-  public SpannerResult(Flux<Struct> resultSet) {
-    this.resultSet = Assert.requireNonNull(resultSet, "A non-null flux of rows is required.");
+  public SpannerResult(Flux<List<Value>> resultRows, ResultSetMetadata rowMetadata) {
+    this.resultRows = Assert.requireNonNull(resultRows, "A non-null flux of rows is required.");
+    this.rowMetadata = Assert.requireNonNull(rowMetadata, "Non-null row metadata is required.");
     this.rowsUpdated = Mono.just(0);
   }
 
@@ -52,7 +57,8 @@ public class SpannerResult implements Result {
    * @param rowsUpdated the number of rows affected by the operation.
    */
   public SpannerResult(int rowsUpdated) {
-    this.resultSet = null;
+    this.resultRows = null;
+    this.rowMetadata = null;
     this.rowsUpdated = Mono.just(rowsUpdated);
   }
 
@@ -64,11 +70,11 @@ public class SpannerResult implements Result {
   @Override
   public <T> Flux<T> map(BiFunction<Row, RowMetadata, ? extends T> f) {
 
-    if (this.resultSet == null) {
+    if (this.resultRows == null) {
       return Flux.empty();
     }
 
-    return this.resultSet.map(row -> f
-        .apply(new SpannerRow(row), new SpannerRowMetadata(row)));
+    return this.resultRows.map(row -> f
+        .apply(new SpannerRow(row, this.rowMetadata), new SpannerRowMetadata(this.rowMetadata)));
   }
 }

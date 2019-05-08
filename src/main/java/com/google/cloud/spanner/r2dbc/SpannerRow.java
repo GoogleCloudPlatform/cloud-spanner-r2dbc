@@ -16,9 +16,11 @@
 
 package com.google.cloud.spanner.r2dbc;
 
-import com.google.cloud.spanner.Struct;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.ResultSetMetadata;
 import io.r2dbc.spi.Row;
+import java.util.List;
 
 /**
  * {@link Row} implementation for Cloud Spanner.
@@ -26,24 +28,29 @@ import io.r2dbc.spi.Row;
  */
 public class SpannerRow implements Row {
 
-  private final Struct struct;
+  private final List<Value> values;
+
+  private final ResultSetMetadata rowMetadata;
 
   /**
    * Constructor.
    *
-   * @param struct the row from Cloud Spanner.
+   * @param values the list of values in each column.
+   * @param resultSetMetadata the type information for each column.
    */
-  public SpannerRow(Struct struct) {
-    this.struct = struct;
+  public SpannerRow(List<Value> values, ResultSetMetadata resultSetMetadata) {
+    this.values = values;
+    this.rowMetadata = resultSetMetadata;
   }
 
   @VisibleForTesting
-  Struct getStruct() {
-    return this.struct;
+  List<Value> getValues() {
+    return this.values;
   }
 
   @Override
   public <T> T get(Object identifier, Class<T> type) {
+    // TODO
     return null;
   }
 }
