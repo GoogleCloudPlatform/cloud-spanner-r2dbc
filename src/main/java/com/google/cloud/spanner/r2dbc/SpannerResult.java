@@ -48,7 +48,7 @@ public class SpannerResult implements Result {
   public SpannerResult(Flux<List<Value>> resultRows, Mono<ResultSetMetadata> resultSetMetadata) {
     this.resultRows = Assert.requireNonNull(resultRows, "A non-null flux of rows is required.");
     this.resultSetMetadata = Assert
-        .requireNonNull(resultSetMetadata, "Non-null row metadata is required.");
+        .requireNonNull(resultSetMetadata, "Non-null row metadata is required.").cache();
     this.rowsUpdated = Mono.just(0);
   }
 
@@ -74,12 +74,8 @@ public class SpannerResult implements Result {
     if (this.resultRows == null) {
       return Flux.empty();
     }
-
-    return Flux.defer(() -> {
-      ResultSetMetadata resultSetMetadata = this.resultSetMetadata.block();
-      return this.resultRows.map(row -> f
-          .apply(new SpannerRow(row, resultSetMetadata.getRowType()),
-              new SpannerRowMetadata(resultSetMetadata)));
-    });
+    return Flux.combineLatest(this.resultSetMetadata, this.resultRows, (metadata, row) -> f
+        .apply(new SpannerRow(row, metadata.getRowType()),
+            new SpannerRowMetadata(metadata)));
   }
 }
