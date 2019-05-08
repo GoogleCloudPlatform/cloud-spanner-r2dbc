@@ -17,11 +17,10 @@
 package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
-import com.google.cloud.spanner.r2dbc.client.GrpcClient;
+import com.google.cloud.spanner.r2dbc.util.Assert;
 import com.google.spanner.v1.Session;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryMetadata;
-import java.io.IOException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -33,33 +32,25 @@ public class SpannerConnectionFactory implements ConnectionFactory {
 
   private SpannerConnectionConfiguration config;
 
-  private Client client = new GrpcClient();
+  private Client client;
 
-  public SpannerConnectionFactory(SpannerConnectionConfiguration config) {
-    this.config = config;
+  public SpannerConnectionFactory(Client client, SpannerConnectionConfiguration config) {
+    this.client = Assert.requireNonNull(client, "Spanner client must not be null");
+    this.config = Assert.requireNonNull(config, "Spanner configuration must not be null");
   }
 
   @Override
   public Publisher<SpannerConnection> create() {
 
-    return Mono.defer(() -> {
-      try {
-        this.client.initialize();
-        Mono<Session> session = this.client.createSession(config.getFullyQualifiedDatabaseName());
-        return Mono.just(new SpannerConnection(this.client, session));
-      } catch (IOException e) {
-        return Mono.error(e);
-      }
+    return Mono.fromSupplier(() -> {
+      Mono<Session> session = this.client.createSession(config.getFullyQualifiedDatabaseName());
+      return new SpannerConnection(this.client, session);
     });
   }
 
   @Override
   public ConnectionFactoryMetadata getMetadata() {
     return SpannerConnectionFactoryMetadata.INSTANCE;
-  }
-
-  public void setClient(Client client) {
-    this.client = client;
   }
 
 }

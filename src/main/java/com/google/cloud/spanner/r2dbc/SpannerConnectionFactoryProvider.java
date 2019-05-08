@@ -19,11 +19,13 @@ package com.google.cloud.spanner.r2dbc;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
+import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.ConnectionFactoryProvider;
 import io.r2dbc.spi.Option;
+import java.io.IOException;
 
 /**
  * An implementation of {@link ConnectionFactoryProvider} for creating {@link
@@ -49,7 +51,12 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
         .setInstanceName(connectionFactoryOptions.getValue(OPTION_INSTANCE))
         .setDatabaseName(connectionFactoryOptions.getValue(DATABASE))
         .build();
-    return new SpannerConnectionFactory(config);
+    try {
+      return new SpannerConnectionFactory(new GrpcClient(), config);
+    } catch (IOException e) {
+      // TODO: log and return null instead?
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

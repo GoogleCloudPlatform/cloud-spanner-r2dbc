@@ -46,8 +46,6 @@ public class SpannerIntegrationTest {
 
   @Test
   public void testCreatingSession() {
-
-
     ConnectionFactory connectionFactory =
         ConnectionFactories.get(ConnectionFactoryOptions.builder()
             // TODO: consider whether to bring autodiscovery of project ID

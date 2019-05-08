@@ -30,29 +30,29 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerConnectionFactoryTest {
 
+  SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
+      .setProjectId("a-project")
+      .setInstanceName("an-instance")
+      .setDatabaseName("db")
+      .build();
+
   @Test
   public void getMetadataReturnsSingleton() {
-    SpannerConnectionFactory factory = new SpannerConnectionFactory(null);
+    Client mockClient = Mockito.mock(Client.class);
+    SpannerConnectionFactory factory = new SpannerConnectionFactory(mockClient, config);
 
     assertThat(factory.getMetadata()).isSameAs(SpannerConnectionFactoryMetadata.INSTANCE);
   }
 
   @Test
   public void createReturnsNewSpannerConnection() {
-    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
-        .setProjectId("a-project")
-        .setInstanceName("an-instance")
-        .setDatabaseName("db")
-        .build();
-    SpannerConnectionFactory factory = new SpannerConnectionFactory(config);
 
     Client mockClient = Mockito.mock(Client.class);
-    factory.setClient(mockClient);
-
     Session session = Session.newBuilder().setName("jam session").build();
     when(mockClient.createSession("projects/a-project/instances/an-instance/databases/db"))
         .thenReturn(Mono.just(session));
 
+    SpannerConnectionFactory factory = new SpannerConnectionFactory(mockClient, this.config);
     SpannerConnection connection = Mono.from(factory.create()).block();
 
     assertThat(connection.getSessionName().block()).isEqualTo("jam session");

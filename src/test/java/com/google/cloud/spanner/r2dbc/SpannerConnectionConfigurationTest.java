@@ -27,7 +27,7 @@ import org.junit.Test;
 public class SpannerConnectionConfigurationTest {
 
   @Test
-  public void nullInstanceNameTriggersException() {
+  public void missingInstanceNameTriggersException() {
     assertThatThrownBy(
         () -> {
           new SpannerConnectionConfiguration.Builder()
@@ -40,7 +40,7 @@ public class SpannerConnectionConfigurationTest {
   }
 
   @Test
-  public void nullDatabaseNameTriggersException() {
+  public void missingDatabaseNameTriggersException() {
     assertThatThrownBy(
         () -> {
           new SpannerConnectionConfiguration.Builder()
@@ -53,6 +53,19 @@ public class SpannerConnectionConfigurationTest {
   }
 
   @Test
+  public void missingProjectIdTriggersException() {
+    assertThatThrownBy(
+        () -> {
+          new SpannerConnectionConfiguration.Builder()
+              .setInstanceName("an-instance")
+              .setDatabaseName("db")
+              .build();
+        })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("projectId must not be null");
+  }
+
+  @Test
   public void nonNullConstructorParametersPassPreconditions() {
     SpannerConnectionConfiguration config
         = new SpannerConnectionConfiguration.Builder()
@@ -60,9 +73,8 @@ public class SpannerConnectionConfigurationTest {
         .setInstanceName("an-instance")
         .setDatabaseName("db")
         .build();
-    assertThat(config.getProjectId()).isEqualTo("project1");
-    assertThat(config.getInstanceName()).isEqualTo("an-instance");
-    assertThat(config.getDatabaseName()).isEqualTo("db");
+    assertThat(config.getFullyQualifiedDatabaseName())
+        .isEqualTo("projects/project1/instances/an-instance/databases/db");
   }
 
 }

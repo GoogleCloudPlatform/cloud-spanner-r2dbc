@@ -19,7 +19,6 @@ package com.google.cloud.spanner.r2dbc.client;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
-import java.io.IOException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -27,13 +26,6 @@ import reactor.core.publisher.Mono;
  * An abstraction that wraps interaction with the Cloud Spanner Database APIs.
  */
 public interface Client {
-
-  /**
-   * Prepares the client for performing Spanner operations.
-   * @throws IOException if credentials could not be acquired
-   */
-  public void initialize() throws IOException;
-
 
   /**
    * Release any resources held by the {@link Client}.
@@ -48,7 +40,10 @@ public interface Client {
   Publisher<PartialResultSet> executeStreamingSql(ExecuteSqlRequest request);
 
   /**
-   * Create a Spanner session.
+   * Create a Spanner session to be used in subsequent interactions with the database.
+   * @param databaseName Fully qualified Spanner database name in the format
+   * {@code projects/[PROJECT_ID]/instances/[INSTANCE]/databases/[DATABASE]}
+   * @returns {@link Mono} of the generated session.
    */
   Mono<Session> createSession(String databaseName);
 

@@ -26,12 +26,6 @@ public class SpannerConnectionConfiguration {
   private static final String FULLY_QUALIFIED_DB_NAME_PATTERN
       = "projects/%s/instances/%s/databases/%s";
 
-  private final String projectId;
-
-  private final String instanceName;
-
-  private final String databaseName;
-
   private final String fullyQualifiedDbName;
 
   /**
@@ -43,27 +37,13 @@ public class SpannerConnectionConfiguration {
    */
   private SpannerConnectionConfiguration(
       String projectId, String instanceName, String databaseName) {
-    this.projectId
-        = Assert.requireNonNull(projectId, "projectId must not be null");
-    this.instanceName
-        = Assert.requireNonNull(instanceName, "instanceName must not be null");
-    this.databaseName
-        = Assert.requireNonNull(databaseName, "databaseName must not be null");
+
+    Assert.requireNonNull(projectId, "projectId must not be null");
+    Assert.requireNonNull(instanceName, "instanceName must not be null");
+    Assert.requireNonNull(databaseName, "databaseName must not be null");
 
     this.fullyQualifiedDbName = String.format(
-        FULLY_QUALIFIED_DB_NAME_PATTERN, this.projectId, this.instanceName, this.databaseName);
-  }
-
-  public String getInstanceName() {
-    return instanceName;
-  }
-
-  public String getDatabaseName() {
-    return databaseName;
-  }
-
-  public String getProjectId() {
-    return projectId;
+        FULLY_QUALIFIED_DB_NAME_PATTERN, projectId, instanceName, databaseName);
   }
 
   /**

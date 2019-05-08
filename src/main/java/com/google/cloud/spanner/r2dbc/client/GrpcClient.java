@@ -43,32 +43,27 @@ public class GrpcClient implements Client {
   public static final String HOST = "spanner.googleapis.com";
   public static final int PORT = 443;
 
-  private SpannerStub spanner;
+  private final SpannerStub spanner;
 
   /**
-   * Creates the gRPC stub with authentication.
-   * @throws IOException if credentials could not be acquired
+   * Initializes the Cloud Spanner gRPC async stub.
    */
-  public void initialize() throws IOException {
-    // Create blocking and async stubs using the channel
-    CallCredentials callCredentials = MoreCallCredentials
-        .from(GoogleCredentials.getApplicationDefault());
-
+  public GrpcClient() throws IOException {
     // Create a channel
     ManagedChannel channel = ManagedChannelBuilder
         .forAddress(HOST, PORT)
         .build();
+
+    // Create blocking and async stubs using the channel
+    CallCredentials callCredentials = MoreCallCredentials
+        .from(GoogleCredentials.getApplicationDefault());
 
     // Create the asynchronous stub for Cloud Spanner
     this.spanner = SpannerGrpc.newStub(channel)
         .withCallCredentials(callCredentials);
   }
 
-  /**
-   * Creates a Spanner session to be used for any future operations.
-   * @param databaseName Fully qualified database name in {@code project/instance/database} format.
-   * @return {@link Mono} of the created session.
-   */
+  @Override
   public Mono<Session> createSession(String databaseName) {
     CreateSessionRequest request = CreateSessionRequest.newBuilder()
         .setDatabase(databaseName)
