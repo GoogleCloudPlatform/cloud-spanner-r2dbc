@@ -42,6 +42,9 @@ public class SpannerConnectionTest {
 
   private Client mockClient;
 
+  /**
+   * Initializes the mocks in the test.
+   */
   @Before
   public void setupMocks() {
     this.mockClient = Mockito.mock(Client.class);

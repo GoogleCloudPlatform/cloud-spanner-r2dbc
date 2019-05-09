@@ -38,7 +38,7 @@ public interface Client {
 
   /**
    * Deletes a Spanner session that is used to call Spanner APIs.
-    * @param session The session you wish to close.
+   * @param session The session you wish to close.
    * @return {@link Mono} indicating completion closing the session.
    */
   Mono<Void> deleteSession(Session session);
