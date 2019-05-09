@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc;
+package com.google.cloud.spanner.r2dbc.it;
 
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
@@ -24,6 +24,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assume.assumeThat;
 
 import com.google.cloud.ServiceOptions;
+import com.google.cloud.spanner.r2dbc.SpannerConnection;
+import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
