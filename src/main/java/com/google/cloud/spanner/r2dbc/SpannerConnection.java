@@ -23,14 +23,13 @@ import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.Statement;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Mono;
 
 /**
  * {@link Connection} implementation for Cloud Spanner.
  */
 public class SpannerConnection implements Connection {
 
-  private Mono<Session> session;
+  private Session session;
 
   private Client client;
 
@@ -39,7 +38,7 @@ public class SpannerConnection implements Connection {
    * @param client client controlling low-level Spanner operations
    * @param session Spanner session to use for all interactions on this connection.
    */
-  public SpannerConnection(Client client, Mono<Session> session) {
+  public SpannerConnection(Client client, Session session) {
 
     this.client = client;
 
@@ -86,7 +85,12 @@ public class SpannerConnection implements Connection {
     return null;
   }
 
-  public Mono<String> getSessionName() {
-    return this.session.map(s -> s.getName());
+  /**
+   * Returns the Spanner session associated with the current {@link Connection}.
+   * @return spanner session proto
+   */
+  public Session getSession() {
+    return this.session;
   }
+
 }

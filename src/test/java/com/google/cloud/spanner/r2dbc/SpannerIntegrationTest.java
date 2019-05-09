@@ -16,7 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc;
 
-import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.OPTION_INSTANCE;
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,12 +51,15 @@ public class SpannerIntegrationTest {
             // TODO: consider whether to bring autodiscovery of project ID
             .option(Option.valueOf("project"), ServiceOptions.getDefaultProjectId())
             .option(DRIVER, "spanner")
-            .option(OPTION_INSTANCE, "reactivetest")
+            .option(INSTANCE, "reactivetest")
             .option(DATABASE, "testdb")
             .build());
 
+    assertThat(connectionFactory).isInstanceOf(SpannerConnectionFactory.class);
+
     Mono<Connection> connection = (Mono<Connection>) connectionFactory.create();
     SpannerConnection spannerConnection = (SpannerConnection)connection.block();
-    assertThat(spannerConnection.getSessionName().block()).contains("/sessions/");
+    assertThat(spannerConnection.getSession().getName()).contains("/sessions/");
   }
+
 }

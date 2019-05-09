@@ -23,7 +23,6 @@ import com.google.spanner.v1.Session;
 import io.r2dbc.spi.Statement;
 import org.junit.Test;
 import org.mockito.Mockito;
-import reactor.core.publisher.Mono;
 
 /**
  * Test for {@link SpannerConnection}.
@@ -40,7 +39,7 @@ public class SpannerConnectionTest {
         .setDatabaseName("db")
         .build();
     Session session = Session.newBuilder().setName("project/session/1234").build();
-    SpannerConnection connection = new SpannerConnection(mockClient, Mono.just(session));
+    SpannerConnection connection = new SpannerConnection(mockClient, session);
     Statement statement = connection.createStatement("not actual sql");
     assertThat(statement).isInstanceOf(SpannerStatement.class);
   }

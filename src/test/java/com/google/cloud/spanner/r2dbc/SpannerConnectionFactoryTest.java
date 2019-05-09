@@ -55,7 +55,7 @@ public class SpannerConnectionFactoryTest {
     SpannerConnectionFactory factory = new SpannerConnectionFactory(mockClient, this.config);
     SpannerConnection connection = Mono.from(factory.create()).block();
 
-    assertThat(connection.getSessionName().block()).isEqualTo("jam session");
+    assertThat(connection.getSession().getName()).isEqualTo("jam session");
 
   }
 }

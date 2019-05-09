@@ -19,8 +19,10 @@ package com.google.cloud.spanner.r2dbc;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
+import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import com.google.common.annotations.VisibleForTesting;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.ConnectionFactoryProvider;
@@ -39,22 +41,27 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   public static final String DRIVER_NAME = "spanner";
 
   /** Option name for GCP Project. */
-  public static final Option<String> OPTION_PROJECT = Option.valueOf("project");
+  public static final Option<String> PROJECT = Option.valueOf("project");
 
   /** Option name for GCP Spanner instance. */
-  public static final Option<String> OPTION_INSTANCE = Option.valueOf("instance");
+  public static final Option<String> INSTANCE = Option.valueOf("instance");
+
+  private Client client;
 
   @Override
   public ConnectionFactory create(ConnectionFactoryOptions connectionFactoryOptions) {
     SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
-        .setProjectId(connectionFactoryOptions.getValue(OPTION_PROJECT))
-        .setInstanceName(connectionFactoryOptions.getValue(OPTION_INSTANCE))
-        .setDatabaseName(connectionFactoryOptions.getValue(DATABASE))
+        .setProjectId(connectionFactoryOptions.getRequiredValue(PROJECT))
+        .setInstanceName(connectionFactoryOptions.getRequiredValue(INSTANCE))
+        .setDatabaseName(connectionFactoryOptions.getRequiredValue(DATABASE))
         .build();
     try {
-      return new SpannerConnectionFactory(new GrpcClient(), config);
+      if (this.client == null) {
+        // GrpcClient should only be instantiated if/when a SpannerConnectionFactory is needed.
+        this.client = new GrpcClient();
+      }
+      return new SpannerConnectionFactory(client, config);
     } catch (IOException e) {
-      // TODO: log and return null instead?
       throw new RuntimeException(e);
     }
   }
@@ -66,4 +73,10 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 
     return DRIVER_NAME.equals(driver);
   }
+
+  @VisibleForTesting
+  void setClient(Client client) {
+    this.client = client;
+  }
+
 }
