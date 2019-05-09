@@ -6,6 +6,7 @@ jdk:
 branches:
   only:
     - master
+    - test
 
 before_install:
   - if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
