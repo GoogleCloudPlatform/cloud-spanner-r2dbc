@@ -40,8 +40,6 @@ public class SpannerIntegrationTest {
 
   @Before
   public void enableIntegrationTest() {
-//    assumeThat("Enable integration tests with -Dit.spanner=true.",
-//        System.getProperty("it.spanner"), is("true"));
   }
 
   @Test
