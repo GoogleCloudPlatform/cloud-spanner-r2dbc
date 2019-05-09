@@ -20,6 +20,8 @@ import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.IN
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assume.assumeThat;
 
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
@@ -40,6 +42,8 @@ public class SpannerIntegrationTest {
 
   @Before
   public void enableIntegrationTest() {
+    assumeThat("Enable integration tests with -Dit.spanner=true.",
+        System.getProperty("it.spanner"), is("true"));
   }
 
   @Test
