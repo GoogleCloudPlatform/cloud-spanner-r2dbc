@@ -17,16 +17,24 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.spanner.v1.BeginTransactionRequest;
+import com.google.spanner.v1.CommitRequest;
+import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
+import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
+import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -58,6 +66,64 @@ public class GrpcClient implements Client {
     // Create the asynchronous stub for Cloud Spanner
     this.spanner = SpannerGrpc.newStub(channel)
         .withCallCredentials(callCredentials);
+  }
+
+  public Mono<Void> commitTransaction(Session session, Transaction transaction) {
+    CommitRequest commitRequest =
+        CommitRequest.newBuilder()
+            .setSession(session.getName())
+            .setTransactionId(transaction.getId())
+            .build();
+
+    this.spanner.commit(commitRequest, new StreamObserver<CommitResponse>() {
+      @Override
+      public void onNext(CommitResponse commitResponse) {
+
+      }
+
+      @Override
+      public void onError(Throwable throwable) {
+
+      }
+
+      @Override
+      public void onCompleted() {
+
+      }
+    });
+
+    return Mono.empty();
+  }
+
+  public Mono<Transaction> beginTransaction(Session session) {
+    BeginTransactionRequest beginTransactionRequest =
+        BeginTransactionRequest.newBuilder()
+            .setSession(session.getName())
+            .setOptions(
+                TransactionOptions
+                    .newBuilder()
+                    .setReadWrite(ReadWrite.getDefaultInstance())
+                    .build())
+            .build();
+
+    this.spanner.beginTransaction(beginTransactionRequest, new StreamObserver<Transaction>() {
+      @Override
+      public void onNext(Transaction transaction) {
+
+      }
+
+      @Override
+      public void onError(Throwable throwable) {
+
+      }
+
+      @Override
+      public void onCompleted() {
+
+      }
+    });
+
+    return Mono.empty();
   }
 
   @Override
