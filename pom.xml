@@ -16,7 +16,11 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <r2dbc.version>1.0.0.M7</r2dbc.version>
     <reactor.version>Californium-SR6</reactor.version>
-    <spanner-client.version>1.11.0</spanner-client.version>
+    <google-auth.version>0.15.0</google-auth.version>
+    <grpc.version>1.20.0</grpc.version>
+    <mockito.version>2.23.0</mockito.version>
+    <grpc-spanner.version>1.17.0</grpc-spanner.version>
+    <google-cloud-core.version>1.72.0</google-cloud-core.version>
   </properties>
 
 
@@ -34,9 +38,25 @@
     </dependency>
 
     <dependency>
-      <groupId>com.google.cloud</groupId>
-      <artifactId>google-cloud-spanner</artifactId>
-      <version>${spanner-client.version}</version>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>grpc-google-cloud-spanner-v1</artifactId>
+      <version>${grpc-spanner.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.auth</groupId>
+      <artifactId>google-auth-library-oauth2-http</artifactId>
+      <version>${google-auth.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-auth</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
     </dependency>
 
     <!-- test dependencies -->
@@ -55,7 +75,15 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>2.23.0</version>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- TODO: this is a test dependency for now. Should project ID discovery be part of the driver itself? -->
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-core</artifactId>
+      <version>${google-cloud-core.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -63,6 +91,15 @@
 
   <dependencyManagement>
     <dependencies>
+
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>${grpc.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <dependency>
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-bom</artifactId>
