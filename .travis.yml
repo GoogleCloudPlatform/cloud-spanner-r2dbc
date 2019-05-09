@@ -6,10 +6,9 @@ jdk:
 branches:
   only:
     - master
-    - test
 
 before_install:
-  - if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
+  - if [ "true" == "true" ]; then
       openssl aes-256-cbc -K $encrypted_efeaa5860646_key -iv $encrypted_efeaa5860646_iv -in admin.json.enc -out admin.json -d;
       export GOOGLE_APPLICATION_CREDENTIALS=$TRAVIS_BUILD_DIR/admin.json;
       export GOOGLE_CLOUD_PROJECT=cloud-spanner-r2dbc-ci;
