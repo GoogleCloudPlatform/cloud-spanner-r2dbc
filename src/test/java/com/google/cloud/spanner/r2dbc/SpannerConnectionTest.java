@@ -17,30 +17,64 @@
 package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.spanner.v1.Session;
+import com.google.spanner.v1.Transaction;
 import io.r2dbc.spi.Statement;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Mono;
 
 /**
  * Test for {@link SpannerConnection}.
  */
 public class SpannerConnectionTest {
 
+  private static final Session TEST_SESSION =
+      Session.newBuilder().setName("project/session/1234").build();
+
+  private Client mockClient;
+
+  @Before
+  public void setupMocks() {
+    this.mockClient = Mockito.mock(Client.class);
+    when(this.mockClient.beginTransaction(any()))
+        .thenReturn(Mono.just(Transaction.getDefaultInstance()));
+  }
+
   @Test
   public void createStatementDummyImplementation() {
-    Client mockClient = Mockito.mock(Client.class);
     SpannerConnectionConfiguration config
         = new SpannerConnectionConfiguration.Builder()
         .setProjectId("a-project")
         .setInstanceName("an-instance")
         .setDatabaseName("db")
         .build();
-    Session session = Session.newBuilder().setName("project/session/1234").build();
-    SpannerConnection connection = new SpannerConnection(mockClient, session);
+
+    SpannerConnection connection = new SpannerConnection(mockClient, TEST_SESSION);
     Statement statement = connection.createStatement("not actual sql");
     assertThat(statement).isInstanceOf(SpannerStatement.class);
+  }
+
+  @Test
+  public void beginAndCommitTransactions() {
+    SpannerConnection connection = new SpannerConnection(mockClient, TEST_SESSION);
+
+    Mono.from(connection.commitTransaction()).block();
+    verify(this.mockClient, never()).commitTransaction(any(), any());
+
+    Mono.from(connection.beginTransaction()).block();
+    Mono.from(connection.commitTransaction()).block();
+    verify(this.mockClient, times(1))
+        .beginTransaction(TEST_SESSION);
+    verify(this.mockClient, times(1))
+        .commitTransaction(TEST_SESSION, Transaction.getDefaultInstance());
   }
 }
