@@ -13,4 +13,4 @@ before_install:
   - export GOOGLE_CLOUD_PROJECT=cloud-spanner-r2dbc-ci
 
 script:
-  - mvn clean verify -B -V
+  - mvn clean verify -B -V -q
