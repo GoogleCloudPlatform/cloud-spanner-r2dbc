@@ -54,14 +54,16 @@ public class SpannerConnection implements Connection {
 
   @Override
   public Publisher<Void> beginTransaction() {
-    currentTransaction = client.beginTransaction(session);
-    return currentTransaction.then();
+    return Mono.defer(() -> {
+      currentTransaction = client.beginTransaction(session);
+      return currentTransaction.then();
+    });
   }
 
   @Override
   public Publisher<Void> commitTransaction() {
     return currentTransaction
-        .doOnNext(transaction -> client.commitTransaction(session, transaction))
+        .flatMap(transaction -> client.commitTransaction(session, transaction))
         .switchIfEmpty(Mono.fromRunnable(() ->
             logger.warn("commitTransaction() is a no-op; called with no transaction active.")))
         .then();

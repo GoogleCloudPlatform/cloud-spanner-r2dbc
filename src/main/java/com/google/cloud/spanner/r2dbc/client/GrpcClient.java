@@ -73,49 +73,57 @@ public class GrpcClient implements Client {
 
   @Override
   public Mono<Transaction> beginTransaction(Session session) {
-    BeginTransactionRequest beginTransactionRequest =
-        BeginTransactionRequest.newBuilder()
-            .setSession(session.getName())
-            .setOptions(
-                TransactionOptions
-                    .newBuilder()
-                    .setReadWrite(ReadWrite.getDefaultInstance()))
-            .build();
+    return Mono.defer(() -> {
+      BeginTransactionRequest beginTransactionRequest =
+          BeginTransactionRequest.newBuilder()
+              .setSession(session.getName())
+              .setOptions(
+                  TransactionOptions
+                      .newBuilder()
+                      .setReadWrite(ReadWrite.getDefaultInstance()))
+              .build();
 
-    return ObservableReactiveUtil.unaryCall(
-        (obs) -> this.spanner.beginTransaction(beginTransactionRequest, obs));
+      return ObservableReactiveUtil.unaryCall(
+          (obs) -> this.spanner.beginTransaction(beginTransactionRequest, obs));
+    });
   }
 
   @Override
   public Mono<CommitResponse> commitTransaction(Session session, Transaction transaction) {
-    CommitRequest commitRequest =
-        CommitRequest.newBuilder()
-            .setSession(session.getName())
-            .setTransactionId(transaction.getId())
-            .build();
+    return Mono.defer(() -> {
+      CommitRequest commitRequest =
+          CommitRequest.newBuilder()
+              .setSession(session.getName())
+              .setTransactionId(transaction.getId())
+              .build();
 
-    return ObservableReactiveUtil.unaryCall(
-        (obs) -> this.spanner.commit(commitRequest, obs));
+      return ObservableReactiveUtil.unaryCall(
+          (obs) -> this.spanner.commit(commitRequest, obs));
+    });
   }
 
   @Override
   public Mono<Session> createSession(String databaseName) {
-    CreateSessionRequest request = CreateSessionRequest.newBuilder()
-        .setDatabase(databaseName)
-        .build();
-    return ObservableReactiveUtil.unaryCall((obs) -> this.spanner.createSession(request, obs));
+    return Mono.defer(() -> {
+      CreateSessionRequest request = CreateSessionRequest.newBuilder()
+          .setDatabase(databaseName)
+          .build();
+      return ObservableReactiveUtil.unaryCall((obs) -> this.spanner.createSession(request, obs));
+    });
   }
 
   @Override
   public Mono<Void> deleteSession(Session session) {
-    DeleteSessionRequest deleteSessionRequest =
-        DeleteSessionRequest.newBuilder()
-            .setName(session.getName())
-            .build();
+    return Mono.defer(() -> {
+      DeleteSessionRequest deleteSessionRequest =
+          DeleteSessionRequest.newBuilder()
+              .setName(session.getName())
+              .build();
 
-    return ObservableReactiveUtil.<Empty>unaryCall(
-        (obs) -> this.spanner.deleteSession(deleteSessionRequest, obs))
-        .then();
+      return ObservableReactiveUtil.<Empty>unaryCall(
+          (obs) -> this.spanner.deleteSession(deleteSessionRequest, obs))
+          .then();
+    });
   }
 
   @Override

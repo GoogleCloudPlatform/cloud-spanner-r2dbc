@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
 import io.r2dbc.spi.Statement;
@@ -50,6 +51,8 @@ public class SpannerConnectionTest {
     this.mockClient = Mockito.mock(Client.class);
     when(this.mockClient.beginTransaction(any()))
         .thenReturn(Mono.just(Transaction.getDefaultInstance()));
+    when(this.mockClient.commitTransaction(any(), any()))
+        .thenReturn(Mono.just(CommitResponse.getDefaultInstance()));
   }
 
   @Test
