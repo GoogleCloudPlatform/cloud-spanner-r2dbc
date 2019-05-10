@@ -13,7 +13,7 @@ before_install:
       export GOOGLE_APPLICATION_CREDENTIALS=$TRAVIS_BUILD_DIR/admin.json;
       export GOOGLE_CLOUD_PROJECT=cloud-spanner-r2dbc-ci;
     else
-      export INTEGRATION_TEST_FLAGS="-DskipITs"
+      export INTEGRATION_TEST_FLAGS="-DskipITs";
     fi;
 
 script:
