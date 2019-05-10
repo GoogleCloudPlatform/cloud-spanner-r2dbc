@@ -35,7 +35,7 @@ import reactor.core.publisher.Mono;
 /**
  * Integration test for connecting to a real Spanner instance.
  */
-public class SpannerIntegrationTest {
+public class SpannerIT {
 
   @Test
   public void testCreatingSession() {
