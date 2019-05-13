@@ -63,6 +63,9 @@ public class SpannerIT {
 
   private SpannerStub spanner;
 
+  /**
+   * Setup the Spanner stub for testing.
+   */
   @Before
   public void setupStubs() throws IOException {
     // Create a channel
