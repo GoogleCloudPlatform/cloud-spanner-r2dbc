@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.protobuf.Empty;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
@@ -53,6 +54,8 @@ public class SpannerConnectionTest {
         .thenReturn(Mono.just(Transaction.getDefaultInstance()));
     when(this.mockClient.commitTransaction(any(), any()))
         .thenReturn(Mono.just(CommitResponse.getDefaultInstance()));
+    when(this.mockClient.rollbackTransaction(any(), any()))
+        .thenReturn(Mono.empty());
   }
 
   @Test
@@ -82,5 +85,20 @@ public class SpannerConnectionTest {
         .beginTransaction(TEST_SESSION);
     verify(this.mockClient, times(1))
         .commitTransaction(TEST_SESSION, Transaction.getDefaultInstance());
+  }
+
+  @Test
+  public void rollbackTransactions() {
+    SpannerConnection connection = new SpannerConnection(mockClient, TEST_SESSION);
+
+    Mono.from(connection.rollbackTransaction()).block();
+    verify(this.mockClient, never()).rollbackTransaction(any(), any());
+
+    Mono.from(connection.beginTransaction()).block();
+    Mono.from(connection.rollbackTransaction()).block();
+    verify(this.mockClient, times(1))
+        .beginTransaction(TEST_SESSION);
+    verify(this.mockClient, times(1))
+        .rollbackTransaction(TEST_SESSION, Transaction.getDefaultInstance());
   }
 }
