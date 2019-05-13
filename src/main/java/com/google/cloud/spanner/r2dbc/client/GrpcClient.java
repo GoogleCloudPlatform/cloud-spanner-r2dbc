@@ -51,6 +51,7 @@ public class GrpcClient implements Client {
   public static final String HOST = "spanner.googleapis.com";
   public static final int PORT = 443;
 
+  private final ManagedChannel channel;
   private final SpannerStub spanner;
 
   /**
@@ -58,7 +59,7 @@ public class GrpcClient implements Client {
    */
   public GrpcClient() throws IOException {
     // Create a channel
-    ManagedChannel channel = ManagedChannelBuilder
+    this.channel = ManagedChannelBuilder
         .forAddress(HOST, PORT)
         .build();
 
@@ -67,7 +68,7 @@ public class GrpcClient implements Client {
         .from(GoogleCredentials.getApplicationDefault());
 
     // Create the asynchronous stub for Cloud Spanner
-    this.spanner = SpannerGrpc.newStub(channel)
+    this.spanner = SpannerGrpc.newStub(this.channel)
         .withCallCredentials(callCredentials);
   }
 
@@ -160,7 +161,6 @@ public class GrpcClient implements Client {
 
   @Override
   public Mono<Void> close() {
-    return null;
+    return Mono.fromRunnable(() -> this.channel.shutdownNow());
   }
-
 }
