@@ -108,6 +108,7 @@ public class GrpcClient implements Client {
       CreateSessionRequest request = CreateSessionRequest.newBuilder()
           .setDatabase(databaseName)
           .build();
+
       return ObservableReactiveUtil.unaryCall((obs) -> this.spanner.createSession(request, obs));
     });
   }
