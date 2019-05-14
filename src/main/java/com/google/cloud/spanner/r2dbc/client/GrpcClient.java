@@ -17,10 +17,22 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
+import com.google.protobuf.Empty;
+import com.google.spanner.v1.BeginTransactionRequest;
+import com.google.spanner.v1.CommitRequest;
+import com.google.spanner.v1.CommitResponse;
+import com.google.spanner.v1.CreateSessionRequest;
+import com.google.spanner.v1.DeleteSessionRequest;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.RollbackRequest;
+import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
+import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -40,6 +52,7 @@ public class GrpcClient implements Client {
   public static final String HOST = "spanner.googleapis.com";
   public static final int PORT = 443;
 
+  private final ManagedChannel channel;
   private final SpannerStub spanner;
 
   /**
@@ -47,7 +60,7 @@ public class GrpcClient implements Client {
    */
   public GrpcClient() throws IOException {
     // Create a channel
-    ManagedChannel channel = ManagedChannelBuilder
+    this.channel = ManagedChannelBuilder
         .forAddress(HOST, PORT)
         .build();
 
@@ -56,13 +69,79 @@ public class GrpcClient implements Client {
         .from(GoogleCredentials.getApplicationDefault());
 
     // Create the asynchronous stub for Cloud Spanner
-    this.spanner = SpannerGrpc.newStub(channel)
+    this.spanner = SpannerGrpc.newStub(this.channel)
         .withCallCredentials(callCredentials);
   }
 
   @Override
-  public Mono<Void> close() {
-    return null;
+  public Mono<Transaction> beginTransaction(Session session) {
+    return Mono.defer(() -> {
+      BeginTransactionRequest beginTransactionRequest =
+          BeginTransactionRequest.newBuilder()
+              .setSession(session.getName())
+              .setOptions(
+                  TransactionOptions
+                      .newBuilder()
+                      .setReadWrite(ReadWrite.getDefaultInstance()))
+              .build();
+
+      return ObservableReactiveUtil.unaryCall(
+          (obs) -> this.spanner.beginTransaction(beginTransactionRequest, obs));
+    });
+  }
+
+  @Override
+  public Mono<CommitResponse> commitTransaction(Session session, Transaction transaction) {
+    return Mono.defer(() -> {
+      CommitRequest commitRequest =
+          CommitRequest.newBuilder()
+              .setSession(session.getName())
+              .setTransactionId(transaction.getId())
+              .build();
+
+      return ObservableReactiveUtil.unaryCall(
+          (obs) -> this.spanner.commit(commitRequest, obs));
+    });
+  }
+
+  @Override
+  public Mono<Void> rollbackTransaction(Session session, Transaction transaction) {
+    return Mono.defer(() -> {
+      RollbackRequest rollbackRequest =
+          RollbackRequest.newBuilder()
+              .setSession(session.getName())
+              .setTransactionId(transaction.getId())
+              .build();
+
+      return ObservableReactiveUtil.<Empty>unaryCall(
+          (obs) -> this.spanner.rollback(rollbackRequest, obs))
+          .then();
+    });
+  }
+
+  @Override
+  public Mono<Session> createSession(String databaseName) {
+    return Mono.defer(() -> {
+      CreateSessionRequest request = CreateSessionRequest.newBuilder()
+          .setDatabase(databaseName)
+          .build();
+
+      return ObservableReactiveUtil.unaryCall((obs) -> this.spanner.createSession(request, obs));
+    });
+  }
+
+  @Override
+  public Mono<Void> deleteSession(Session session) {
+    return Mono.defer(() -> {
+      DeleteSessionRequest deleteSessionRequest =
+          DeleteSessionRequest.newBuilder()
+              .setName(session.getName())
+              .build();
+
+      return ObservableReactiveUtil.<Empty>unaryCall(
+          (obs) -> this.spanner.deleteSession(deleteSessionRequest, obs))
+          .then();
+    });
   }
 
   @Override
@@ -94,5 +173,10 @@ public class GrpcClient implements Client {
           };
       this.spanner.executeStreamingSql(request, clientResponseObserver);
     });
+  }
+
+  @Override
+  public Mono<Void> close() {
+    return Mono.fromRunnable(() -> this.channel.shutdownNow());
   }
 }
