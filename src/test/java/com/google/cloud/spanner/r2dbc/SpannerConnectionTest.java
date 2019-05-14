@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
-import com.google.protobuf.Empty;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
