@@ -18,6 +18,15 @@ package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.cloud.spanner.r2dbc.codecs.Codecs;
+import com.google.cloud.spanner.r2dbc.codecs.DefaultCodecs;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.StructType;
+import com.google.spanner.v1.StructType.Field;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.Test;
 
 /**
@@ -25,9 +34,42 @@ import org.junit.Test;
  */
 public class SpannerRowTest {
 
+  private static final Codecs codecs = new DefaultCodecs();
+
   @Test
   public void getDummyImplementation() {
-    SpannerRow row = new SpannerRow(null, null);
-    assertThat(row.get("columnName", String.class)).isNull();
+    StructType rowMetadata = createRowMetadata(TypeCode.STRING, TypeCode.INT64, TypeCode.BOOL);
+    List<Value> rawSpannerRow = createRawSpannerRow("Hello", 25L, true);
+
+    SpannerRow row = new SpannerRow(rawSpannerRow, rowMetadata);
+
+    assertThat(row.get("column_2", Boolean.class)).isEqualTo(true);
+    assertThat(row.get("column_0", String.class)).isEqualTo("Hello");
+
+    assertThat(row.get(1, Long.class)).isEqualTo(25L);
+  }
+
+  private static List<Value> createRawSpannerRow(Object... rowItems) {
+    List<Value> listValues = new ArrayList<>();
+
+    for (int i = 0; i < rowItems.length; i++) {
+      listValues.add(codecs.encode(rowItems[i]));
+    }
+    return listValues;
+  }
+
+  private static StructType createRowMetadata(TypeCode... types) {
+    StructType.Builder structType = StructType.newBuilder();
+
+    for (int i = 0; i < types.length; i++) {
+      Field field =
+          Field.newBuilder()
+              .setName("column_" + i)
+              .setType(Type.newBuilder().setCode(types[i]).build())
+              .build();
+      structType.addFields(field);
+    }
+
+    return structType.build();
   }
 }
