@@ -16,7 +16,11 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import java.io.FileInputStream;
+import java.io.IOException;
+import javax.annotation.Nullable;
 
 /**
  * Configurable properties for Cloud Spanner.
@@ -28,15 +32,21 @@ public class SpannerConnectionConfiguration {
 
   private final String fullyQualifiedDbName;
 
+  private final String credentialsLocation;
+
   /**
    * Basic property initializing constructor.
    *
    * @param projectId GCP project that contains the database.
    * @param instanceName instance to connect to
    * @param databaseName database to connect to.
+   * @param credentialsLocation GCP credentials to authenticate service calls with.
    */
   private SpannerConnectionConfiguration(
-      String projectId, String instanceName, String databaseName) {
+      String projectId,
+      String instanceName,
+      String databaseName,
+      @Nullable String credentialsLocation) {
 
     Assert.requireNonNull(projectId, "projectId must not be null");
     Assert.requireNonNull(instanceName, "instanceName must not be null");
@@ -44,6 +54,15 @@ public class SpannerConnectionConfiguration {
 
     this.fullyQualifiedDbName = String.format(
         FULLY_QUALIFIED_DB_NAME_PATTERN, projectId, instanceName, databaseName);
+    this.credentialsLocation = credentialsLocation;
+  }
+
+  GoogleCredentials createCredentials() throws IOException {
+    if (credentialsLocation != null) {
+      return GoogleCredentials.fromStream(new FileInputStream(credentialsLocation));
+    } else {
+      return GoogleCredentials.getApplicationDefault();
+    }
   }
 
   /**
@@ -62,6 +81,8 @@ public class SpannerConnectionConfiguration {
 
     private String databaseName;
 
+    private String credentialsLocation;
+
     public Builder setProjectId(String projectId) {
       this.projectId = projectId;
       return this;
@@ -77,9 +98,14 @@ public class SpannerConnectionConfiguration {
       return this;
     }
 
+    public Builder setCredentialsLocation(String credentialsLocation) {
+      this.credentialsLocation = credentialsLocation;
+      return this;
+    }
+
     public SpannerConnectionConfiguration build() {
       return new SpannerConnectionConfiguration(
-          this.projectId, this.instanceName, this.databaseName);
+          this.projectId, this.instanceName, this.databaseName, this.credentialsLocation);
     }
 
   }

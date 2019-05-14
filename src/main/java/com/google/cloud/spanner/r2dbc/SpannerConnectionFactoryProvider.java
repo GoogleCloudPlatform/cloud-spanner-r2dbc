@@ -45,19 +45,26 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   /** Option name for GCP Spanner instance. */
   public static final Option<String> INSTANCE = Option.valueOf("instance");
 
+  /**
+   * Option specifying the location of the GCP credentials file.
+   */
+  public static final Option<String> CREDENTIALS_FILE = Option.valueOf("credentials_file");
+
   private Client client;
 
   @Override
   public ConnectionFactory create(ConnectionFactoryOptions connectionFactoryOptions) {
-    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
-        .setProjectId(connectionFactoryOptions.getRequiredValue(PROJECT))
-        .setInstanceName(connectionFactoryOptions.getRequiredValue(INSTANCE))
-        .setDatabaseName(connectionFactoryOptions.getRequiredValue(DATABASE))
-        .build();
     try {
+      SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
+          .setProjectId(connectionFactoryOptions.getRequiredValue(PROJECT))
+          .setInstanceName(connectionFactoryOptions.getRequiredValue(INSTANCE))
+          .setDatabaseName(connectionFactoryOptions.getRequiredValue(DATABASE))
+          .setCredentialsLocation(connectionFactoryOptions.getValue(CREDENTIALS_FILE))
+          .build();
+
       if (this.client == null) {
         // GrpcClient should only be instantiated if/when a SpannerConnectionFactory is needed.
-        this.client = new GrpcClient();
+        this.client = new GrpcClient(config.createCredentials());
       }
       return new SpannerConnectionFactory(client, config);
     } catch (IOException e) {
