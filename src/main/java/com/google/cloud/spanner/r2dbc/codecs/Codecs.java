@@ -26,7 +26,7 @@ import reactor.util.annotation.Nullable;
 public interface Codecs {
 
   /**
-   * Decode a data to a value.
+   * Decode data to a value.
    *
    * @param value the {@link Value} object containing the value to decode
    * @param spannerType the type to decode to

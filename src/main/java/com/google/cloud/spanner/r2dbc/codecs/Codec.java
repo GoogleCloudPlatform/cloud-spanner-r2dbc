@@ -22,19 +22,62 @@ import reactor.util.annotation.Nullable;
 
 interface Codec<T> {
 
+  /**
+   * Indicates if the codec can decode a value.
+   *
+   * @param dataType spanner data type
+   * @param type input data type
+   * @return true the codec can decode a value, false otherwise
+   */
   boolean canDecode(Type dataType, Class<?> type);
 
+  /**
+   * Indicates if the codec can encode a value.
+   *
+   * @param value input data object
+   * @return true the codec can encode value, false otherwise
+   */
   boolean canEncode(Object value);
 
+  /**
+   * Indicates if the codec can encode null.
+   *
+   * @return true if the codec can encode null, false otherwise
+   */
   boolean canEncodeNull(Type type);
 
+  /**
+   * Decode data to a value.
+   *
+   * @param value the {@link Value} object containing the value to decode
+   * @param spannerType the type to decode to
+   * @param type the type to decode to
+   * @return the decoded value
+   */
   @Nullable
   T decode(Value value, Type spannerType, Class<? extends T> type);
 
+
+  /**
+   * Encode a value.
+   *
+   * @param value the value to encode
+   * @return the encoded value
+   */
   Value encode(Object value);
 
+  /**
+   * Encode a null value.
+   *
+   * @return the encoded null value
+   */
   Value encodeNull();
 
+  /**
+   * The type that can be encoded to or decoded from {@link Value}.
+   *
+   * @return the encoded value
+   */
   Class<?> type();
 
 }
