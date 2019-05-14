@@ -16,28 +16,28 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
 
 final class StringCodec extends AbstractCodec<String> {
 
-    StringCodec() {
-        super(String.class);
-    }
+  StringCodec() {
+    super(String.class);
+  }
 
-    @Override
-    boolean doCanDecode(Type dataType) {
-        return dataType.equals(Type.string());
-    }
+  @Override
+  boolean doCanDecode(Type dataType) {
+    return dataType.getCode() == TypeCode.STRING;
+  }
 
-    @Override
-    String doDecode(Struct row, int index, Class<? extends String> type) {
-        return row.getString(index);
-    }
+  @Override
+  String doDecode(Value value, Type spannerType, Class<? extends String> type) {
+    return (String) ValueUtils.decodeValue(spannerType, value);
+  }
 
-    @Override
-    Value doEncode(String value) {
-        return Value.string(value);
-    }
+  @Override
+  Value doEncode(String value) {
+    return Value.newBuilder().setStringValue(value).build();
+  }
 }

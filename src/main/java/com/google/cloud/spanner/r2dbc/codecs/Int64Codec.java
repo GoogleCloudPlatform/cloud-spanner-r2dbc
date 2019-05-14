@@ -16,28 +16,28 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
 
 final class Int64Codec extends AbstractCodec<Long> {
 
-    Int64Codec() {
-        super(Long.class);
-    }
+  Int64Codec() {
+    super(Long.class);
+  }
 
-    @Override
-    boolean doCanDecode(Type dataType) {
-        return dataType.equals(Type.int64());
-    }
+  @Override
+  boolean doCanDecode(Type dataType) {
+    return dataType.getCode() == TypeCode.INT64;
+  }
 
-    @Override
-    Long doDecode(Struct row, int index, Class<? extends Long> type) {
-        return row.getLong(index);
-    }
+  @Override
+  Long doDecode(Value value, Type spannerType, Class<? extends Long> type) {
+    return (Long) ValueUtils.decodeValue(spannerType, value);
+  }
 
-    @Override
-    Value doEncode(Long value) {
-        return Value.int64(value);
-    }
+  @Override
+  Value doEncode(Long value) {
+    return Value.newBuilder().setStringValue(Long.toString(value)).build();
+  }
 }

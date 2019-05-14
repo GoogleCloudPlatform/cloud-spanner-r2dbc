@@ -16,28 +16,28 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
 
 final class BooleanCodec extends AbstractCodec<Boolean> {
 
-    BooleanCodec() {
-        super(Boolean.class);
-    }
+  BooleanCodec() {
+    super(Boolean.class);
+  }
 
-    @Override
-    boolean doCanDecode(Type dataType) {
-        return dataType.equals(Type.bool());
-    }
+  @Override
+  boolean doCanDecode(Type dataType) {
+    return dataType.getCode() == TypeCode.BOOL;
+  }
 
-    @Override
-    Boolean doDecode(Struct row, int index, Class<? extends Boolean> type) {
-        return row.getBoolean(index);
-    }
+  @Override
+  Boolean doDecode(Value value, Type spannerType, Class<? extends Boolean> type) {
+    return (Boolean) ValueUtils.decodeValue(spannerType, value);
+  }
 
-    @Override
-    Value doEncode(Boolean value) {
-        return Value.bool(value);
-    }
+  @Override
+  Value doEncode(Boolean value) {
+    return Value.newBuilder().setBoolValue(value).build();
+  }
 }

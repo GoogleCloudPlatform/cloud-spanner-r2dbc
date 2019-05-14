@@ -18,12 +18,11 @@ package com.google.cloud.spanner.r2dbc.codecs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.cloud.ByteArray;
-import com.google.cloud.Date;
-import com.google.cloud.Timestamp;
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
+import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collection;
 import org.junit.Test;
@@ -32,36 +31,57 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
+/**
+ * Test for {@link DefaultCodecs}.
+ */
 @RunWith(Parameterized.class)
 public class DefaultCodecsTest {
 
   private Codecs codecs = new DefaultCodecs();
 
+  /**
+   * Prepare parameters for parametrized test.
+   */
   @Parameters
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][] {
-				{ new boolean[] { true, false, true }, boolean[].class, Type.array(Type.bool()) },
-				{ new ByteArray[] { ByteArray.copyFrom("ab"), ByteArray.copyFrom("cd") }, ByteArray[].class,
-						Type.array(Type.bytes()) },
-				{ new Date[] { Date.fromYearMonthDay(800, 12, 31), Date.fromYearMonthDay(2019, 1, 1) }, Date[].class,
-						Type.array(Type.date()) },
-				{ new double[] { 2.0d, 3.0d }, double[].class, Type.array(Type.float64()) },
-				{ new long[] { 2L, 1003L }, long[].class, Type.array(Type.int64()) },
-				{ new java.sql.Timestamp[] { java.sql.Timestamp.valueOf("2013-08-04 12:00:01"),
-						java.sql.Timestamp.valueOf("1800-02-01 14:02:31") }, java.sql.Timestamp[].class,
-						Type.array(Type.timestamp()) },
-				{ new String[] { "abc", "def" }, String[].class, Type.array(Type.string()) },
-				{ new Timestamp[] { Timestamp.ofTimeMicroseconds(1234), Timestamp.ofTimeMicroseconds(123456) },
-						Timestamp[].class, Type.array(Type.timestamp()) },
-				{ true, Boolean.class, Type.bool() },
-				{ Boolean.FALSE, Boolean.class, Type.bool() },
-				{ ByteArray.copyFrom("ab"), ByteArray.class, Type.bytes() },
-				{ Date.fromYearMonthDay(800, 12, 31), Date.class, Type.date() },
-				{ 2.0d, Double.class, Type.float64() },
-				{ 12345L, Long.class, Type.int64() },
-				{ java.sql.Timestamp.valueOf("2013-08-04 12:00:01"), java.sql.Timestamp.class, Type.timestamp() },
-				{ "abc", String.class, Type.string() },
-				{ Timestamp.ofTimeMicroseconds(123456), Timestamp.class, Type.timestamp() }
+    return Arrays.asList(new Object[][]{
+        {new Boolean[]{true, false, true, null}, Boolean[].class,
+            Type.newBuilder().setCode(TypeCode.ARRAY)
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.BOOL).build()).build()},
+        {new byte[][]{"ab".getBytes(), "cd".getBytes(), null}, byte[][].class,
+            Type.newBuilder().setCode(TypeCode.ARRAY)
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.BYTES).build()).build()},
+        {new LocalDate[]{LocalDate.of(800, 12, 31), LocalDate.of(2019, 1, 1), null},
+            LocalDate[].class,
+            Type.newBuilder().setCode(TypeCode.ARRAY)
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.DATE).build()).build()},
+        {new Double[]{2.0d, 3.0d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN,
+            null}, Double[].class,
+            Type.newBuilder().setCode(TypeCode.ARRAY)
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.FLOAT64).build()).build()},
+        {new Long[]{2L, 1003L, null}, Long[].class,
+            Type.newBuilder().setCode(TypeCode.ARRAY)
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.INT64).build()).build()},
+        {new String[]{"abc", "def", null}, String[].class,
+            Type.newBuilder().setCode(TypeCode.ARRAY)
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.STRING).build()).build()},
+        {new Timestamp[]{Timestamp.valueOf("2013-08-04 12:00:01.021126"),
+            Timestamp.valueOf("1013-07-02 22:03:05.026714"), null},
+            Timestamp[].class,
+            Type.newBuilder().setCode(TypeCode.ARRAY)
+                .setArrayElementType(
+                    Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()).build()},
+
+        {true, Boolean.class, Type.newBuilder().setCode(TypeCode.BOOL).build()},
+        {false, Boolean.class, Type.newBuilder().setCode(TypeCode.BOOL).build()},
+        {"ab".getBytes(), byte[].class, Type.newBuilder().setCode(TypeCode.BYTES).build()},
+        {LocalDate.of(1992, 12, 31), LocalDate.class,
+            Type.newBuilder().setCode(TypeCode.DATE).build()},
+        {2.0d, Double.class, Type.newBuilder().setCode(TypeCode.FLOAT64).build()},
+        {12345L, Long.class, Type.newBuilder().setCode(TypeCode.INT64).build()},
+        {Timestamp.valueOf("2013-08-04 12:00:01.029074"), Timestamp.class,
+            Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()},
+        {"abc", String.class, Type.newBuilder().setCode(TypeCode.STRING).build()},
     });
   }
 
@@ -78,20 +98,11 @@ public class DefaultCodecsTest {
   @Test
   public void codecsTest() {
     Value value = codecs.encode(val);
-    Value nullValue = codecs.encodeNull(valueType);
-    Struct row = Struct.newBuilder()
-        .set("field").to(value)
-        .set("nullField").to(nullValue)
-        .build();
+    Value nullValue = codecs.encode(null);
 
+    assertThat(codecs.decode(value, valueType, type)).isEqualTo(val);
 
-    assertThat(value.getType()).isEqualTo(valueType);
-    assertThat(codecs.decode(row, "field", type)).isEqualTo(val);
-    assertThat(codecs.decode(row, 0, type)).isEqualTo(val);
-
-    assertThat(nullValue.getType()).isEqualTo(valueType);
-    assertThat(codecs.decode(row, "nullField", type)).isNull();
-    assertThat(codecs.decode(row, 1, type)).isNull();
+    assertThat(codecs.decode(nullValue, valueType, type)).isNull();
   }
 
 }

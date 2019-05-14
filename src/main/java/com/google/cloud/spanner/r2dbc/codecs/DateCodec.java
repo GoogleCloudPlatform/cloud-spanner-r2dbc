@@ -16,29 +16,31 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
-import com.google.cloud.Date;
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
-final class DateCodec extends AbstractCodec<Date> {
+final class DateCodec extends AbstractCodec<LocalDate> {
 
-    DateCodec() {
-        super(Date.class);
-    }
+  DateCodec() {
+    super(LocalDate.class);
+  }
 
-    @Override
-    boolean doCanDecode(Type dataType) {
-        return dataType.equals(Type.date());
-    }
+  @Override
+  boolean doCanDecode(Type dataType) {
+    return dataType.getCode() == TypeCode.DATE;
+  }
 
-    @Override
-    Date doDecode(Struct row, int index, Class<? extends Date> type) {
-        return row.getDate(index);
-    }
+  @Override
+  LocalDate doDecode(Value value, Type spannerType, Class<? extends LocalDate> type) {
+    return (LocalDate) ValueUtils.decodeValue(spannerType, value);
+  }
 
-    @Override
-    Value doEncode(Date value) {
-        return Value.date(value);
-    }
+  @Override
+  Value doEncode(LocalDate value) {
+    return Value.newBuilder().setStringValue(DateTimeFormatter.ISO_LOCAL_DATE.format(value))
+        .build();
+  }
 }

@@ -16,10 +16,8 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
-
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
 import reactor.util.annotation.Nullable;
 
 /**
@@ -27,33 +25,25 @@ import reactor.util.annotation.Nullable;
  */
 public interface Codecs {
 
-    /**
-     * Decode a data to a value.
-     *
-     * @param row    the {@link Struct} containing the value to decode
-     * @param type     the type to decode to
-     * @param <T>      the type of item being returned
-     * @return the decoded value
-     * @throws NullPointerException if {@code format} or {@code type} is {@code null}
-     */
-    @Nullable
-    <T> T decode(Struct row, Object identifier, Class<? extends T> type);
+  /**
+   * Decode a data to a value.
+   *
+   * @param value the {@link Value} object containing the value to decode
+   * @param spannerType the type to decode to
+   * @param type the type to decode to
+   * @param <T> the type of item being returned
+   * @return the decoded value
+   * @throws NullPointerException if {@code format} or {@code type} is {@code null}
+   */
+  @Nullable
+  <T> T decode(Value value, Type spannerType, Class<? extends T> type);
 
-    /**
-     * Encode a value.
-     *
-     * @param value the value to encode
-     * @return the encoded value
-     * @throws NullPointerException if {@code value} is {@code null}
-     */
-    Value encode(Object value);
-
-    /**
-     * Encode a null value.
-     *
-     * @param type  the type of the column
-     * @return the encoded value
-     * @throws NullPointerException if {@code value} is {@code null}
-     */
-    Value encodeNull(Type type);
+  /**
+   * Encode a value.
+   *
+   * @param value the value to encode
+   * @return the encoded value
+   * @throws NullPointerException if {@code value} is {@code null}
+   */
+  Value encode(Object value);
 }

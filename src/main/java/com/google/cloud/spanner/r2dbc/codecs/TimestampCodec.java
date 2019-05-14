@@ -16,29 +16,30 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
-import com.google.cloud.Timestamp;
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
+import java.sql.Timestamp;
 
 final class TimestampCodec extends AbstractCodec<Timestamp> {
 
-    TimestampCodec() {
-        super(Timestamp.class);
-    }
+  TimestampCodec() {
+    super(Timestamp.class);
+  }
 
-    @Override
-    boolean doCanDecode(Type dataType) {
-        return dataType.equals(Type.timestamp());
-    }
+  @Override
+  boolean doCanDecode(Type dataType) {
+    return dataType.getCode() == TypeCode.TIMESTAMP;
+  }
 
-    @Override
-    Timestamp doDecode(Struct row, int index, Class<? extends Timestamp> type) {
-        return row.getTimestamp(index);
-    }
+  @Override
+  Timestamp doDecode(Value value, Type spannerType, Class<? extends Timestamp> type) {
+    return (Timestamp) ValueUtils.decodeValue(spannerType, value);
+  }
 
-    @Override
-    Value doEncode(Timestamp value) {
-        return Value.timestamp(value);
-    }
+  @Override
+  Value doEncode(Timestamp value) {
+    return Value.newBuilder()
+        .setStringValue(ValueUtils.TIMESTAMP_FORMATTER.format(value.toInstant())).build();
+  }
 }

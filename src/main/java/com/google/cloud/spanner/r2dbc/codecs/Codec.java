@@ -16,26 +16,25 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
 import reactor.util.annotation.Nullable;
 
 interface Codec<T> {
 
-    boolean canDecode(Type dataType, Class<?> type);
+  boolean canDecode(Type dataType, Class<?> type);
 
-    boolean canEncode(Object value);
+  boolean canEncode(Object value);
 
-    boolean canEncodeNull(Type type);
+  boolean canEncodeNull(Type type);
 
-    @Nullable
-    T decode(Struct row, int index, Class<? extends T> type);
+  @Nullable
+  T decode(Value value, Type spannerType, Class<? extends T> type);
 
-    Value encode(Object value);
+  Value encode(Object value);
 
-    Value encodeNull();
+  Value encodeNull();
 
-    Class<?> type();
+  Class<?> type();
 
 }

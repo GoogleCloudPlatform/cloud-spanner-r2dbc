@@ -16,28 +16,38 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
 
 final class Float64Codec extends AbstractCodec<Double> {
 
-    Float64Codec() {
-        super(Double.class);
-    }
+  Float64Codec() {
+    super(Double.class);
+  }
 
-    @Override
-    boolean doCanDecode(Type dataType) {
-        return dataType.equals(Type.float64());
-    }
+  @Override
+  boolean doCanDecode(Type dataType) {
+    return dataType.getCode() == TypeCode.FLOAT64;
+  }
 
-    @Override
-    Double doDecode(Struct row, int index, Class<? extends Double> type) {
-        return row.getDouble(index);
-    }
+  @Override
+  Double doDecode(Value value, Type spannerType, Class<? extends Double> type) {
+    return (Double) ValueUtils.decodeValue(spannerType, value);
+  }
 
-    @Override
-    Value doEncode(Double value) {
-        return Value.float64(value);
+  @Override
+  Value doEncode(Double value) {
+    Value result;
+    if (value == Double.NaN) {
+      result = Value.newBuilder().setStringValue("NaN").build();
+    } else if (value == Double.NEGATIVE_INFINITY) {
+      result = Value.newBuilder().setStringValue("-Infinity").build();
+    } else if (value == Double.POSITIVE_INFINITY) {
+      result = Value.newBuilder().setStringValue("Infinity").build();
+    } else {
+      result = Value.newBuilder().setNumberValue(value).build();
     }
+    return result;
+  }
 }

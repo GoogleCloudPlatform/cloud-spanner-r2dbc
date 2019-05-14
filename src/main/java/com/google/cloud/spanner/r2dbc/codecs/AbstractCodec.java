@@ -16,68 +16,65 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
-import com.google.cloud.spanner.Struct;
-import com.google.cloud.spanner.Type;
-import com.google.cloud.spanner.Value;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import com.google.protobuf.Value;
+import com.google.spanner.v1.Type;
 import reactor.util.annotation.Nullable;
 
 abstract class AbstractCodec<T> implements Codec<T> {
 
-    private final Class<T> type;
+  private final Class<T> type;
 
-    AbstractCodec(Class<T> type) {
-        this.type = Assert.requireNonNull(type, "type must not be null");
-    }
+  AbstractCodec(Class<T> type) {
+    this.type = Assert.requireNonNull(type, "type must not be null");
+  }
 
-    @Override
-    public boolean canDecode(Type dataType, Class<?> type) {
-        Assert.requireNonNull(type, "type must not be null");
+  @Override
+  public boolean canDecode(Type dataType, Class<?> type) {
+    Assert.requireNonNull(type, "type must not be null");
 
-        return type.isAssignableFrom(this.type) && doCanDecode(dataType);
-    }
+    return type.isAssignableFrom(this.type) && doCanDecode(dataType);
+  }
 
-    @Override
-    public boolean canEncode(Object value) {
-        Assert.requireNonNull(type, "type must not be null");
+  @Override
+  public boolean canEncode(Object value) {
+    Assert.requireNonNull(type, "type must not be null");
 
-        return this.type.isInstance(value);
-    }
+    return this.type.isInstance(value);
+  }
 
-    @Override
-    public boolean canEncodeNull(Type type) {
-        Assert.requireNonNull(type, "type must not be null");
+  @Override
+  public boolean canEncodeNull(Type type) {
+    Assert.requireNonNull(type, "type must not be null");
 
-        return doCanDecode(type);
-    }
+    return doCanDecode(type);
+  }
 
-    @Nullable
-    @Override
-    public T decode(Struct row, int index, Class<? extends T> type) {
-        Assert.requireNonNull(row, "Row must not be null");
+  @Nullable
+  @Override
+  public T decode(Value value, Type spannerType, Class<? extends T> type) {
+    return doDecode(value, spannerType, type);
+  }
 
-        return row.isNull(index) ? null : doDecode(row, index, type);
-    }
+  @Override
+  @SuppressWarnings("unchecked")
+  public Value encode(Object value) {
+    return doEncode((T) value);
+  }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public Value encode(Object value) {
-        return doEncode((T) value);
-    }
+  @Override
+  public Value encodeNull() {
+    return doEncode(null);
+  }
 
-    @Override
-    public Value encodeNull() {
-        return doEncode(null);
-    }
+  @Override
+  public Class<?> type() {
+    return this.type;
+  }
 
-    @Override
-    public Class<?> type() {
-        return this.type;
-    }
+  abstract boolean doCanDecode(Type dataType);
 
-    abstract boolean doCanDecode(Type dataType);
+  abstract T doDecode(Value value, Type spannerType, Class<? extends T> type);
 
-    abstract T doDecode(Struct row, int index, Class<? extends T> type);
-
-    abstract Value doEncode(T value);
+  abstract Value doEncode(T value);
 }

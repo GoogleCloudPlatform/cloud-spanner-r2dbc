@@ -16,28 +16,37 @@
 
 package com.google.cloud.spanner.r2dbc.codecs;
 
+import com.google.protobuf.ListValue;
+import com.google.protobuf.ListValue.Builder;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 
-final class BytesCodec extends AbstractCodec<byte[]> {
+final class ArrayCodec<A> extends AbstractCodec<A[]> {
 
-  BytesCodec() {
-    super(byte[].class);
+  Codecs codecs;
+
+  ArrayCodec(Codecs codecs, Class<A[]> klass) {
+    super(klass);
+    this.codecs = codecs;
   }
 
   @Override
   boolean doCanDecode(Type dataType) {
-    return dataType.getCode() == TypeCode.BYTES;
+    return dataType.getCode() == TypeCode.ARRAY;
   }
 
   @Override
-  byte[] doDecode(Value value, Type spannerType, Class<? extends byte[]> type) {
-    return (byte[]) ValueUtils.decodeValue(spannerType, value);
+  A[] doDecode(Value value, Type spannerType, Class<? extends A[]> type) {
+    return (A[]) ValueUtils.decodeValue(spannerType, value);
   }
 
   @Override
-  Value doEncode(byte[] value) {
-    return Value.newBuilder().setStringValue(new String(value)).build();
+  Value doEncode(A[] value) {
+    Builder builder = ListValue.newBuilder();
+    for (A val : value) {
+      builder.addValues(codecs.encode(val));
+    }
+    return Value.newBuilder().setListValue(builder.build()).build();
   }
 }
