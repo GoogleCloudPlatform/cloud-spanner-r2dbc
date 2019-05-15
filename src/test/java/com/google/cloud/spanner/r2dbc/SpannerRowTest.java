@@ -37,7 +37,7 @@ public class SpannerRowTest {
   private static final Codecs codecs = new DefaultCodecs();
 
   @Test
-  public void getDummyImplementation() {
+  public void testIndexingIntoColumns() {
     StructType rowMetadata = createRowMetadata(TypeCode.STRING, TypeCode.INT64, TypeCode.BOOL);
     List<Value> rawSpannerRow = createRawSpannerRow("Hello", 25L, true);
 
