@@ -17,6 +17,7 @@
 package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.cloud.spanner.r2dbc.codecs.Codecs;
 import com.google.cloud.spanner.r2dbc.codecs.DefaultCodecs;
@@ -37,15 +38,36 @@ public class SpannerRowTest {
   private static final Codecs codecs = new DefaultCodecs();
 
   @Test
+  public void testInvalidIdentifier() {
+    SpannerRow row = new SpannerRow(new ArrayList<>(), StructType.getDefaultInstance());
+    assertThatThrownBy(() -> row.get(true, String.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Identifier 'true' is not a valid identifier.");
+  }
+
+  @Test
+  public void testOutOfBoundsIndex() {
+    SpannerRow row = new SpannerRow(new ArrayList<>(), StructType.getDefaultInstance());
+    assertThatThrownBy(() -> row.get(4, String.class))
+        .isInstanceOf(IndexOutOfBoundsException.class);
+  }
+
+  @Test
+  public void testInvalidColumnLabel() {
+    SpannerRow row = new SpannerRow(new ArrayList<>(), StructType.getDefaultInstance());
+    assertThatThrownBy(() -> row.get("foobar", String.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("The column name foobar does not exist for the Spanner row.");
+  }
+
+  @Test
   public void testIndexingIntoColumns() {
     StructType rowMetadata = createRowMetadata(TypeCode.STRING, TypeCode.INT64, TypeCode.BOOL);
     List<Value> rawSpannerRow = createRawSpannerRow("Hello", 25L, true);
-
     SpannerRow row = new SpannerRow(rawSpannerRow, rowMetadata);
 
     assertThat(row.get("column_2", Boolean.class)).isEqualTo(true);
     assertThat(row.get("column_0", String.class)).isEqualTo("Hello");
-
     assertThat(row.get(1, Long.class)).isEqualTo(25L);
   }
 
