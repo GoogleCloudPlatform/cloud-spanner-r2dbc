@@ -66,26 +66,28 @@ public class SpannerRow implements Row {
   @Override
   public <T> T get(Object identifier, Class<T> type) {
 
-    int colIndex;
+    int columnIndex = getColumnIndex(identifier);
 
-    if (identifier instanceof Integer) {
-      colIndex = (Integer) identifier;
-    } else if (identifier instanceof String) {
-      colIndex = getColIndexByName((String) identifier);
-    } else {
-      throw new IllegalArgumentException(
-          String.format("Identifier '%s' is not a valid identifier. "
-              + "Should either be an Integer index or a String column name.", identifier));
-    }
-
-    Value spannerValue = values.get(colIndex);
-    Field spannerValueMetadata = rowMetadata.getFields(colIndex);
+    Value spannerValue = values.get(columnIndex);
+    Field spannerValueMetadata = rowMetadata.getFields(columnIndex);
 
     T decodedValue = this.codecs.decode(spannerValue, spannerValueMetadata.getType(), type);
     return decodedValue;
   }
 
-  private int getColIndexByName(String name) {
+  private int getColumnIndex(Object identifier) {
+    if (identifier instanceof Integer) {
+      return (Integer) identifier;
+    } else if (identifier instanceof String) {
+      return getColumnIndexByName((String) identifier);
+    } else {
+      throw new IllegalArgumentException(
+          String.format("Identifier '%s' is not a valid identifier. "
+              + "Should either be an Integer index or a String column name.", identifier));
+    }
+  }
+
+  private int getColumnIndexByName(String name) {
     if (!columnNameIndex.containsKey(name)) {
       throw new IllegalArgumentException(
           "The column name " + name + " does not exist for the Spanner row. "
