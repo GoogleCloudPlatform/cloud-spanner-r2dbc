@@ -16,7 +16,6 @@
 
 package com.google.cloud.spanner.r2dbc;
 
-import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.CREDENTIALS_FILE;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PROJECT;
@@ -89,38 +88,6 @@ public class SpannerConnectionFactoryProviderTest {
   @Test
   public void testSupportsReturnsTrueWhenCorrectDriverInOptions() {
     assertTrue(this.spannerConnectionFactoryProvider.supports(buildOptions("spanner")));
-  }
-
-  @Test
-  public void testCustomCredentialsValidation() {
-    SpannerConnectionFactoryProvider customFactoryProvider =
-        new SpannerConnectionFactoryProvider();
-
-    ConnectionFactoryOptions missingCredentials =
-        ConnectionFactoryOptions.builder()
-            .option(DRIVER, DRIVER_NAME)
-            .option(PROJECT, "project-id")
-            .option(INSTANCE, "an-instance")
-            .option(DATABASE, "my-db")
-            .option(CREDENTIALS_FILE, "missing credentials")
-            .build();
-
-    assertThatThrownBy(() -> customFactoryProvider.create(missingCredentials))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("missing credentials (No such file or directory)");
-
-    ConnectionFactoryOptions malformedCredentialsLocation =
-        ConnectionFactoryOptions.builder()
-            .option(DRIVER, DRIVER_NAME)
-            .option(PROJECT, "project-id")
-            .option(INSTANCE, "an-instance")
-            .option(DATABASE, "my-db")
-            .option(CREDENTIALS_FILE, "src/test/resources/test_creds.json")
-            .build();
-
-    assertThatThrownBy(() -> customFactoryProvider.create(malformedCredentialsLocation))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("Invalid PKCS#8 data.");
   }
 
   private static ConnectionFactoryOptions buildOptions(String driverName) {

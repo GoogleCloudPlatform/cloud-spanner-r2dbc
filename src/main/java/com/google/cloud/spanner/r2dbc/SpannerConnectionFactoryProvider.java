@@ -19,6 +19,7 @@ package com.google.cloud.spanner.r2dbc;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import com.google.cloud.spanner.r2dbc.util.Assert;
@@ -48,7 +49,8 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   /**
    * Option specifying the location of the GCP credentials file.
    */
-  public static final Option<String> CREDENTIALS_FILE = Option.valueOf("credentials_file");
+  public static final Option<GoogleCredentials> GOOGLE_CREDENTIALS =
+      Option.valueOf("google_credentials");
 
   private Client client;
 
@@ -59,12 +61,12 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
           .setProjectId(connectionFactoryOptions.getRequiredValue(PROJECT))
           .setInstanceName(connectionFactoryOptions.getRequiredValue(INSTANCE))
           .setDatabaseName(connectionFactoryOptions.getRequiredValue(DATABASE))
-          .setCredentialsLocation(connectionFactoryOptions.getValue(CREDENTIALS_FILE))
+          .setCredentials(connectionFactoryOptions.getValue(GOOGLE_CREDENTIALS))
           .build();
 
       if (this.client == null) {
         // GrpcClient should only be instantiated if/when a SpannerConnectionFactory is needed.
-        this.client = new GrpcClient(config.createCredentials());
+        this.client = new GrpcClient(config.getCredentials());
       }
       return new SpannerConnectionFactory(client, config);
     } catch (IOException e) {
