@@ -52,7 +52,7 @@ public class SpannerRow implements Row {
     this.rowMetadata = rowMetadata;
 
     this.columnNameIndex = new HashMap<>();
-    for (int i = 0; i < rowMetadata.getFieldsList().size(); i++) {
+    for (int i = 0; i < rowMetadata.getFieldsCount(); i++) {
       Field currField = rowMetadata.getFields(i);
       this.columnNameIndex.put(currField.getName(), i);
     }
@@ -66,26 +66,26 @@ public class SpannerRow implements Row {
   @Override
   public <T> T get(Object identifier, Class<T> type) {
 
-    int rowIndex;
+    int colIndex;
 
     if (identifier instanceof Integer) {
-      rowIndex = (Integer) identifier;
+      colIndex = (Integer) identifier;
     } else if (identifier instanceof String) {
-      rowIndex = getRowIndexByName((String) identifier);
+      colIndex = getColIndexByName((String) identifier);
     } else {
       throw new IllegalArgumentException(
           String.format("Identifier '%s' is not a valid identifier. "
               + "Should either be an Integer index or a String column name.", identifier));
     }
 
-    Value spannerValue = values.get(rowIndex);
-    Field spannerValueMetadata = rowMetadata.getFields(rowIndex);
+    Value spannerValue = values.get(colIndex);
+    Field spannerValueMetadata = rowMetadata.getFields(colIndex);
 
     T decodedValue = this.codecs.decode(spannerValue, spannerValueMetadata.getType(), type);
     return decodedValue;
   }
 
-  private int getRowIndexByName(String name) {
+  private int getColIndexByName(String name) {
     if (!columnNameIndex.containsKey(name)) {
       throw new IllegalArgumentException(
           "The column name " + name + " does not exist for the Spanner row. "
