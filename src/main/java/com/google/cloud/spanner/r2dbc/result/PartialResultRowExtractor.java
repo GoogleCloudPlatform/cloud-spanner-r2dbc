@@ -20,54 +20,63 @@ import com.google.cloud.spanner.r2dbc.SpannerRow;
 import com.google.cloud.spanner.r2dbc.SpannerRowMetadata;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.PartialResultSet;
-import com.google.spanner.v1.ResultSetMetadata;
 import com.google.spanner.v1.StructType;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-import reactor.core.publisher.Mono;
 
 /**
  * // TODO: this should also track the latest resume_token and return it upon request
+ * NOT thread-safe. But it likely does not need to be.
  */
 public class PartialResultRowExtractor {
 
-  AtomicReference<SpannerRowMetadata> metadata = new AtomicReference<>(null);
+  // this probably does not even need an atomic reference. Double check gRPC java listener
+  // implementation, but it should be accessed by a single thread.
+  private SpannerRowMetadata metadata = null;
+
+  private int numFieldsPerRow;
+
+  private List<Value> incompleteRow;
+
+  private Value incompleteField;
+
 
   public List<SpannerRow> extractCompleteRows(PartialResultSet partialResultSet) {
     List<SpannerRow> fullRows = new ArrayList<>();
 
     if (partialResultSet.hasMetadata()) {
-      metadata.compareAndSet(null, new SpannerRowMetadata(partialResultSet.getMetadata()));
+      metadata = new SpannerRowMetadata(partialResultSet.getMetadata());
+      StructType rowType = partialResultSet.getMetadata().getRowType();
+      this.numFieldsPerRow = rowType.getFieldsCount();
     }
     // TODO: handle the case where metdata is not available yet
-    if (metadata.get() == null) {
+    if (metadata == null) {
       throw new RuntimeException("Metadata failed to arrive with the first PartialResultSet");
     }
-    StructType rowType = metadata.get().getRowMetadata().getRowType();
 
-    int fieldsPerRow = rowType.getFieldsCount();
 
     // TODO: handle partials left over at the end of previous row
+    // TODO: account for chunked values (field split between partial result sets).
     List<Value> values = partialResultSet.getValuesList();
 
-    // TODO: account for chunked values (field split between partial result sets).
     int startIndex = 0;
-    int endIndex = fieldsPerRow;
+    int endIndex = this.numFieldsPerRow;
 
-    // this loop takes care of multiple rows per PartialResultSet
+    // handle full rows
     while (endIndex <= values.size()) {
       System.out.println("looking up columns from " + startIndex + " to " + endIndex);
 
       List<Value> singleRowValues = values.subList(startIndex, endIndex);
-      System.out.println("A single row: " + singleRowValues);
+      //System.out.println("A single row: " + singleRowValues);
       // TODO: add row metadata
-      fullRows.add(new SpannerRow(singleRowValues,  metadata.get()));
+      fullRows.add(new SpannerRow(singleRowValues, metadata));
 
-      startIndex += fieldsPerRow;
-      endIndex += fieldsPerRow;
+      startIndex += this.numFieldsPerRow;
+      endIndex += this.numFieldsPerRow;
 
     }
+
+    // TODO: store partial row + last field, if chunked.
 
     return fullRows;
   }

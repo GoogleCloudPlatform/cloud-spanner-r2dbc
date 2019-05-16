@@ -121,6 +121,7 @@ public class SpannerIT {
         .flatMap(spannerResult -> spannerResult.map(
             (r, meta) -> r.get(0, String.class) + " by " + r.get(1, String.class)
         ))
+        .doOnNext(s -> System.out.println("Book: " + s))
         .collectList()
         .block();
 
