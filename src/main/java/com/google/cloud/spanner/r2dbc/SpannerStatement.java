@@ -16,9 +16,15 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.result.PartialResultFluxConverter;
+import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.Session;
+import com.google.spanner.v1.Transaction;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -26,10 +32,18 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerStatement implements Statement {
 
+  private Client client;
+
+  private Session session;
+
+  private Mono<Transaction> transaction;
+
   private String sql;
 
-  // TODO: add parameter for DatabaseClient or equivalent.
-  public SpannerStatement(String sql) {
+  public SpannerStatement(Client client, Session session,  Mono<Transaction> transaction, String sql) {
+    this.client = client;
+    this.session = session;
+    this.transaction = transaction;
     this.sql = sql;
   }
 
@@ -60,6 +74,13 @@ public class SpannerStatement implements Statement {
 
   @Override
   public Publisher<? extends Result> execute() {
-    return Mono.just(new SpannerResult(Mono.fromSupplier(() -> 0)));
+    Flux<PartialResultSet> result = client.executeStreamingSql(this.session, this.transaction, this.sql);
+
+
+    PartialResultFluxConverter rsTracker = new PartialResultFluxConverter(result);
+    //return Mono.just(new SpannerResult(Mono.fromSupplier(() -> 0)));
+    return Mono.just(new SpannerResult(rsTracker.toRows()));
+
+
   }
 }

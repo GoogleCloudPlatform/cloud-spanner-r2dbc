@@ -37,12 +37,17 @@ public class SpannerRowMetadata implements RowMetadata {
    */
   private final HashMap<String, Integer> columnNameIndex;
 
+  private ResultSetMetadata rowMetadata;
+
   /**
    * Constructor.
    *
    * @param resultSetMetadata the row from Cloud Spanner.
    */
   public SpannerRowMetadata(ResultSetMetadata resultSetMetadata) {
+    // TODO: is this necessary?
+    this.rowMetadata = resultSetMetadata;
+
     this.columnMetadatas = resultSetMetadata.getRowType().getFieldsList()
         .stream()
         .map(SpannerColumnMetadata::new)
@@ -53,6 +58,11 @@ public class SpannerRowMetadata implements RowMetadata {
       Field currField = resultSetMetadata.getRowType().getFields(i);
       this.columnNameIndex.put(currField.getName(), i);
     }
+  }
+
+  // TODO: is this necessary?
+  public ResultSetMetadata getRowMetadata() {
+    return this.rowMetadata;
   }
 
   @Override

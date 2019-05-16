@@ -28,7 +28,7 @@ public class SpannerStatementTest {
 
   @Test
   public void executeDummyImplementation() {
-    SpannerStatement statement = new SpannerStatement("not actual sql");
+    SpannerStatement statement = new SpannerStatement(null, null, null,"not actual sql");
     Mono result = Mono.from(statement.execute());
     assertThat(result).isNotNull();
     assertThat(result.block()).isInstanceOf(SpannerResult.class);
