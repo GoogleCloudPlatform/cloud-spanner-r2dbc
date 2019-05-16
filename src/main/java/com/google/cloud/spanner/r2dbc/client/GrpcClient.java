@@ -51,7 +51,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -258,10 +257,11 @@ public class GrpcClient implements Client {
       zipped.doOnComplete(sink::complete);
 
       zipped.doOnError(sink::error);
-
+      /*
       sink.onRequest(r->{
         // ??????????
       });
+      */
     });
 
   }
