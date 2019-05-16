@@ -205,12 +205,8 @@ public class GrpcClient implements Client {
   private Flux<List<Value>> streamingListValueRows(Flux<PartialResultSet> partialResultSetFlux,
       Mono<ResultSetMetadata> resultSetMetadataMono) {
 
-    AtomicReference<
-        Flux<Tuple2<ResultSetMetadata, PartialResultSet>>> zipped =
-        new AtomicReference<>(
-            Flux.combineLatest(resultSetMetadataMono, partialResultSetFlux, Tuples::of));
-
     return Flux.create(sink -> {
+
       AtomicBoolean prevIsChunk = new AtomicBoolean(false);
       AtomicReference<List<Value>> currentRow = new AtomicReference<>(new ArrayList<>());
       AtomicInteger rowSize = new AtomicInteger(-1);
@@ -225,71 +221,71 @@ public class GrpcClient implements Client {
         }
       };
 
-      zipped.set(zipped.get().doOnNext(t -> {
-        if (rowSize.get() == -1) {
-          rowSize.set(t.getT1().getRowType().getFieldsCount());
-        }
-        PartialResultSet partialResultSet = t.getT2();
-        int availableCount = partialResultSet.getValuesCount();
+      Flux<Tuple2<ResultSetMetadata, PartialResultSet>> zipped =
+          Flux.combineLatest(resultSetMetadataMono, partialResultSetFlux, Tuples::of)
+              .doOnNext(t -> {
+                if (rowSize.get() == -1) {
+                  rowSize.set(t.getT1().getRowType().getFieldsCount());
+                }
+                PartialResultSet partialResultSet = t.getT2();
+                int availableCount = partialResultSet.getValuesCount();
 
-        if (prevIsChunk.get()) {
-          Value firstPiece = partialResultSet.getValues(0);
+                if (prevIsChunk.get()) {
+                  Value firstPiece = partialResultSet.getValues(0);
 
-          // Concat code from client lib
-          if (incompletePieceKind.get() == KindCase.STRING_VALUE) {
-            incompletePiece.set(incompletePiece.get() + firstPiece.getStringValue());
-          } else {
-            concatLists((List<Value>) incompletePiece.get(),
-                firstPiece.getListValue().getValuesList());
-          }
-        }
+                  // Concat code from client lib
+                  if (incompletePieceKind.get() == KindCase.STRING_VALUE) {
+                    incompletePiece.set(incompletePiece.get() + firstPiece.getStringValue());
+                  } else {
+                    concatLists((List<Value>) incompletePiece.get(),
+                        firstPiece.getListValue().getValuesList());
+                  }
+                }
 
-        /* if there are more values then it means the incomplete piece is complete.
-          Also, if this PR isn't chunked then it is also complete.
-         */
-        if (availableCount > 1 || !partialResultSet.getChunkedValue()) {
-          if (prevIsChunk.get()) {
-            appendToRow.accept(
-                incompletePieceKind.get() == KindCase.STRING_VALUE
-                    ? Value.newBuilder().setStringValue((String) incompletePiece.get()).build()
-                    : Value.newBuilder()
-                        .setListValue(
-                            ListValue.newBuilder()
-                                .addAllValues((List<Value>) incompletePiece.get()))
-                        .build()
-            );
-            prevIsChunk.set(false);
-          } else {
-            appendToRow.accept(partialResultSet.getValues(0));
-          }
-        }
+                /* if there are more values then it means the incomplete piece is complete.
+                  Also, if this PR isn't chunked then it is also complete.
+                 */
+                if (availableCount > 1 || !partialResultSet.getChunkedValue()) {
+                  if (prevIsChunk.get()) {
+                    appendToRow.accept(
+                        incompletePieceKind.get() == KindCase.STRING_VALUE
+                            ? Value.newBuilder().setStringValue((String) incompletePiece.get())
+                            .build()
+                            : Value.newBuilder()
+                                .setListValue(
+                                    ListValue.newBuilder()
+                                        .addAllValues((List<Value>) incompletePiece.get()))
+                                .build()
+                    );
+                    prevIsChunk.set(false);
+                  } else {
+                    appendToRow.accept(partialResultSet.getValues(0));
+                  }
+                }
 
-        /* Only the final value can be chunked, and only the first value can be
-          a part of a previous chunk, so the pieces in the middle are always
-          whole values.
-        * */
-        for (int i = 1; i < availableCount - 1; i++) {
-          appendToRow.accept(partialResultSet.getValues(i));
-        }
+                /* Only the final value can be chunked, and only the first value can be
+                  a part of a previous chunk, so the pieces in the middle are always
+                  whole values.
+                * */
+                for (int i = 1; i < availableCount - 1; i++) {
+                  appendToRow.accept(partialResultSet.getValues(i));
+                }
 
-        // this final piece is the start of a new incomplete value
-        if (!prevIsChunk.get() && partialResultSet.getChunkedValue()) {
-          Value val = partialResultSet.getValues(availableCount - 1);
-          incompletePieceKind.set(val.getKindCase());
-          incompletePiece.set(val.getKindCase() == KindCase.STRING_VALUE ? val.getStringValue() :
-              new ArrayList<>(val.getListValue().getValuesList()));
-        }
+                // this final piece is the start of a new incomplete value
+                if (!prevIsChunk.get() && partialResultSet.getChunkedValue()) {
+                  Value val = partialResultSet.getValues(availableCount - 1);
+                  incompletePieceKind.set(val.getKindCase());
+                  incompletePiece
+                      .set(val.getKindCase() == KindCase.STRING_VALUE ? val.getStringValue() :
+                          new ArrayList<>(val.getListValue().getValuesList()));
+                }
 
-        prevIsChunk.set(partialResultSet.getChunkedValue());
-      }));
-
-      zipped.set(zipped.get().doOnComplete(sink::complete));
-
-      zipped.set(zipped.get().doOnError(sink::error));
-
-      zipped.set(zipped.get().doOnTerminate(sink::complete));
-
-      sink.onRequest(r -> zipped.get().subscribe());
+                prevIsChunk.set(partialResultSet.getChunkedValue());
+              })
+              .doOnComplete(sink::complete)
+              .doOnError(sink::error)
+              .doOnTerminate(sink::complete);
+      sink.onRequest(r -> zipped.subscribe());
     });
   }
 
