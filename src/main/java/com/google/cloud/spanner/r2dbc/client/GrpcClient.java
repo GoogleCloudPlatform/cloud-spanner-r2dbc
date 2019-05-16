@@ -205,8 +205,10 @@ public class GrpcClient implements Client {
   private Flux<List<Value>> streamingListValueRows(Flux<PartialResultSet> partialResultSetFlux,
       Mono<ResultSetMetadata> resultSetMetadataMono) {
 
-    Flux<Tuple2<ResultSetMetadata, PartialResultSet>> zipped =
-        Flux.combineLatest(resultSetMetadataMono, partialResultSetFlux, Tuples::of);
+    AtomicReference<
+        Flux<Tuple2<ResultSetMetadata, PartialResultSet>>> zipped =
+        new AtomicReference<>(
+            Flux.combineLatest(resultSetMetadataMono, partialResultSetFlux, Tuples::of));
 
     return Flux.create(sink -> {
       AtomicBoolean prevIsChunk = new AtomicBoolean(false);
@@ -223,7 +225,7 @@ public class GrpcClient implements Client {
         }
       };
 
-      zipped.doOnNext(t -> {
+      zipped.set(zipped.get().doOnNext(t -> {
         if (rowSize.get() == -1) {
           rowSize.set(t.getT1().getRowType().getFieldsCount());
         }
@@ -246,14 +248,20 @@ public class GrpcClient implements Client {
           Also, if this PR isn't chunked then it is also complete.
          */
         if (availableCount > 1 || !partialResultSet.getChunkedValue()) {
-          appendToRow.accept(
-              incompletePieceKind.get() == KindCase.STRING_VALUE
-                  ? Value.newBuilder().setStringValue((String) incompletePiece.get()).build()
-                  : Value.newBuilder()
-                      .setListValue(
-                          ListValue.newBuilder().addAllValues((List<Value>) incompletePiece.get()))
-                      .build()
-          );
+          if (prevIsChunk.get()) {
+            appendToRow.accept(
+                incompletePieceKind.get() == KindCase.STRING_VALUE
+                    ? Value.newBuilder().setStringValue((String) incompletePiece.get()).build()
+                    : Value.newBuilder()
+                        .setListValue(
+                            ListValue.newBuilder()
+                                .addAllValues((List<Value>) incompletePiece.get()))
+                        .build()
+            );
+            prevIsChunk.set(false);
+          } else {
+            appendToRow.accept(partialResultSet.getValues(0));
+          }
         }
 
         /* Only the final value can be chunked, and only the first value can be
@@ -273,15 +281,16 @@ public class GrpcClient implements Client {
         }
 
         prevIsChunk.set(partialResultSet.getChunkedValue());
-      });
+      }));
 
-      zipped.doOnComplete(sink::complete);
+      zipped.set(zipped.get().doOnComplete(sink::complete));
 
-      zipped.doOnError(sink::error);
+      zipped.set(zipped.get().doOnError(sink::error));
 
-      sink.onRequest(r -> zipped.subscribe());
+      zipped.set(zipped.get().doOnTerminate(sink::complete));
+
+      sink.onRequest(r -> zipped.get().subscribe());
     });
-
   }
 
   @Override

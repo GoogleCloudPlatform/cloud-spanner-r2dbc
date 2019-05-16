@@ -18,7 +18,6 @@ package com.google.cloud.spanner.r2dbc.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.cloud.Tuple;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.PartialResultSet;
@@ -45,16 +44,16 @@ public class GrpcClientTest {
     Value a1 = Value.newBuilder().setBoolValue(false).build();
     Value a2 = Value.newBuilder().setStringValue("abc").build();
     Value a3 = Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(Arrays.asList(
-        Value.newBuilder().setStringValue("12").build(),
-        Value.newBuilder().setStringValue("34").build(),
-        Value.newBuilder().setStringValue("56").build())).build()).build();
+        Value.newBuilder().setNumberValue(12).build(),
+        Value.newBuilder().setNumberValue(34).build(),
+        Value.newBuilder().setNumberValue(56).build())).build()).build();
 
     Value b1 = Value.newBuilder().setBoolValue(true).build();
     Value b2 = Value.newBuilder().setStringValue("xyz").build();
     Value b3 = Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(Arrays.asList(
-        Value.newBuilder().setStringValue("78").build(),
-        Value.newBuilder().setStringValue("910").build(),
-        Value.newBuilder().setStringValue("1122").build())).build()).build();
+        Value.newBuilder().setNumberValue(78).build(),
+        Value.newBuilder().setNumberValue(910).build(),
+        Value.newBuilder().setNumberValue(1122).build())).build()).build();
 
     ResultSetMetadata resultSetMetadata = ResultSetMetadata.newBuilder().setRowType(
         StructType.newBuilder()
@@ -80,14 +79,14 @@ public class GrpcClientTest {
         .addValues(Value.newBuilder().setStringValue("c"))
         .addValues(
             Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(Arrays.asList(
-                Value.newBuilder().setStringValue("12").build(),
-                Value.newBuilder().setStringValue("34").build())).build()).build())
+                Value.newBuilder().setNumberValue(12).build(),
+                Value.newBuilder().setNumberValue(34).build())).build()).build())
         .setChunkedValue(true).build();
 
     PartialResultSet p5 = PartialResultSet.newBuilder()
         .addValues(Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(
             Collections.singletonList(
-                Value.newBuilder().setStringValue("56").build())).build()).build())
+                Value.newBuilder().setNumberValue(56).build())).build()).build())
         .addValues(Value.newBuilder().setBoolValue(true))
         .addValues(Value.newBuilder().setStringValue("xy"))
         .setChunkedValue(true).build();
@@ -96,24 +95,22 @@ public class GrpcClientTest {
         .addValues(Value.newBuilder().setStringValue("z"))
         .addValues(Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(
             Collections.singletonList(
-                Value.newBuilder().setStringValue("78").build())).build()).build())
+                Value.newBuilder().setNumberValue(78).build())).build()).build())
         .setChunkedValue(true).build();
 
     PartialResultSet p7 = PartialResultSet.newBuilder()
         .addValues(Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(
             Collections.singletonList(
-                Value.newBuilder().setStringValue("910").build())).build()).build())
+                Value.newBuilder().setNumberValue(910).build())).build()).build())
         .setChunkedValue(true).build();
 
     PartialResultSet p8 = PartialResultSet.newBuilder()
         .addValues(Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(
             Collections.singletonList(
-                Value.newBuilder().setStringValue("1122").build())).build()).build())
+                Value.newBuilder().setNumberValue(1122).build())).build()).build())
         .setChunkedValue(false).build();
 
-    Flux<PartialResultSet> inputs = Flux.fromArray(new PartialResultSet[]{
-        p1, p2, p3, p4, p5, p6, p7, p8
-    });
+    Flux<PartialResultSet> inputs = Flux.just(p1, p2, p3, p4, p5, p6, p7, p8);
 
     Tuple2<Mono<ResultSetMetadata>, Flux<List<Value>>> results = new GrpcClient(null, null)
         .assembleRowsFromPartialResults(inputs);
