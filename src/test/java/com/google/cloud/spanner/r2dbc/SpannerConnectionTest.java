@@ -53,17 +53,12 @@ public class SpannerConnectionTest {
         .thenReturn(Mono.just(Transaction.getDefaultInstance()));
     when(this.mockClient.commitTransaction(any(), any()))
         .thenReturn(Mono.just(CommitResponse.getDefaultInstance()));
+    when(this.mockClient.rollbackTransaction(any(), any()))
+        .thenReturn(Mono.empty());
   }
 
   @Test
   public void createStatementDummyImplementation() {
-    SpannerConnectionConfiguration config
-        = new SpannerConnectionConfiguration.Builder()
-        .setProjectId("a-project")
-        .setInstanceName("an-instance")
-        .setDatabaseName("db")
-        .build();
-
     SpannerConnection connection = new SpannerConnection(mockClient, TEST_SESSION);
     Statement statement = connection.createStatement("not actual sql");
     assertThat(statement).isInstanceOf(SpannerStatement.class);
@@ -82,5 +77,20 @@ public class SpannerConnectionTest {
         .beginTransaction(TEST_SESSION);
     verify(this.mockClient, times(1))
         .commitTransaction(TEST_SESSION, Transaction.getDefaultInstance());
+  }
+
+  @Test
+  public void rollbackTransactions() {
+    SpannerConnection connection = new SpannerConnection(mockClient, TEST_SESSION);
+
+    Mono.from(connection.rollbackTransaction()).block();
+    verify(this.mockClient, never()).rollbackTransaction(any(), any());
+
+    Mono.from(connection.beginTransaction()).block();
+    Mono.from(connection.rollbackTransaction()).block();
+    verify(this.mockClient, times(1))
+        .beginTransaction(TEST_SESSION);
+    verify(this.mockClient, times(1))
+        .rollbackTransaction(TEST_SESSION, Transaction.getDefaultInstance());
   }
 }

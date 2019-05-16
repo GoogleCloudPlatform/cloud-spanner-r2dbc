@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc;
+package com.google.cloud.spanner.r2dbc.codecs;
 
-import com.google.spanner.v1.StructType.Field;
+import com.google.protobuf.Value;
 import com.google.spanner.v1.Type;
-import io.r2dbc.spi.ColumnMetadata;
+import com.google.spanner.v1.TypeCode;
 
-/**
- * {@link ColumnMetadata} implementation for Cloud Spanner.
- */
-public class SpannerColumnMetadata implements ColumnMetadata {
+final class StringCodec extends AbstractCodec<String> {
 
-  private final Field columnField;
-
-  public SpannerColumnMetadata(Field columnField) {
-    this.columnField = columnField;
+  StringCodec() {
+    super(String.class);
   }
 
   @Override
-  public String getName() {
-    return columnField.getName();
+  boolean doCanDecode(Type dataType) {
+    return dataType.getCode() == TypeCode.STRING;
   }
 
   @Override
-  public Type getNativeTypeMetadata() {
-    return columnField.getType();
+  String doDecode(Value value, Type spannerType, Class<? extends String> type) {
+    return (String) ValueUtils.decodeValue(spannerType, value);
+  }
+
+  @Override
+  Value doEncode(String value) {
+    return Value.newBuilder().setStringValue(value).build();
   }
 }
