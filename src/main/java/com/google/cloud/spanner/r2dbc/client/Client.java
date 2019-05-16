@@ -16,12 +16,17 @@
 
 package com.google.cloud.spanner.r2dbc.client;
 
+import com.google.cloud.Tuple;
+import com.google.protobuf.Value;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.ResultSetMetadata;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
+import java.util.List;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -62,6 +67,14 @@ public interface Client {
    * Execute a streaming query and get partial results.
    */
   Publisher<PartialResultSet> executeStreamingSql(ExecuteSqlRequest request);
+
+  /**
+   * Execute a streaming query and get discrete rows as lists of protobuf values.
+   * @param request the query request.
+   * @return a publisher of individual rows where each row is a list of column protobuf values
+   * and the metadata of the columns in the result.
+   */
+  Tuple<Mono<ResultSetMetadata>,Flux<List<Value>>> executeStreamingSqlAssembledRows(ExecuteSqlRequest request);
 
   /**
    * Release any resources held by the {@link Client}.
