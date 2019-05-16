@@ -120,12 +120,9 @@ public class GrpcClientTest {
 
     assertThat(results.getT1().block()).isEqualTo(resultSetMetadata);
 
-    results.getT2().subscribe();
-
     List<List<Value>> rows = results.getT2().collectList().block();
 
     assertThat(rows.get(0)).containsExactly(a1, a2, a3);
     assertThat(rows.get(1)).containsExactly(b1, b2, b3);
   }
-
 }

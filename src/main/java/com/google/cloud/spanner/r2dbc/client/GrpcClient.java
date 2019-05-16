@@ -279,9 +279,7 @@ public class GrpcClient implements Client {
 
       zipped.doOnError(sink::error);
 
-      sink.onRequest(r->{
-        zipped.subscribe();
-      });
+      sink.onRequest(r -> zipped.subscribe());
     });
 
   }
