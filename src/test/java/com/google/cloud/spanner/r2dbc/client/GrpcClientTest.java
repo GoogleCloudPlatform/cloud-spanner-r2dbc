@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc;
+package com.google.cloud.spanner.r2dbc.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.google.cloud.Tuple;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.PartialResultSet;
@@ -24,8 +27,11 @@ import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 
 /**
  * Tests the GRPC client class.
@@ -33,7 +39,7 @@ import reactor.core.publisher.Flux;
 public class GrpcClientTest {
 
   @Test
-  public void assembleRowsTest(){
+  public void assembleRowsTest() {
 
     // These are the expected final rows' values
     Value a1 = Value.newBuilder().setBoolValue(false).build();
@@ -50,15 +56,17 @@ public class GrpcClientTest {
         Value.newBuilder().setStringValue("910").build(),
         Value.newBuilder().setStringValue("1122").build())).build()).build();
 
+    ResultSetMetadata resultSetMetadata = ResultSetMetadata.newBuilder().setRowType(
+        StructType.newBuilder()
+            .addFields(Field.newBuilder().setName("boolField").build())
+            .addFields(Field.newBuilder().setName("stringField").build())
+            .addFields(Field.newBuilder().setName("listField").build())
+            .build()
+    ).build();
+
     // The values above will be split across several partial result sets.
     PartialResultSet p1 = PartialResultSet.newBuilder().setMetadata(
-        ResultSetMetadata.newBuilder().setRowType(
-            StructType.newBuilder()
-                .addFields(Field.newBuilder().build())
-                .addFields(Field.newBuilder().build())
-                .addFields(Field.newBuilder().build())
-                .build()
-        ).build()
+        resultSetMetadata
     ).setChunkedValue(false)
         .addValues(a1).build();
 
@@ -70,9 +78,10 @@ public class GrpcClientTest {
 
     PartialResultSet p4 = PartialResultSet.newBuilder()
         .addValues(Value.newBuilder().setStringValue("c"))
-        .addValues(Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(Arrays.asList(
-            Value.newBuilder().setStringValue("12").build(),
-            Value.newBuilder().setStringValue("34").build())).build()).build())
+        .addValues(
+            Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(Arrays.asList(
+                Value.newBuilder().setStringValue("12").build(),
+                Value.newBuilder().setStringValue("34").build())).build()).build())
         .setChunkedValue(true).build();
 
     PartialResultSet p5 = PartialResultSet.newBuilder()
@@ -97,16 +106,26 @@ public class GrpcClientTest {
         .setChunkedValue(true).build();
 
     PartialResultSet p8 = PartialResultSet.newBuilder()
-        .addValues(Value.newBuilder().setStringValue("1122"))
         .addValues(Value.newBuilder().setListValue(ListValue.newBuilder().addAllValues(
             Collections.singletonList(
-                Value.newBuilder().setStringValue("78").build())).build()).build())
+                Value.newBuilder().setStringValue("1122").build())).build()).build())
         .setChunkedValue(false).build();
 
-    Flux<PartialResultSet> results = Flux.fromArray(new PartialResultSet[]{
-        p1,p2,p3,p4,p5,p6,p7,p8
+    Flux<PartialResultSet> inputs = Flux.fromArray(new PartialResultSet[]{
+        p1, p2, p3, p4, p5, p6, p7, p8
     });
 
+    Tuple2<Mono<ResultSetMetadata>, Flux<List<Value>>> results = new GrpcClient(null, null)
+        .assembleRowsFromPartialResults(inputs);
+
+    assertThat(results.getT1().block()).isEqualTo(resultSetMetadata);
+
+    results.getT2().subscribe();
+
+    List<List<Value>> rows = results.getT2().collectList().block();
+
+    assertThat(rows.get(0)).containsExactly(a1, a2, a3);
+    assertThat(rows.get(1)).containsExactly(b1, b2, b3);
   }
 
 }

@@ -17,8 +17,8 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.Tuple;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.Empty;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.Value;
@@ -44,7 +44,6 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -54,6 +53,8 @@ import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * gRPC-based {@link Client} implementation.
@@ -81,6 +82,12 @@ public class GrpcClient implements Client {
     // Create the asynchronous stub for Cloud Spanner
     this.spanner = SpannerGrpc.newStub(this.channel)
         .withCallCredentials(callCredentials);
+  }
+
+  @VisibleForTesting
+  GrpcClient(ManagedChannel channel, SpannerStub spanner) {
+    this.channel = channel;
+    this.spanner = spanner;
   }
 
   @Override
@@ -186,21 +193,20 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Tuple<Mono<ResultSetMetadata>, Flux<List<Value>>> executeStreamingSqlAssembledRows(
-      ExecuteSqlRequest request) {
-    Flux<PartialResultSet> partialResultSetFlux = ((Flux<PartialResultSet>) executeStreamingSql(
-        request));
+  public Tuple2<Mono<ResultSetMetadata>, Flux<List<Value>>> assembleRowsFromPartialResults(
+      Publisher<PartialResultSet> partialResultSetPublisher) {
+    Flux<PartialResultSet> partialResultSetFlux = Flux.from(partialResultSetPublisher);
     Mono<ResultSetMetadata> resultSetMetadataMono = partialResultSetFlux.next()
         .map(PartialResultSet::getMetadata);
-    return Tuple.of(resultSetMetadataMono,
+    return Tuples.of(resultSetMetadataMono,
         streamingListValueRows(partialResultSetFlux, resultSetMetadataMono));
   }
 
   private Flux<List<Value>> streamingListValueRows(Flux<PartialResultSet> partialResultSetFlux,
       Mono<ResultSetMetadata> resultSetMetadataMono) {
 
-    Flux<Tuple<ResultSetMetadata, PartialResultSet>> zipped =
-        Flux.combineLatest(resultSetMetadataMono, partialResultSetFlux, Tuple::of);
+    Flux<Tuple2<ResultSetMetadata, PartialResultSet>> zipped =
+        Flux.combineLatest(resultSetMetadataMono, partialResultSetFlux, Tuples::of);
 
     return Flux.create(sink -> {
       AtomicBoolean prevIsChunk = new AtomicBoolean(false);
@@ -219,9 +225,9 @@ public class GrpcClient implements Client {
 
       zipped.doOnNext(t -> {
         if (rowSize.get() == -1) {
-          rowSize.set(t.x().getRowType().getFieldsCount());
+          rowSize.set(t.getT1().getRowType().getFieldsCount());
         }
-        PartialResultSet partialResultSet = t.y();
+        PartialResultSet partialResultSet = t.getT2();
         int availableCount = partialResultSet.getValuesCount();
 
         if (prevIsChunk.get()) {
@@ -272,11 +278,10 @@ public class GrpcClient implements Client {
       zipped.doOnComplete(sink::complete);
 
       zipped.doOnError(sink::error);
-      /*
+
       sink.onRequest(r->{
-        // ??????????
+        zipped.subscribe();
       });
-      */
     });
 
   }
