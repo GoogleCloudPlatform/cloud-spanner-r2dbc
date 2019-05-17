@@ -16,36 +16,27 @@
 
 package com.google.cloud.spanner.r2dbc.client;
 
-import com.google.protobuf.Value;
 import com.google.spanner.v1.CommitResponse;
-import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
-import com.google.spanner.v1.ResultSetMetadata;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
-import java.util.List;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 
 /**
  * An abstraction that wraps interaction with the Cloud Spanner Database APIs.
  */
 public interface Client {
-
   /**
    * Create a Spanner session to be used in subsequent interactions with the database.
-   *
-   * @param databaseName Fully qualified Spanner database name in the format {@code
-   * projects/[PROJECT_ID]/instances/[INSTANCE]/databases/[DATABASE]}
+   * @param databaseName Fully qualified Spanner database name in the format
+   * {@code projects/[PROJECT_ID]/instances/[INSTANCE]/databases/[DATABASE]}
    * @returns {@link Mono} of the generated session.
    */
   Mono<Session> createSession(String databaseName);
 
   /**
    * Deletes a Spanner session that is used to call Spanner APIs.
-   *
    * @param session The session you wish to close.
    * @return {@link Mono} indicating completion closing the session.
    */
@@ -53,7 +44,6 @@ public interface Client {
 
   /**
    * Begins a new Spanner {@link Transaction} within the provided {@link Session}.
-   *
    * @param session The {@link Session} object with which requests are made to the Spanner API.
    * @returns {@link Mono} of the transaction that was started.
    */
@@ -61,7 +51,6 @@ public interface Client {
 
   /**
    * Commits a Spanner {@link Transaction} within the provided {@link Session}.
-   *
    * @param session The session object with which requests are made to the Spanner API.
    * @param transaction The transaction that you want to commit.
    * @returns {@link CommitResponse} describing the timestamp at which the transaction committed.
@@ -71,7 +60,6 @@ public interface Client {
 
   /**
    * Performs a rollback on a Spanner {@link Transaction} within the provided {@link Session}.
-   *
    * @param session The session object with which requests are made to the Spanner API.
    * @param transaction The transaction that you want to rollback.
    * @return {@link Mono} indicating completion of the rollback.
@@ -81,17 +69,8 @@ public interface Client {
   /**
    * Execute a streaming query and get partial results.
    */
-  Publisher<PartialResultSet> executeStreamingSql(ExecuteSqlRequest request);
-
-  /**
-   * Execute a streaming query and get discrete rows as lists of protobuf values.
-   *
-   * @param partialResultSetPublisher a publisher of partial result sets.
-   * @return a publisher of individual rows where each row is a list of column protobuf values and
-   *        the metadata of the columns in the result.
-   */
-  Tuple2<Mono<ResultSetMetadata>, Flux<List<Value>>> assembleRowsFromPartialResults(
-      Publisher<PartialResultSet> partialResultSetPublisher);
+  Flux<PartialResultSet> executeStreamingSql(
+      Session session, Mono<Transaction> transaction, String sql);
 
   /**
    * Release any resources held by the {@link Client}.

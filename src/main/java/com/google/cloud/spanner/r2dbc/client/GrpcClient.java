@@ -18,11 +18,7 @@ package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.Empty;
-import com.google.protobuf.ListValue;
-import com.google.protobuf.Value;
-import com.google.protobuf.Value.KindCase;
 import com.google.spanner.v1.BeginTransactionRequest;
 import com.google.spanner.v1.CommitRequest;
 import com.google.spanner.v1.CommitResponse;
@@ -30,31 +26,25 @@ import com.google.spanner.v1.CreateSessionRequest;
 import com.google.spanner.v1.DeleteSessionRequest;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
-import com.google.spanner.v1.ResultSetMetadata;
 import com.google.spanner.v1.RollbackRequest;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.ReadOnly;
 import com.google.spanner.v1.TransactionOptions.ReadWrite;
+import com.google.spanner.v1.TransactionSelector;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import org.reactivestreams.Publisher;
+import java.io.IOException;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 /**
  * gRPC-based {@link Client} implementation.
@@ -88,6 +78,17 @@ public class GrpcClient implements Client {
   GrpcClient(ManagedChannel channel, SpannerStub spanner) {
     this.channel = channel;
     this.spanner = spanner;
+  }
+
+
+  /**
+   * Constructor that builds the client from a user-specified {@code SpannerStub}.
+   *
+   * @param spanner The asynchronous gRPC Spanner client stub.
+   */
+  public GrpcClient(SpannerStub spanner) throws IOException {
+    this.spanner = spanner;
+    this.channel = null;
   }
 
   @Override
@@ -156,40 +157,71 @@ public class GrpcClient implements Client {
               .build();
 
       return ObservableReactiveUtil.<Empty>unaryCall(
-          (obs) -> this.spanner.deleteSession(deleteSessionRequest, obs))
+          (observer) -> this.spanner.deleteSession(deleteSessionRequest, observer))
           .then();
     });
   }
 
+  // TODO: add information about parameters being added to signature
   @Override
-  public Publisher<PartialResultSet> executeStreamingSql(ExecuteSqlRequest request) {
-    return Flux.create(sink -> {
-      ClientResponseObserver<ExecuteSqlRequest, PartialResultSet> clientResponseObserver =
-          new ClientResponseObserver<ExecuteSqlRequest, PartialResultSet>() {
-            @Override
-            public void onNext(PartialResultSet value) {
-              sink.next(value);
-            }
+  public Flux<PartialResultSet> executeStreamingSql(
+      Session session, Mono<Transaction> transaction, String sql) {
+    return transaction
+        .map(t -> TransactionSelector.newBuilder().setId(t.getId()).build())
+        .defaultIfEmpty(readOnlySingleUseTransaction())
+        .map(t ->  ExecuteSqlRequest.newBuilder()
+            .setSql(sql)
+            .setSession(session.getName())
+            .setTransaction(t)
+            .build())
+        .flatMapMany(request -> Flux.create(
+            sink -> {
+              SinkResponseObserver responseObserver = new SinkResponseObserver<>(sink);
 
-            @Override
-            public void onError(Throwable t) {
-              sink.error(t);
-            }
+              sink.onCancel(
+                  () -> responseObserver.getRequestStream().cancel("Flux requested cancel.", null));
 
-            @Override
-            public void onCompleted() {
-              sink.complete();
-            }
+              this.spanner.executeStreamingSql(request, responseObserver);
 
-            @Override
-            public void beforeStart(ClientCallStreamObserver<ExecuteSqlRequest> requestStream) {
-              requestStream.disableAutoInboundFlowControl();
-              sink.onRequest(demand -> requestStream.request((int) demand));
-              sink.onCancel(() -> requestStream.cancel(null, null));
-            }
-          };
-      this.spanner.executeStreamingSql(request, clientResponseObserver);
-    });
+              // must be invoked after the actual method so that the stream is already started
+              sink.onRequest(demand -> responseObserver.getRequestStream().request((int) demand));
+          }));
+  }
+
+  private static final class SinkResponseObserver<ReqT, RespT> implements
+      ClientResponseObserver<ReqT, RespT> {
+
+    private FluxSink<RespT> sink;
+    private ClientCallStreamObserver<ReqT> requestStream;
+
+    public SinkResponseObserver(FluxSink<RespT> sink) {
+      this.sink = sink;
+    }
+
+    @Override
+    public void onNext(RespT value) {
+      sink.next(value);
+    }
+
+    @Override
+    public void onError(Throwable t) {
+      sink.error(t);
+    }
+
+    @Override
+    public void onCompleted() {
+      sink.complete();
+    }
+
+    @Override
+    public void beforeStart(ClientCallStreamObserver<ReqT> requestStream) {
+      this.requestStream = requestStream;
+      requestStream.disableAutoInboundFlowControl();
+    }
+
+    public ClientCallStreamObserver<ReqT> getRequestStream() {
+      return requestStream;
+    }
   }
 
   @Override
@@ -291,6 +323,25 @@ public class GrpcClient implements Client {
 
   @Override
   public Mono<Void> close() {
+    return Mono.fromRunnable(() -> {
+      if (this.channel != null) {
+        this.channel.shutdownNow();
+      }
+    });
+  }
+
+  /**
+   * Creates a temporary read-only transaction with strong concurrency, which is also the default
+   * for {@code ExecuteStreamingSql} when the transaction field is empty.
+   */
+  private TransactionSelector readOnlySingleUseTransaction() {
+    return TransactionSelector.newBuilder()
+        .setSingleUse(
+            TransactionOptions.newBuilder()
+                .setReadOnly(
+                    ReadOnly.newBuilder()
+                        .setStrong(true)))
+        .build();
     return Mono.fromRunnable(this.channel::shutdownNow);
   }
 
