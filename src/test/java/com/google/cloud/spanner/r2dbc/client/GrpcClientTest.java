@@ -17,7 +17,6 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
@@ -38,7 +37,6 @@ import java.io.IOException;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -86,7 +84,7 @@ public class GrpcClientTest {
           }
         },
         // call the method under test
-        grpcClient -> Flux.from(grpcClient.executeStreamingSql(session, Mono.empty(), sql)).blockFirst()
+        grpcClient -> grpcClient.executeStreamingSql(session, Mono.empty(), sql).blockFirst()
     );
 
     // verify the service was called correctly

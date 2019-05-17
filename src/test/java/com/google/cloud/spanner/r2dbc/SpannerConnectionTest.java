@@ -38,7 +38,6 @@ import io.r2dbc.spi.Statement;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
