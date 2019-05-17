@@ -25,10 +25,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * // TODO: this should also track the latest resume_token and return it upon request
  * NOT thread-safe. But it likely does not need to be.
  */
 public class PartialResultRowExtractor {
+
+  // TODO: this should also track the latest resume_token and return it upon request
+
 
   // this probably does not even need an atomic reference. Double check gRPC java listener
   // implementation, but it should be accessed by a single thread.
@@ -41,6 +43,12 @@ public class PartialResultRowExtractor {
   private Value incompleteField;
 
 
+  /**
+   * Assembles as many complete rows as possible, given previous incomplete fields and a new
+   * {@link PartialResultSet}.
+   * @param partialResultSet a not yet processed result set
+   * @return an ordered list of full rows, each containing the row metadata
+   */
   public List<SpannerRow> extractCompleteRows(PartialResultSet partialResultSet) {
     List<SpannerRow> fullRows = new ArrayList<>();
 
@@ -67,7 +75,6 @@ public class PartialResultRowExtractor {
       System.out.println("looking up columns from " + startIndex + " to " + endIndex);
 
       List<Value> singleRowValues = values.subList(startIndex, endIndex);
-      //System.out.println("A single row: " + singleRowValues);
       // TODO: add row metadata
       fullRows.add(new SpannerRow(singleRowValues, metadata));
 

@@ -40,7 +40,18 @@ public class SpannerStatement implements Statement {
 
   private String sql;
 
-  public SpannerStatement(Client client, Session session,  Mono<Transaction> transaction, String sql) {
+  /**
+   * Creates a Spanner statement for a given SQL statement.
+   *
+   * <p>If no transaction is present, a temporary strongly consistent readonly transaction will be
+   * used.
+   * @param client cloud spanner client to use for performing the query operation
+   * @param session current cloud spanner session
+   * @param transaction current cloud spanner transaction, or empty if no transaction is started
+   * @param sql the query to execute
+   */
+  public SpannerStatement(
+      Client client, Session session,  Mono<Transaction> transaction, String sql) {
     this.client = client;
     this.session = session;
     this.transaction = transaction;
@@ -74,11 +85,14 @@ public class SpannerStatement implements Statement {
 
   @Override
   public Publisher<? extends Result> execute() {
-    Flux<PartialResultSet> result = client.executeStreamingSql(this.session, this.transaction, this.sql);
+    Flux<PartialResultSet> result
+        = client.executeStreamingSql(this.session, this.transaction, this.sql);
 
 
     PartialResultFluxConverter rsTracker = new PartialResultFluxConverter(result);
-    //return Mono.just(new SpannerResult(Mono.fromSupplier(() -> 0)));
+    // TODO: in PartialResultFluxConverter, use ResultSetStats from the last PartialResultSet
+    // to determine whether this was an update query.
+    // Then use a different SpannerResult constructor.
     return Mono.just(new SpannerResult(rsTracker.toRows()));
 
 

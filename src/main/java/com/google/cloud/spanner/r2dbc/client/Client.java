@@ -17,11 +17,9 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.spanner.v1.CommitResponse;
-import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -71,7 +69,8 @@ public interface Client {
   /**
    * Execute a streaming query and get partial results.
    */
-  Flux<PartialResultSet> executeStreamingSql(Session session, Mono<Transaction> transaction, String sql);
+  Flux<PartialResultSet> executeStreamingSql(
+      Session session, Mono<Transaction> transaction, String sql);
 
   /**
    * Release any resources held by the {@link Client}.

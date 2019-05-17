@@ -27,7 +27,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
-import com.google.cloud.spanner.r2dbc.SpannerResult;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.spanner.v1.DatabaseName;
 import com.google.spanner.v1.ListSessionsRequest;
@@ -44,7 +43,6 @@ import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
-import io.r2dbc.spi.Result;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -117,7 +115,6 @@ public class SpannerIT {
     List<String> result = Mono.from(this.connectionFactory.create())
         .map(connection -> connection.createStatement("SELECT title, author FROM books"))
         .flatMapMany(statement -> statement.execute())
-       // .cast(SpannerResult.class)
         .flatMap(spannerResult -> spannerResult.map(
             (r, meta) -> r.get(0, String.class) + " by " + r.get(1, String.class)
         ))

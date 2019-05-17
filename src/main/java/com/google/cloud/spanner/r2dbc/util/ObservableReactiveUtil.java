@@ -16,8 +16,6 @@
 
 package com.google.cloud.spanner.r2dbc.util;
 
-import com.google.spanner.v1.ExecuteSqlRequest;
-import com.google.spanner.v1.PartialResultSet;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import io.grpc.stub.StreamObserver;
@@ -47,6 +45,13 @@ public class ObservableReactiveUtil {
     });
   }
 
+  /**
+   * This will go away in favor of Mike's implementation.
+   * @param remoteCall call to make
+   * @param <RequestT> request type
+   * @param <ResponseT> response type
+   * @return
+   */
   public static <RequestT, ResponseT> Flux<ResponseT> streamingCall(
       Consumer<StreamObserver<ResponseT>> remoteCall) {
 
@@ -57,7 +62,8 @@ public class ObservableReactiveUtil {
     });
   }
 
-  static class StreamingObserver<RequestT, ResponseT> implements ClientResponseObserver<RequestT, ResponseT>  {
+  static class StreamingObserver<RequestT, ResponseT>
+      implements ClientResponseObserver<RequestT, ResponseT>  {
     ClientCallStreamObserver<RequestT> rsObserver;
     FluxSink<ResponseT> sink;
 

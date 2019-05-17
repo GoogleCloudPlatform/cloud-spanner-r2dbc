@@ -18,15 +18,12 @@ package com.google.cloud.spanner.r2dbc.result;
 
 import com.google.cloud.spanner.r2dbc.SpannerRow;
 import com.google.spanner.v1.PartialResultSet;
-import com.google.spanner.v1.ResultSetMetadata;
-import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
- *
+ * Provides a stream of Cloud Spanner rows based on the input stream of {@link PartialResultSet}s.
  */
 public class PartialResultFluxConverter {
 
@@ -36,12 +33,20 @@ public class PartialResultFluxConverter {
 
   private Subscription spannerSubscription;
 
+  /**
+   * Creates a converter from a given {@link PartialResultSet} flux.
+   * @param results the flux to convert
+   */
   public PartialResultFluxConverter(Flux<PartialResultSet> results) {
     this.results = results;
   }
 
-  // TODO: backpressure support will go here.
+  /**
+   * Returns a flux of proper rows based on the input flux of partial result sets.
+   * @return the flux of Spanner rows
+   */
   public Flux<SpannerRow> toRows() {
+    // TODO: backpressure support will go here.
 
     return Flux.create(sink -> {
 

@@ -18,7 +18,10 @@ package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.spanner.v1.Session;
 import org.junit.Test;
+import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 
 /**
@@ -28,8 +31,14 @@ public class SpannerStatementTest {
 
   @Test
   public void executeDummyImplementation() {
-    SpannerStatement statement = new SpannerStatement(null, null, null,"not actual sql");
+
+    Client mockClient = Mockito.mock(Client.class);
+    Session session = Session.newBuilder().setName("/session/abcd").build();
+    SpannerStatement statement
+        = new SpannerStatement(mockClient, session, Mono.empty(),"not actual sql");
+
     Mono result = Mono.from(statement.execute());
+
     assertThat(result).isNotNull();
     assertThat(result.block()).isInstanceOf(SpannerResult.class);
   }

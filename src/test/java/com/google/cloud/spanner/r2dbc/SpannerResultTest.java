@@ -19,14 +19,12 @@ package com.google.cloud.spanner.r2dbc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.Lists;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.ResultSetMetadata;
 import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
@@ -41,29 +39,32 @@ public class SpannerResultTest {
 
   private Flux<SpannerRow> resultSet;
 
-  private Mono<ResultSetMetadata> resultSetMetadata;
+  private ResultSetMetadata resultSetMetadata;
 
   /**
    * Setup.
    */
   @Before
   public void setup() {
-    this.resultSet = Flux
-        .just(new SpannerRow(Arrays.asList(Value.newBuilder().setStringValue("key1").build(),
-            Value.newBuilder().setStringValue("key2").build()),
-            null));
 
-    this.resultSetMetadata = Mono.just(
+    this.resultSetMetadata =
         ResultSetMetadata.newBuilder()
             .setRowType(
                 StructType.newBuilder().addFields(
                     Field.newBuilder()
                         .setName("first_column")
                         .setType(Type.newBuilder().setCode(TypeCode.STRING))))
-            .build());
+            .build();
 
+    SpannerRowMetadata metadata = new SpannerRowMetadata(this.resultSetMetadata);
+    this.resultSet = Flux
+        .just(new SpannerRow(
+                Collections.singletonList(Value.newBuilder().setStringValue("key1").build()),
+                metadata),
+            new SpannerRow(
+                Collections.singletonList(Value.newBuilder().setStringValue("key2").build()),
+                metadata));
   }
-
 
   @Test
   public void getRowsUpdatedTest() {
@@ -81,15 +82,9 @@ public class SpannerResultTest {
   }
 
   @Test
-  public void nullRowMetadataTest() {
-    assertThatThrownBy(() -> new SpannerResult(this.resultSet))
-        .hasMessage("Non-null row metadata is required.");
-  }
-
-  @Test
   public void mapTest() {
 
-    String columnName = this.resultSetMetadata.block()
+    String columnName = this.resultSetMetadata
         .getRowType()
         .getFields(0)
         .getName();
