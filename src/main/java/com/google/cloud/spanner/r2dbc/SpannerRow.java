@@ -59,12 +59,11 @@ public class SpannerRow implements Row {
   }
 
   @VisibleForTesting
-  List<Value> getValues() {
+  public List<Value> getValues() {
     return this.values;
   }
 
   public SpannerRowMetadata getRowMetadata() {
     return this.rowMetadata;
   }
-
 }

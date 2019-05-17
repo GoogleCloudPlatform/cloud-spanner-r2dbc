@@ -18,11 +18,15 @@ package com.google.cloud.spanner.r2dbc.result;
 
 import com.google.cloud.spanner.r2dbc.SpannerRow;
 import com.google.cloud.spanner.r2dbc.SpannerRowMetadata;
+import com.google.cloud.spanner.r2dbc.util.Assert;
+import com.google.protobuf.ListValue;
 import com.google.protobuf.Value;
+import com.google.protobuf.Value.KindCase;
 import com.google.spanner.v1.PartialResultSet;
-import com.google.spanner.v1.StructType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
+import reactor.core.publisher.FluxSink;
 
 /**
  * NOT thread-safe. But it likely does not need to be.
@@ -31,61 +35,123 @@ public class PartialResultRowExtractor {
 
   // TODO: this should also track the latest resume_token and return it upon request
 
-
   // this probably does not even need an atomic reference. Double check gRPC java listener
   // implementation, but it should be accessed by a single thread.
   private SpannerRowMetadata metadata = null;
+  int rowSize;
+  boolean prevIsChunk;
+  List<Value> currentRow = new ArrayList<>();
+  Object incompletePiece;
+  KindCase incompletePieceKind;
 
-  private int numFieldsPerRow;
-
-  private List<Value> incompleteRow;
-
-  private Value incompleteField;
-
+  BiConsumer<Value, FluxSink<SpannerRow>> appendToRow = (val, sink) -> {
+    currentRow.add(val);
+    if (currentRow.size() == rowSize) {
+      sink.next(new SpannerRow(currentRow, metadata));
+      currentRow = new ArrayList<>();
+    }
+  };
 
   /**
    * Assembles as many complete rows as possible, given previous incomplete fields and a new
    * {@link PartialResultSet}.
    * @param partialResultSet a not yet processed result set
-   * @return an ordered list of full rows, each containing the row metadata
    */
-  public List<SpannerRow> extractCompleteRows(PartialResultSet partialResultSet) {
-    List<SpannerRow> fullRows = new ArrayList<>();
-
-    if (partialResultSet.hasMetadata()) {
-      metadata = new SpannerRowMetadata(partialResultSet.getMetadata());
-      StructType rowType = partialResultSet.getMetadata().getRowType();
-      this.numFieldsPerRow = rowType.getFieldsCount();
-    }
-    // TODO: handle the case where metdata is not available yet
+  public void emitRows(PartialResultSet partialResultSet, FluxSink<SpannerRow> sink) {
     if (metadata == null) {
-      throw new RuntimeException("Metadata failed to arrive with the first PartialResultSet");
+      metadata = new SpannerRowMetadata(Assert.requireNonNull(partialResultSet.getMetadata(),
+          "The first partial result set for a query must contain the "
+              + "metadata but it was null."));
+      rowSize = partialResultSet.getMetadata().getRowType().getFieldsCount();
+    }
+    int availableCount = partialResultSet.getValuesCount();
+
+    if (prevIsChunk) {
+      Value firstPiece = partialResultSet.getValues(0);
+
+      // Concat code from client lib
+      if (incompletePieceKind == KindCase.STRING_VALUE) {
+        incompletePiece = incompletePiece + firstPiece.getStringValue();
+      } else {
+        concatLists((List<Value>) incompletePiece,
+            firstPiece.getListValue().getValuesList());
+      }
     }
 
-
-    // TODO: handle partials left over at the end of previous row
-    // TODO: account for chunked values (field split between partial result sets).
-    List<Value> values = partialResultSet.getValuesList();
-
-    int startIndex = 0;
-    int endIndex = this.numFieldsPerRow;
-
-    // handle full rows
-    while (endIndex <= values.size()) {
-      System.out.println("looking up columns from " + startIndex + " to " + endIndex);
-
-      List<Value> singleRowValues = values.subList(startIndex, endIndex);
-      // TODO: add row metadata
-      fullRows.add(new SpannerRow(singleRowValues, metadata));
-
-      startIndex += this.numFieldsPerRow;
-      endIndex += this.numFieldsPerRow;
-
+    /* if there are more values then it means the incomplete piece is complete.
+    Also, if this PR isn't chunked then it is also complete. */
+    if (availableCount > 1 || !partialResultSet.getChunkedValue()) {
+      if (prevIsChunk) {
+        appendToRow.accept(
+            incompletePieceKind == KindCase.STRING_VALUE
+                ? Value.newBuilder().setStringValue((String) incompletePiece)
+                .build()
+                : Value.newBuilder()
+                    .setListValue(
+                        ListValue.newBuilder()
+                            .addAllValues((List<Value>) incompletePiece))
+                    .build(), sink
+        );
+        prevIsChunk = false;
+      } else {
+        appendToRow.accept(partialResultSet.getValues(0), sink);
+      }
     }
 
-    // TODO: store partial row + last field, if chunked.
+    /* Only the final value can be chunked, and only the first value can be a part of a
+    previous chunk, so the pieces in the middle are always whole values. */
+    for (int i = 1; i < availableCount - 1; i++) {
+      appendToRow.accept(partialResultSet.getValues(i), sink);
+    }
 
-    return fullRows;
+    // this final piece is the start of a new incomplete value
+    if (!prevIsChunk && partialResultSet.getChunkedValue()) {
+      Value val = partialResultSet.getValues(availableCount - 1);
+      incompletePieceKind = val.getKindCase();
+      incompletePiece = val.getKindCase() == KindCase.STRING_VALUE ? val.getStringValue() :
+          new ArrayList<>(val.getListValue().getValuesList());
+    }
+
+    prevIsChunk = partialResultSet.getChunkedValue();
   }
 
+
+  // Client lib definition. These kind-cases are not mergeable for PartialResultSet.
+  private boolean isMergeable(KindCase kind) {
+    return kind == KindCase.STRING_VALUE || kind == KindCase.LIST_VALUE;
+  }
+
+  /**
+   * Used to merge List-column value chunks. From Client lib.
+   */
+  private void concatLists(List<com.google.protobuf.Value> a, List<com.google.protobuf.Value> b) {
+    if (a.size() == 0 || b.size() == 0) {
+      a.addAll(b);
+    } else {
+      com.google.protobuf.Value last = a.get(a.size() - 1);
+      com.google.protobuf.Value first = b.get(0);
+      KindCase lastKind = last.getKindCase();
+      KindCase firstKind = first.getKindCase();
+      if (isMergeable(lastKind) && lastKind == firstKind) {
+        com.google.protobuf.Value merged = null;
+        if (lastKind == KindCase.STRING_VALUE) {
+          String lastStr = last.getStringValue();
+          String firstStr = first.getStringValue();
+          merged =
+              com.google.protobuf.Value.newBuilder().setStringValue(lastStr + firstStr).build();
+        } else { // List
+          List<Value> mergedList = new ArrayList<>(last.getListValue().getValuesList());
+          concatLists(mergedList, first.getListValue().getValuesList());
+          merged =
+              com.google.protobuf.Value.newBuilder()
+                  .setListValue(ListValue.newBuilder().addAllValues(mergedList))
+                  .build();
+        }
+        a.set(a.size() - 1, merged);
+        a.addAll(b.subList(1, b.size()));
+      } else {
+        a.addAll(b);
+      }
+    }
+  }
 }

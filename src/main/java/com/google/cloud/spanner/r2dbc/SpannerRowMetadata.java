@@ -16,6 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.spanner.v1.ResultSetMetadata;
 import com.google.spanner.v1.StructType.Field;
 import io.r2dbc.spi.ColumnMetadata;
@@ -37,7 +38,7 @@ public class SpannerRowMetadata implements RowMetadata {
    */
   private final HashMap<String, Integer> columnNameIndex;
 
-  private ResultSetMetadata rowMetadata;
+  private final ResultSetMetadata resultSetMetadata;
 
   /**
    * Constructor.
@@ -45,6 +46,8 @@ public class SpannerRowMetadata implements RowMetadata {
    * @param resultSetMetadata the row from Cloud Spanner.
    */
   public SpannerRowMetadata(ResultSetMetadata resultSetMetadata) {
+
+    this.resultSetMetadata = resultSetMetadata;
 
     this.columnMetadatas = resultSetMetadata.getRowType().getFieldsList()
         .stream()
@@ -56,6 +59,11 @@ public class SpannerRowMetadata implements RowMetadata {
       Field currField = resultSetMetadata.getRowType().getFields(i);
       this.columnNameIndex.put(currField.getName(), i);
     }
+  }
+
+  @VisibleForTesting
+  public ResultSetMetadata getResultSetMetadata() {
+    return this.resultSetMetadata;
   }
 
   @Override

@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.Empty;
 import com.google.spanner.v1.BeginTransactionRequest;
 import com.google.spanner.v1.CommitRequest;
@@ -225,103 +226,6 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Tuple2<Mono<ResultSetMetadata>, Flux<List<Value>>> assembleRowsFromPartialResults(
-      Publisher<PartialResultSet> partialResultSetPublisher) {
-    Flux<PartialResultSet> partialResultSetFlux = Flux.from(partialResultSetPublisher);
-    Mono<ResultSetMetadata> resultSetMetadataMono = partialResultSetFlux.next()
-        .map(PartialResultSet::getMetadata);
-    return Tuples.of(resultSetMetadataMono,
-        streamingListValueRows(partialResultSetFlux, resultSetMetadataMono));
-  }
-
-  private Flux<List<Value>> streamingListValueRows(Flux<PartialResultSet> partialResultSetFlux,
-      Mono<ResultSetMetadata> resultSetMetadataMono) {
-
-    return Flux.create(sink -> {
-
-      AtomicBoolean prevIsChunk = new AtomicBoolean(false);
-      AtomicReference<List<Value>> currentRow = new AtomicReference<>(new ArrayList<>());
-      AtomicInteger rowSize = new AtomicInteger(-1);
-      AtomicReference incompletePiece = new AtomicReference();
-      AtomicReference<KindCase> incompletePieceKind = new AtomicReference<>();
-
-      Consumer<Value> appendToRow = val -> {
-        currentRow.get().add(val);
-        if (currentRow.get().size() == rowSize.get()) {
-          sink.next(currentRow.get());
-          currentRow.set(new ArrayList<>());
-        }
-      };
-
-      Flux<Tuple2<ResultSetMetadata, PartialResultSet>> zipped =
-          Flux.combineLatest(resultSetMetadataMono, partialResultSetFlux, Tuples::of)
-              .doOnNext(t -> {
-                if (rowSize.get() == -1) {
-                  rowSize.set(t.getT1().getRowType().getFieldsCount());
-                }
-                PartialResultSet partialResultSet = t.getT2();
-                int availableCount = partialResultSet.getValuesCount();
-
-                if (prevIsChunk.get()) {
-                  Value firstPiece = partialResultSet.getValues(0);
-
-                  // Concat code from client lib
-                  if (incompletePieceKind.get() == KindCase.STRING_VALUE) {
-                    incompletePiece.set(incompletePiece.get() + firstPiece.getStringValue());
-                  } else {
-                    concatLists((List<Value>) incompletePiece.get(),
-                        firstPiece.getListValue().getValuesList());
-                  }
-                }
-
-                /* if there are more values then it means the incomplete piece is complete.
-                  Also, if this PR isn't chunked then it is also complete.
-                 */
-                if (availableCount > 1 || !partialResultSet.getChunkedValue()) {
-                  if (prevIsChunk.get()) {
-                    appendToRow.accept(
-                        incompletePieceKind.get() == KindCase.STRING_VALUE
-                            ? Value.newBuilder().setStringValue((String) incompletePiece.get())
-                            .build()
-                            : Value.newBuilder()
-                                .setListValue(
-                                    ListValue.newBuilder()
-                                        .addAllValues((List<Value>) incompletePiece.get()))
-                                .build()
-                    );
-                    prevIsChunk.set(false);
-                  } else {
-                    appendToRow.accept(partialResultSet.getValues(0));
-                  }
-                }
-
-                /* Only the final value can be chunked, and only the first value can be
-                  a part of a previous chunk, so the pieces in the middle are always
-                  whole values.
-                * */
-                for (int i = 1; i < availableCount - 1; i++) {
-                  appendToRow.accept(partialResultSet.getValues(i));
-                }
-
-                // this final piece is the start of a new incomplete value
-                if (!prevIsChunk.get() && partialResultSet.getChunkedValue()) {
-                  Value val = partialResultSet.getValues(availableCount - 1);
-                  incompletePieceKind.set(val.getKindCase());
-                  incompletePiece
-                      .set(val.getKindCase() == KindCase.STRING_VALUE ? val.getStringValue() :
-                          new ArrayList<>(val.getListValue().getValuesList()));
-                }
-
-                prevIsChunk.set(partialResultSet.getChunkedValue());
-              })
-              .doOnComplete(sink::complete)
-              .doOnError(sink::error)
-              .doOnTerminate(sink::complete);
-      sink.onRequest(r -> zipped.subscribe());
-    });
-  }
-
-  @Override
   public Mono<Void> close() {
     return Mono.fromRunnable(() -> {
       if (this.channel != null) {
@@ -342,45 +246,5 @@ public class GrpcClient implements Client {
                     ReadOnly.newBuilder()
                         .setStrong(true)))
         .build();
-    return Mono.fromRunnable(this.channel::shutdownNow);
-  }
-
-  // Client lib definition. These kind-cases are not mergeable for PartialResultSet.
-  private boolean isMergeable(KindCase kind) {
-    return kind == KindCase.STRING_VALUE || kind == KindCase.LIST_VALUE;
-  }
-
-  /**
-   * Used to merge List-column value chunks. From Client lib.
-   */
-  private void concatLists(List<com.google.protobuf.Value> a, List<com.google.protobuf.Value> b) {
-    if (a.size() == 0 || b.size() == 0) {
-      a.addAll(b);
-    } else {
-      com.google.protobuf.Value last = a.get(a.size() - 1);
-      com.google.protobuf.Value first = b.get(0);
-      KindCase lastKind = last.getKindCase();
-      KindCase firstKind = first.getKindCase();
-      if (isMergeable(lastKind) && lastKind == firstKind) {
-        com.google.protobuf.Value merged = null;
-        if (lastKind == KindCase.STRING_VALUE) {
-          String lastStr = last.getStringValue();
-          String firstStr = first.getStringValue();
-          merged =
-              com.google.protobuf.Value.newBuilder().setStringValue(lastStr + firstStr).build();
-        } else { // List
-          List<Value> mergedList = new ArrayList<>(last.getListValue().getValuesList());
-          concatLists(mergedList, first.getListValue().getValuesList());
-          merged =
-              com.google.protobuf.Value.newBuilder()
-                  .setListValue(ListValue.newBuilder().addAllValues(mergedList))
-                  .build();
-        }
-        a.set(a.size() - 1, merged);
-        a.addAll(b.subList(1, b.size()));
-      } else {
-        a.addAll(b);
-      }
-    }
   }
 }

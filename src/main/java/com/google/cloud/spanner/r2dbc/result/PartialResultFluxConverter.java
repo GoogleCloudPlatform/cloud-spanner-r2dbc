@@ -62,8 +62,7 @@ public class PartialResultFluxConverter {
         @Override
         public void onNext(PartialResultSet partialResultSet) {
 
-          PartialResultFluxConverter.this.rowExtractor
-              .extractCompleteRows(partialResultSet).forEach(sink::next);
+          PartialResultFluxConverter.this.rowExtractor.emitRows(partialResultSet, sink);
 
           // no demand management yet; just request one at a time
           PartialResultFluxConverter.this.spannerSubscription.request(1);
@@ -79,10 +78,6 @@ public class PartialResultFluxConverter {
           sink.complete();
         }
       });
-
-
     });
   }
-
-
 }
