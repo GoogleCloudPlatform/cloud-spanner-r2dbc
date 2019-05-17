@@ -33,8 +33,6 @@ public class SpannerResult implements Result {
 
   private final Flux<SpannerRow> resultRows;
 
-  //private final Mono<SpannerRowMetadata> spannerRowMetadata;
-
   private final Mono<Integer> rowsUpdated;
 
   /**
