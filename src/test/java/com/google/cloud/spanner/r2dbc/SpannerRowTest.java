@@ -37,7 +37,8 @@ import org.junit.Test;
 public class SpannerRowTest {
 
   private static final Codecs codecs = new DefaultCodecs();
-  private final SpannerRowMetadata rowMetadata = new SpannerRowMetadata(ResultSetMetadata.getDefaultInstance());
+  private final SpannerRowMetadata rowMetadata
+      = new SpannerRowMetadata(ResultSetMetadata.getDefaultInstance());
 
   @Test
   public void testInvalidIdentifier() {
