@@ -40,9 +40,9 @@ import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 /**
@@ -81,6 +81,7 @@ public class GrpcClient implements Client {
    */
   public GrpcClient(SpannerStub spanner) throws IOException {
     this.spanner = spanner;
+    this.channel = null;
   }
 
   @Override
@@ -205,10 +206,12 @@ public class GrpcClient implements Client {
     }
   }
 
-}
-
   @Override
   public Mono<Void> close() {
-    return Mono.fromRunnable(() -> this.channel.shutdownNow());
+    return Mono.fromRunnable(() -> {
+      if (this.channel != null) {
+        this.channel.shutdownNow();
+      }
+    });
   }
 }
