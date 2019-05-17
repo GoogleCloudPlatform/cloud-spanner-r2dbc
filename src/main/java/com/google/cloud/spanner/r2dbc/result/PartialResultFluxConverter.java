@@ -48,36 +48,33 @@ public class PartialResultFluxConverter {
   public Flux<SpannerRow> toRows() {
     // TODO: backpressure support will go here.
 
-    return Flux.create(sink -> {
+    return Flux.create(sink -> results.subscribe(new CoreSubscriber<PartialResultSet>() {
 
-      results.subscribe(new CoreSubscriber<PartialResultSet>() {
+      @Override
+      public void onSubscribe(Subscription subscription) {
+        PartialResultFluxConverter.this.spannerSubscription = subscription;
+        // initial result
+        PartialResultFluxConverter.this.spannerSubscription.request(1);
+      }
 
-        @Override
-        public void onSubscribe(Subscription subscription) {
-          PartialResultFluxConverter.this.spannerSubscription = subscription;
-          // initial result
-          PartialResultFluxConverter.this.spannerSubscription.request(1);
-        }
+      @Override
+      public void onNext(PartialResultSet partialResultSet) {
 
-        @Override
-        public void onNext(PartialResultSet partialResultSet) {
+        PartialResultFluxConverter.this.rowExtractor.emitRows(partialResultSet, sink);
 
-          PartialResultFluxConverter.this.rowExtractor.emitRows(partialResultSet, sink);
+        // no demand management yet; just request one at a time
+        PartialResultFluxConverter.this.spannerSubscription.request(10);
+      }
 
-          // no demand management yet; just request one at a time
-          PartialResultFluxConverter.this.spannerSubscription.request(1);
-        }
+      @Override
+      public void onError(Throwable throwable) {
+        sink.error(throwable);
+      }
 
-        @Override
-        public void onError(Throwable throwable) {
-          sink.error(throwable);
-        }
-
-        @Override
-        public void onComplete() {
-          sink.complete();
-        }
-      });
-    });
+      @Override
+      public void onComplete() {
+        sink.complete();
+      }
+    }));
   }
 }

@@ -104,12 +104,15 @@ public class PartialResultRowExtractor {
       appendToRow.accept(partialResultSet.getValues(i), sink);
     }
 
+    Value lastVal = partialResultSet.getValues(availableCount - 1);
+
     // this final piece is the start of a new incomplete value
     if (!prevIsChunk && partialResultSet.getChunkedValue()) {
-      Value val = partialResultSet.getValues(availableCount - 1);
-      incompletePieceKind = val.getKindCase();
-      incompletePiece = val.getKindCase() == KindCase.STRING_VALUE ? val.getStringValue() :
-          new ArrayList<>(val.getListValue().getValuesList());
+      incompletePieceKind = lastVal.getKindCase();
+      incompletePiece = lastVal.getKindCase() == KindCase.STRING_VALUE ? lastVal.getStringValue() :
+          new ArrayList<>(lastVal.getListValue().getValuesList());
+    } else if (availableCount > 1 && !partialResultSet.getChunkedValue()) {
+      appendToRow.accept(lastVal, sink);
     }
 
     prevIsChunk = partialResultSet.getChunkedValue();
