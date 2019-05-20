@@ -24,7 +24,6 @@ import com.google.protobuf.Value.KindCase;
 import com.google.spanner.v1.PartialResultSet;
 import java.util.ArrayList;
 import java.util.List;
-import reactor.core.publisher.FluxSink;
 
 /**
  * NOT thread-safe. But it likely does not need to be.
@@ -42,10 +41,10 @@ public class PartialResultRowExtractor {
   Object incompletePiece;
   KindCase incompletePieceKind;
 
-  private void appendToRow(Value val, FluxSink<SpannerRow> sink) {
+  private void appendToRow(Value val, List<SpannerRow> sink) {
     currentRow.add(val);
     if (currentRow.size() == rowSize) {
-      sink.next(new SpannerRow(currentRow, metadata));
+      sink.add(new SpannerRow(currentRow, metadata));
       currentRow = new ArrayList<>();
     }
   }
@@ -55,7 +54,8 @@ public class PartialResultRowExtractor {
    * {@link PartialResultSet}.
    * @param partialResultSet a not yet processed result set
    */
-  public void emitRows(PartialResultSet partialResultSet, FluxSink<SpannerRow> sink) {
+  public List<SpannerRow> emitRows(PartialResultSet partialResultSet) {
+    List<SpannerRow> sink = new ArrayList<>();
     setMetadata(partialResultSet);
     int availableCount = partialResultSet.getValuesCount();
 
@@ -86,9 +86,10 @@ public class PartialResultRowExtractor {
     beginIncompletePiece(partialResultSet, sink, availableCount, lastVal);
 
     prevIsChunk = partialResultSet.getChunkedValue();
+    return sink;
   }
 
-  private void beginIncompletePiece(PartialResultSet partialResultSet, FluxSink<SpannerRow> sink,
+  private void beginIncompletePiece(PartialResultSet partialResultSet, List<SpannerRow> sink,
       int availableCount, Value lastVal) {
     // this final piece is the start of a new incomplete value
     if (!prevIsChunk && partialResultSet.getChunkedValue()) {
@@ -100,7 +101,7 @@ public class PartialResultRowExtractor {
     }
   }
 
-  private void emitMiddleWholePieces(PartialResultSet partialResultSet, FluxSink<SpannerRow> sink,
+  private void emitMiddleWholePieces(PartialResultSet partialResultSet, List<SpannerRow> sink,
       int availableCount) {
     /* Only the final value can be chunked, and only the first value can be a part of a
     previous chunk, so the pieces in the middle are always whole values. */
