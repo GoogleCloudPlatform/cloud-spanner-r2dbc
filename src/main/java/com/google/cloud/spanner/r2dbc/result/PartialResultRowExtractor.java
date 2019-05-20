@@ -135,8 +135,7 @@ public class PartialResultRowExtractor {
     }
   }
 
-
-  // Client lib definition. These kind-cases are not mergeable for PartialResultSet.
+  // Client lib definition. These kind-cases are mergeable for PartialResultSet.
   private boolean isMergeable(KindCase kind) {
     return kind == KindCase.STRING_VALUE || kind == KindCase.LIST_VALUE;
   }
