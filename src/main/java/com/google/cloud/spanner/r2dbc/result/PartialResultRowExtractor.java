@@ -58,25 +58,10 @@ public class PartialResultRowExtractor {
    * @param partialResultSet a not yet processed result set
    */
   public void emitRows(PartialResultSet partialResultSet, FluxSink<SpannerRow> sink) {
-    if (metadata == null) {
-      metadata = new SpannerRowMetadata(Assert.requireNonNull(partialResultSet.getMetadata(),
-          "The first partial result set for a query must contain the "
-              + "metadata but it was null."));
-      rowSize = partialResultSet.getMetadata().getRowType().getFieldsCount();
-    }
+    setMetadata(partialResultSet);
     int availableCount = partialResultSet.getValuesCount();
 
-    if (prevIsChunk) {
-      Value firstPiece = partialResultSet.getValues(0);
-
-      // Concat code from client lib
-      if (incompletePieceKind == KindCase.STRING_VALUE) {
-        incompletePiece = incompletePiece + firstPiece.getStringValue();
-      } else {
-        concatLists((List<Value>) incompletePiece,
-            firstPiece.getListValue().getValuesList());
-      }
-    }
+    concatFirstIncompletePiece(partialResultSet);
 
     /* if there are more values then it means the incomplete piece is complete.
     Also, if this PR isn't chunked then it is also complete. */
@@ -97,15 +82,16 @@ public class PartialResultRowExtractor {
         appendToRow.accept(partialResultSet.getValues(0), sink);
       }
     }
-
-    /* Only the final value can be chunked, and only the first value can be a part of a
-    previous chunk, so the pieces in the middle are always whole values. */
-    for (int i = 1; i < availableCount - 1; i++) {
-      appendToRow.accept(partialResultSet.getValues(i), sink);
-    }
+    emitMiddleWholePieces(partialResultSet, sink, availableCount);
 
     Value lastVal = partialResultSet.getValues(availableCount - 1);
+    beginIncompletePiece(partialResultSet, sink, availableCount, lastVal);
 
+    prevIsChunk = partialResultSet.getChunkedValue();
+  }
+
+  private void beginIncompletePiece(PartialResultSet partialResultSet, FluxSink<SpannerRow> sink,
+      int availableCount, Value lastVal) {
     // this final piece is the start of a new incomplete value
     if (!prevIsChunk && partialResultSet.getChunkedValue()) {
       incompletePieceKind = lastVal.getKindCase();
@@ -114,8 +100,38 @@ public class PartialResultRowExtractor {
     } else if (availableCount > 1 && !partialResultSet.getChunkedValue()) {
       appendToRow.accept(lastVal, sink);
     }
+  }
 
-    prevIsChunk = partialResultSet.getChunkedValue();
+  private void emitMiddleWholePieces(PartialResultSet partialResultSet, FluxSink<SpannerRow> sink,
+      int availableCount) {
+  /* Only the final value can be chunked, and only the first value can be a part of a
+  previous chunk, so the pieces in the middle are always whole values. */
+    for (int i = 1; i < availableCount - 1; i++) {
+      appendToRow.accept(partialResultSet.getValues(i), sink);
+    }
+  }
+
+  private void concatFirstIncompletePiece(PartialResultSet partialResultSet) {
+    if (prevIsChunk) {
+      Value firstPiece = partialResultSet.getValues(0);
+
+      // Concat code from client lib
+      if (incompletePieceKind == KindCase.STRING_VALUE) {
+        incompletePiece = incompletePiece + firstPiece.getStringValue();
+      } else {
+        concatLists((List<Value>) incompletePiece,
+            firstPiece.getListValue().getValuesList());
+      }
+    }
+  }
+
+  private void setMetadata(PartialResultSet partialResultSet) {
+    if (metadata == null) {
+      metadata = new SpannerRowMetadata(Assert.requireNonNull(partialResultSet.getMetadata(),
+          "The first partial result set for a query must contain the "
+              + "metadata but it was null."));
+      rowSize = partialResultSet.getMetadata().getRowType().getFieldsCount();
+    }
   }
 
 
