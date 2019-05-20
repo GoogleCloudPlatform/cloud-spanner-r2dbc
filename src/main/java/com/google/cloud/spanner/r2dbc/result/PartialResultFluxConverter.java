@@ -52,9 +52,9 @@ public class PartialResultFluxConverter {
 
       @Override
       public void onSubscribe(Subscription subscription) {
-        PartialResultFluxConverter.this.spannerSubscription = subscription;
+        spannerSubscription = subscription;
         // initial result
-        PartialResultFluxConverter.this.spannerSubscription.request(1);
+        spannerSubscription.request(1);
       }
 
       @Override
@@ -64,7 +64,7 @@ public class PartialResultFluxConverter {
             .forEach(sink::next);
 
         // no demand management yet; just request one at a time
-        PartialResultFluxConverter.this.spannerSubscription.request(1);
+        spannerSubscription.request(1);
       }
 
       @Override

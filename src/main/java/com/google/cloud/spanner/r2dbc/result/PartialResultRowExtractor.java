@@ -30,16 +30,12 @@ import java.util.List;
  */
 public class PartialResultRowExtractor {
 
-  // TODO: this should also track the latest resume_token and return it upon request
-
-  // this probably does not even need an atomic reference. Double check gRPC java listener
-  // implementation, but it should be accessed by a single thread.
   private SpannerRowMetadata metadata = null;
-  int rowSize;
-  boolean prevIsChunk;
-  List<Value> currentRow = new ArrayList<>();
-  Object incompletePiece;
-  KindCase incompletePieceKind;
+  private int rowSize;
+  private boolean prevIsChunk;
+  private List<Value> currentRow = new ArrayList<>();
+  private Object incompletePiece;
+  private KindCase incompletePieceKind;
 
   private void appendToRow(Value val, List<SpannerRow> sink) {
     currentRow.add(val);
