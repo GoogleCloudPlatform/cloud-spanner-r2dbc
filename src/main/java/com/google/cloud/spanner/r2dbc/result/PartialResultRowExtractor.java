@@ -52,49 +52,50 @@ public class PartialResultRowExtractor {
    */
   public List<SpannerRow> emitRows(PartialResultSet partialResultSet) {
     List<SpannerRow> sink = new ArrayList<>();
-    setMetadata(partialResultSet);
+    ensureMetadataAvailable(partialResultSet);
     int availableCount = partialResultSet.getValuesCount();
 
-    concatFirstIncompletePiece(partialResultSet);
+    if (prevIsChunk) {
+      concatFirstIncompletePiece(partialResultSet);
+    }
 
     /* if there are more values then it means the incomplete piece is complete.
     Also, if this PR isn't chunked then it is also complete. */
     if (availableCount > 1 || !partialResultSet.getChunkedValue()) {
-      if (prevIsChunk) {
-        appendToRow(
-            incompletePieceKind == KindCase.STRING_VALUE
-                ? Value.newBuilder().setStringValue((String) incompletePiece)
-                .build()
-                : Value.newBuilder()
-                    .setListValue(
-                        ListValue.newBuilder()
-                            .addAllValues((List<Value>) incompletePiece))
-                    .build(), sink
-        );
-        prevIsChunk = false;
-      } else {
-        appendToRow(partialResultSet.getValues(0), sink);
-      }
+      emitCompleteFirstValue(partialResultSet, sink);
     }
+
     emitMiddleWholePieces(partialResultSet, sink, availableCount);
 
     Value lastVal = partialResultSet.getValues(availableCount - 1);
-    beginIncompletePiece(partialResultSet, sink, availableCount, lastVal);
+    if (!prevIsChunk && partialResultSet.getChunkedValue()) {
+      initializeIncompletePiece(lastVal);
+    } else if (availableCount > 1 && !partialResultSet.getChunkedValue()) {
+      appendToRow(lastVal, sink);
+    }
 
     prevIsChunk = partialResultSet.getChunkedValue();
     return sink;
   }
 
-  private void beginIncompletePiece(PartialResultSet partialResultSet, List<SpannerRow> sink,
-      int availableCount, Value lastVal) {
-    // this final piece is the start of a new incomplete value
-    if (!prevIsChunk && partialResultSet.getChunkedValue()) {
-      incompletePieceKind = lastVal.getKindCase();
-      incompletePiece = lastVal.getKindCase() == KindCase.STRING_VALUE ? lastVal.getStringValue() :
-          new ArrayList<>(lastVal.getListValue().getValuesList());
-    } else if (availableCount > 1 && !partialResultSet.getChunkedValue()) {
-      appendToRow(lastVal, sink);
-    }
+  private void initializeIncompletePiece(Value lastVal) {
+    incompletePieceKind = lastVal.getKindCase();
+    incompletePiece = lastVal.getKindCase() == KindCase.STRING_VALUE ? lastVal.getStringValue() :
+        new ArrayList<>(lastVal.getListValue().getValuesList());
+  }
+
+  private void emitCompleteFirstValue(PartialResultSet partialResultSet, List<SpannerRow> sink) {
+    Value val = prevIsChunk ? incompletePieceKind == KindCase.STRING_VALUE
+        ? Value.newBuilder().setStringValue((String) incompletePiece)
+        .build()
+        : Value.newBuilder()
+            .setListValue(
+                ListValue.newBuilder()
+                    .addAllValues((List<Value>) incompletePiece))
+            .build()
+        : partialResultSet.getValues(0);
+    appendToRow(val, sink);
+    prevIsChunk = false;
   }
 
   private void emitMiddleWholePieces(PartialResultSet partialResultSet, List<SpannerRow> sink,
@@ -107,20 +108,17 @@ public class PartialResultRowExtractor {
   }
 
   private void concatFirstIncompletePiece(PartialResultSet partialResultSet) {
-    if (prevIsChunk) {
-      Value firstPiece = partialResultSet.getValues(0);
-
-      // Concat code from client lib
-      if (incompletePieceKind == KindCase.STRING_VALUE) {
-        incompletePiece = incompletePiece + firstPiece.getStringValue();
-      } else {
-        concatLists((List<Value>) incompletePiece,
-            firstPiece.getListValue().getValuesList());
-      }
+    Value firstPiece = partialResultSet.getValues(0);
+    // Concat code from client lib
+    if (incompletePieceKind == KindCase.STRING_VALUE) {
+      incompletePiece = incompletePiece + firstPiece.getStringValue();
+    } else {
+      concatLists((List<Value>) incompletePiece,
+          firstPiece.getListValue().getValuesList());
     }
   }
 
-  private void setMetadata(PartialResultSet partialResultSet) {
+  private void ensureMetadataAvailable(PartialResultSet partialResultSet) {
     if (metadata == null) {
       if (!partialResultSet.hasMetadata()) {
         throw new IllegalStateException("The first partial result set for a query must contain the "
