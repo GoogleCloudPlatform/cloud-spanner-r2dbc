@@ -33,6 +33,9 @@ public class SpannerExceptionUtil {
 
   /**
    * Returns whether an exception thrown should be retried.
+   *
+   * Derived from google-cloud-java/SpannerExceptionFactory.java:
+   * https://github.com/googleapis/google-cloud-java/blob/master/google-cloud-clients/google-cloud-spanner/src/main/java/com/google/cloud/spanner/SpannerExceptionFactory.java
    */
   static boolean isRetryable(Throwable cause) {
     if (cause instanceof StatusRuntimeException) {
