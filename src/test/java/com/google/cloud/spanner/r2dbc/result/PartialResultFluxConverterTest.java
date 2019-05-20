@@ -184,7 +184,8 @@ public class PartialResultFluxConverterTest {
   }
 
   private void verifyRows(Flux<PartialResultSet> inputs) {
-    List<SpannerRow> results = new PartialResultFluxConverter(inputs).toRows().collectList()
+    List<SpannerRow> results = Flux.<SpannerRow>create(
+        sink -> inputs.subscribe(new PartialResultFluxConverter(sink))).collectList()
         .block();
 
     List<ColumnMetadata> columnMetadata = this.resultSetMetadata.getRowType().getFieldsList()
