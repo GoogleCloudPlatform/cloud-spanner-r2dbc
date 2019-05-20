@@ -130,7 +130,7 @@ public class SpannerIT {
 
   private List<String> getSessionNames() {
     String databaseName =
-        DatabaseName.format(ServiceOptions.getDefaultProjectId(), TEST_INSTANCE, "asdfasdf");
+        DatabaseName.format(ServiceOptions.getDefaultProjectId(), TEST_INSTANCE, TEST_DATABASE);
 
     ListSessionsRequest listSessionsRequest =
         ListSessionsRequest.newBuilder()
@@ -140,10 +140,6 @@ public class SpannerIT {
     ListSessionsResponse listSessionsResponse =
         ObservableReactiveUtil.<ListSessionsResponse>unaryCall(
             obs -> this.spanner.listSessions(listSessionsRequest, obs))
-            .onErrorContinue((error, unknown) -> {
-              System.out.println(error);
-              System.out.println(unknown);
-            })
             .block();
 
     return listSessionsResponse.getSessionsList()
