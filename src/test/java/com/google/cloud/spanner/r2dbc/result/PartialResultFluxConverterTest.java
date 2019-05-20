@@ -160,6 +160,29 @@ public class PartialResultFluxConverterTest {
     verifyRows(inputs);
   }
 
+  @Test
+  public void interRowWholeChunkTest() {
+    PartialResultSet p1 = PartialResultSet.newBuilder().setMetadata(
+        this.resultSetMetadata
+    ).setChunkedValue(false)
+        .addValues(this.a1)
+        .addValues(this.a2)
+        .build();
+
+    PartialResultSet p2 = PartialResultSet.newBuilder().setMetadata(
+        this.resultSetMetadata
+    ).setChunkedValue(false)
+        .addValues(this.a3)
+        .addValues(this.b1)
+        .addValues(this.b2)
+        .addValues(this.b3)
+        .build();
+
+    Flux<PartialResultSet> inputs = Flux.just(p1, p2);
+
+    verifyRows(inputs);
+  }
+
   private void verifyRows(Flux<PartialResultSet> inputs) {
     List<SpannerRow> results = new PartialResultFluxConverter(inputs).toRows().collectList()
         .block();
