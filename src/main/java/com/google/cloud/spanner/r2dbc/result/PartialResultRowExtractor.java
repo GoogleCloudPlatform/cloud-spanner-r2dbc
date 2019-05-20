@@ -18,14 +18,12 @@ package com.google.cloud.spanner.r2dbc.result;
 
 import com.google.cloud.spanner.r2dbc.SpannerRow;
 import com.google.cloud.spanner.r2dbc.SpannerRowMetadata;
-import com.google.cloud.spanner.r2dbc.util.Assert;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.Value;
 import com.google.protobuf.Value.KindCase;
 import com.google.spanner.v1.PartialResultSet;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 import reactor.core.publisher.FluxSink;
 
 /**
@@ -44,13 +42,13 @@ public class PartialResultRowExtractor {
   Object incompletePiece;
   KindCase incompletePieceKind;
 
-  BiConsumer<Value, FluxSink<SpannerRow>> appendToRow = (val, sink) -> {
+  private void appendToRow(Value val, FluxSink<SpannerRow> sink) {
     currentRow.add(val);
     if (currentRow.size() == rowSize) {
       sink.next(new SpannerRow(currentRow, metadata));
       currentRow = new ArrayList<>();
     }
-  };
+  }
 
   /**
    * Assembles as many complete rows as possible, given previous incomplete fields and a new
@@ -67,7 +65,7 @@ public class PartialResultRowExtractor {
     Also, if this PR isn't chunked then it is also complete. */
     if (availableCount > 1 || !partialResultSet.getChunkedValue()) {
       if (prevIsChunk) {
-        appendToRow.accept(
+        appendToRow(
             incompletePieceKind == KindCase.STRING_VALUE
                 ? Value.newBuilder().setStringValue((String) incompletePiece)
                 .build()
@@ -79,7 +77,7 @@ public class PartialResultRowExtractor {
         );
         prevIsChunk = false;
       } else {
-        appendToRow.accept(partialResultSet.getValues(0), sink);
+        appendToRow(partialResultSet.getValues(0), sink);
       }
     }
     emitMiddleWholePieces(partialResultSet, sink, availableCount);
@@ -98,16 +96,16 @@ public class PartialResultRowExtractor {
       incompletePiece = lastVal.getKindCase() == KindCase.STRING_VALUE ? lastVal.getStringValue() :
           new ArrayList<>(lastVal.getListValue().getValuesList());
     } else if (availableCount > 1 && !partialResultSet.getChunkedValue()) {
-      appendToRow.accept(lastVal, sink);
+      appendToRow(lastVal, sink);
     }
   }
 
   private void emitMiddleWholePieces(PartialResultSet partialResultSet, FluxSink<SpannerRow> sink,
       int availableCount) {
-  /* Only the final value can be chunked, and only the first value can be a part of a
-  previous chunk, so the pieces in the middle are always whole values. */
+    /* Only the final value can be chunked, and only the first value can be a part of a
+    previous chunk, so the pieces in the middle are always whole values. */
     for (int i = 1; i < availableCount - 1; i++) {
-      appendToRow.accept(partialResultSet.getValues(i), sink);
+      appendToRow(partialResultSet.getValues(i), sink);
     }
   }
 
@@ -127,9 +125,11 @@ public class PartialResultRowExtractor {
 
   private void setMetadata(PartialResultSet partialResultSet) {
     if (metadata == null) {
-      metadata = new SpannerRowMetadata(Assert.requireNonNull(partialResultSet.getMetadata(),
-          "The first partial result set for a query must contain the "
-              + "metadata but it was null."));
+      if (!partialResultSet.hasMetadata()) {
+        throw new IllegalStateException("The first partial result set for a query must contain the "
+            + "metadata but it was null.");
+      }
+      metadata = new SpannerRowMetadata(partialResultSet.getMetadata());
       rowSize = partialResultSet.getMetadata().getRowType().getFieldsCount();
     }
   }

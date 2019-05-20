@@ -18,7 +18,6 @@ package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.Empty;
 import com.google.spanner.v1.BeginTransactionRequest;
 import com.google.spanner.v1.CommitRequest;
@@ -74,13 +73,6 @@ public class GrpcClient implements Client {
     this.spanner = SpannerGrpc.newStub(this.channel)
         .withCallCredentials(callCredentials);
   }
-
-  @VisibleForTesting
-  GrpcClient(ManagedChannel channel, SpannerStub spanner) {
-    this.channel = channel;
-    this.spanner = spanner;
-  }
-
 
   /**
    * Constructor that builds the client from a user-specified {@code SpannerStub}.

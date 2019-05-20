@@ -18,7 +18,6 @@ package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.codecs.Codecs;
 import com.google.cloud.spanner.r2dbc.codecs.DefaultCodecs;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.Type;
 import io.r2dbc.spi.Row;
@@ -58,7 +57,6 @@ public class SpannerRow implements Row {
     return decodedValue;
   }
 
-  @VisibleForTesting
   public List<Value> getValues() {
     return this.values;
   }
