@@ -34,11 +34,11 @@ import reactor.retry.Retry;
  */
 public class ObservableReactiveUtil {
 
-  // Retry settings derived from client libraries;
-  // See: https://github.com/googleapis/google-cloud-go/issues/1309
+  // Retry settings inspired from:
+  // https://github.com/googleapis/googleapis/blob/master/google/spanner/v1/spanner_gapic.yaml#L48
   private static final Retry retryStrategy =
       Retry.onlyIf(retryContext -> isRetryable(retryContext.exception()))
-          .exponentialBackoffWithJitter(Duration.ofSeconds(1), Duration.ofSeconds(10))
+          .exponentialBackoffWithJitter(Duration.ofSeconds(1), Duration.ofSeconds(32))
           .timeout(Duration.ofSeconds(60));
 
   /**
