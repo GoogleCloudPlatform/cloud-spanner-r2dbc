@@ -41,7 +41,6 @@ import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -56,8 +55,6 @@ public class GrpcClient implements Client {
 
   private final ManagedChannel channel;
   private final SpannerStub spanner;
-
-  private final AtomicLong seqNo = new AtomicLong(1);
 
   /**
    * Initializes the Cloud Spanner gRPC async stub.
@@ -166,7 +163,6 @@ public class GrpcClient implements Client {
             .setSql(sql)
             .setSession(session.getName())
             .setTransaction(TransactionSelector.newBuilder().setId(t.getId()).build())
-            .setSeqno(this.seqNo.getAndIncrement())
             .build())
         .flatMapMany(request -> Flux.create(
             sink -> {
