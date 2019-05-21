@@ -23,6 +23,7 @@ import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
 import io.grpc.protobuf.ProtoUtils;
 import java.time.Duration;
+import java.util.Set;
 
 /**
  * Extracts metadata from exceptions thrown during Spanner RPCs.
@@ -30,6 +31,14 @@ import java.time.Duration;
 public class SpannerExceptionUtil {
   private static final Metadata.Key<RetryInfo> KEY_RETRY_INFO =
       ProtoUtils.keyForProto(RetryInfo.getDefaultInstance());
+
+
+  private static final Set<String> RETRYABLE_ERROR_MESSAGES =
+      CollectionsBuilder.setOf(
+          "HTTP/2 error code: INTERNAL_ERROR",
+          "Connection closed with unknown cause",
+          "Received unexpected EOS on DATA frame from server");
+
 
   /**
    * Returns whether an exception thrown should be retried.
@@ -41,22 +50,14 @@ public class SpannerExceptionUtil {
     if (cause instanceof StatusRuntimeException) {
       StatusRuntimeException statusRuntimeException = (StatusRuntimeException) cause;
 
-      if (statusRuntimeException.getStatus().getCode() == Status.Code.INTERNAL) {
-        if (cause.getMessage().contains("HTTP/2 error code: INTERNAL_ERROR")) {
-          return true;
-        }
-        if (cause.getMessage().contains("Connection closed with unknown cause")) {
-          return true;
-        }
-        if (cause
-            .getMessage()
-            .contains("Received unexpected EOS on DATA frame from server")) {
-          return true;
-        }
+      if (statusRuntimeException.getStatus().getCode() == Status.Code.INTERNAL
+          && RETRYABLE_ERROR_MESSAGES.stream().anyMatch(
+              errorFragment -> cause.getMessage().contains(errorFragment))) {
+        return true;
       }
 
       if (statusRuntimeException.getStatus().getCode() == Code.RESOURCE_EXHAUSTED
-          && extractRetryDelay(statusRuntimeException).toMillis() > 0L) {
+          && extractRetryDelay(statusRuntimeException) != null) {
         return true;
       }
     }
@@ -65,8 +66,7 @@ public class SpannerExceptionUtil {
   }
 
   /**
-   * Extracts the retry delay from the Spanner exception if it exists; else returns Duration
-   * of -1 seconds.
+   * Extracts the retry delay from the Spanner exception if it exists; else returns null.
    */
   private static Duration extractRetryDelay(Throwable cause) {
     Metadata trailers = Status.trailersFromThrowable(cause);
@@ -79,6 +79,6 @@ public class SpannerExceptionUtil {
       }
     }
 
-    return Duration.ofSeconds(-1);
+    return null;
   }
 }

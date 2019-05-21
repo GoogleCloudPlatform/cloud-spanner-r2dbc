@@ -78,6 +78,7 @@ public class ObservableReactiveUtilTest {
         });
 
     int result = resultMono.block();
+    assertThat(timesRetried.get()).isEqualTo(3);
     assertThat(result).isEqualTo(100);
   }
 
