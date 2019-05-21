@@ -113,6 +113,7 @@ public class SpannerIT {
   @Test
   public void testQuerying() {
     List<String> result = Mono.from(this.connectionFactory.create())
+        .delayUntil(connection -> connection.beginTransaction())
         .map(connection -> connection.createStatement("SELECT title, author FROM books"))
         .flatMapMany(statement -> statement.execute())
         .flatMap(spannerResult -> spannerResult.map(
