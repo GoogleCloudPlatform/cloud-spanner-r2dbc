@@ -92,12 +92,10 @@ public class SpannerStatement implements Statement {
 
     return Mono
         .just(new SpannerResult(
-            Flux.create(sink -> result.subscribe(new PartialResultFluxConverter(sink))),
+            Flux.create(sink -> result
+                .subscribe(new ConvertingFluxAdapter(sink, new PartialResultRowExtractor()))),
             result.next().map(partialResultSet -> partialResultSet.hasStats()
                 ? Math.toIntExact(partialResultSet.getStats().getRowCountExact())
-                : 0)
-        ));
-            Flux.create(sink -> result
-                .subscribe(new ConvertingFluxAdapter(sink, new PartialResultRowExtractor())))));
+                : 0)));
   }
 }

@@ -32,6 +32,7 @@ import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
+import io.r2dbc.spi.Result;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -97,7 +98,7 @@ public class SpannerStatementTest {
 
     when(this.mockClient.executeStreamingSql(any(), any(), any())).thenReturn(inputs);
 
-    Mono<SpannerResult> resultMono = (Mono<SpannerResult>) Mono
+    Mono<Result> resultMono = Mono
         .from(new SpannerStatement(this.mockClient, null, null, null).execute());
 
     assertThat(resultMono.flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isZero();
