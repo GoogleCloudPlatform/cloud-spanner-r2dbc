@@ -50,8 +50,7 @@ public class PartialResultFluxConverter implements CoreSubscriber<PartialResultS
 
   @Override
   public void onNext(PartialResultSet partialResultSet) {
-    PartialResultFluxConverter.this.rowExtractor.emitRows(partialResultSet).stream()
-        .forEach(sink::next);
+    PartialResultFluxConverter.this.rowExtractor.emitRows(partialResultSet).forEach(sink::next);
 
     // no demand management yet; just request one at a time
     spannerSubscription.request(1);

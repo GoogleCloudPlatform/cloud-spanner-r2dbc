@@ -37,10 +37,10 @@ public class PartialResultRowExtractor {
   private Object incompletePiece;
   private KindCase incompletePieceKind;
 
-  private void appendToRow(Value val, List<SpannerRow> sink) {
+  private void appendToRow(Value val, List<SpannerRow> rows) {
     currentRow.add(val);
     if (currentRow.size() == rowSize) {
-      sink.add(new SpannerRow(currentRow, metadata));
+      rows.add(new SpannerRow(currentRow, metadata));
       currentRow = new ArrayList<>();
     }
   }
@@ -51,7 +51,7 @@ public class PartialResultRowExtractor {
    * @param partialResultSet a not yet processed result set
    */
   public List<SpannerRow> emitRows(PartialResultSet partialResultSet) {
-    List<SpannerRow> sink = new ArrayList<>();
+    List<SpannerRow> rows = new ArrayList<>();
     ensureMetadataAvailable(partialResultSet);
     int availableCount = partialResultSet.getValuesCount();
 
@@ -62,20 +62,20 @@ public class PartialResultRowExtractor {
     /* if there are more values then it means the incomplete piece is complete.
     Also, if this PR isn't chunked then it is also complete. */
     if (availableCount > 1 || !partialResultSet.getChunkedValue()) {
-      emitCompleteFirstValue(partialResultSet, sink);
+      emitCompleteFirstValue(partialResultSet, rows);
     }
 
-    emitMiddleWholePieces(partialResultSet, sink, availableCount);
+    emitMiddleWholePieces(partialResultSet, rows, availableCount);
 
     Value lastVal = partialResultSet.getValues(availableCount - 1);
     if (!prevIsChunk && partialResultSet.getChunkedValue()) {
       initializeIncompletePiece(lastVal);
     } else if (availableCount > 1 && !partialResultSet.getChunkedValue()) {
-      appendToRow(lastVal, sink);
+      appendToRow(lastVal, rows);
     }
 
     prevIsChunk = partialResultSet.getChunkedValue();
-    return sink;
+    return rows;
   }
 
   private void initializeIncompletePiece(Value lastVal) {
@@ -84,7 +84,7 @@ public class PartialResultRowExtractor {
         new ArrayList<>(lastVal.getListValue().getValuesList());
   }
 
-  private void emitCompleteFirstValue(PartialResultSet partialResultSet, List<SpannerRow> sink) {
+  private void emitCompleteFirstValue(PartialResultSet partialResultSet, List<SpannerRow> rows) {
     Value val = prevIsChunk ? incompletePieceKind == KindCase.STRING_VALUE
         ? Value.newBuilder().setStringValue((String) incompletePiece)
         .build()
@@ -94,16 +94,16 @@ public class PartialResultRowExtractor {
                     .addAllValues((List<Value>) incompletePiece))
             .build()
         : partialResultSet.getValues(0);
-    appendToRow(val, sink);
+    appendToRow(val, rows);
     prevIsChunk = false;
   }
 
-  private void emitMiddleWholePieces(PartialResultSet partialResultSet, List<SpannerRow> sink,
+  private void emitMiddleWholePieces(PartialResultSet partialResultSet, List<SpannerRow> rows,
       int availableCount) {
     /* Only the final value can be chunked, and only the first value can be a part of a
     previous chunk, so the pieces in the middle are always whole values. */
     for (int i = 1; i < availableCount - 1; i++) {
-      appendToRow(partialResultSet.getValues(i), sink);
+      appendToRow(partialResultSet.getValues(i), rows);
     }
   }
 
