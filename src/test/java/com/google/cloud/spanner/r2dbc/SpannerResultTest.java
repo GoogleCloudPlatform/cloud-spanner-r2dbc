@@ -70,7 +70,7 @@ public class SpannerResultTest {
   public void getRowsUpdatedTest() {
     assertThat(
         ((Mono) new SpannerResult(this.resultSet,Mono.just(2)).getRowsUpdated()).block())
-        .isEqualTo(0);
+        .isEqualTo(2);
   }
 
   @Test

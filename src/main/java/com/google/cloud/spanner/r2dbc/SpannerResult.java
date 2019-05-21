@@ -43,7 +43,8 @@ public class SpannerResult implements Result {
    */
   public SpannerResult(Flux<SpannerRow> resultRows, Mono<Integer> rowsUpdated) {
     this.resultRows = Assert.requireNonNull(resultRows, "A non-null flux of rows is required.");
-    this.rowsUpdated = Assert.requireNonNull(rowsUpdated, "A  non-null mono of rows updated is required.");
+    this.rowsUpdated = Assert.requireNonNull(rowsUpdated,
+        "A non-null mono of rows updated is required.");
   }
 
   @Override

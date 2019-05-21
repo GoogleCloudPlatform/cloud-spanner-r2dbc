@@ -17,14 +17,11 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Value;
 import com.google.spanner.v1.CreateSessionRequest;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
@@ -89,7 +86,8 @@ public class GrpcClientTest {
           }
         },
         // call the method under test
-        grpcClient -> grpcClient.executeStreamingSql(session, Mono.just(Transaction.newBuilder().setId(
+        grpcClient -> grpcClient.executeStreamingSql(session,
+            Mono.just(Transaction.newBuilder().setId(
             transId).build()), sql).blockFirst()
         );
 
