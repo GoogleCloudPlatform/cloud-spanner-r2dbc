@@ -32,6 +32,7 @@ import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.ReadOnly;
 import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.TransactionSelector;
 import io.grpc.CallCredentials;
@@ -159,10 +160,12 @@ public class GrpcClient implements Client {
   public Flux<PartialResultSet> executeStreamingSql(
       Session session, Mono<Transaction> transaction, String sql) {
     return transaction
+        .map(t -> TransactionSelector.newBuilder().setId(t.getId()).build())
+        .defaultIfEmpty(readOnlySingleUseTransaction())
         .map(t ->  ExecuteSqlRequest.newBuilder()
             .setSql(sql)
             .setSession(session.getName())
-            .setTransaction(TransactionSelector.newBuilder().setId(t.getId()).build())
+            .setTransaction(t)
             .build())
         .flatMapMany(request -> Flux.create(
             sink -> {
@@ -174,7 +177,8 @@ public class GrpcClient implements Client {
               this.spanner.executeStreamingSql(request, responseObserver);
 
               // must be invoked after the actual method so that the stream is already started
-              sink.onRequest(demand -> responseObserver.getRequestStream().request((int) demand));
+              sink.onRequest(demand -> responseObserver.getRequestStream()
+                  .request((int) Math.min(demand, Integer.MAX_VALUE)));
           }));
   }
 
@@ -221,5 +225,19 @@ public class GrpcClient implements Client {
         this.channel.shutdownNow();
       }
     });
+  }
+
+  /**
+   * Creates a temporary read-only transaction with strong concurrency, which is also the default
+   * for {@code ExecuteStreamingSql} when the transaction field is empty.
+   */
+  private TransactionSelector readOnlySingleUseTransaction() {
+    return TransactionSelector.newBuilder()
+        .setSingleUse(
+            TransactionOptions.newBuilder()
+                .setReadOnly(
+                    ReadOnly.newBuilder()
+                        .setStrong(true)))
+        .build();
   }
 }

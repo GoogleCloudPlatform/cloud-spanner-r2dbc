@@ -122,7 +122,6 @@ public class SpannerIT {
         .block();
 
     assertThat(Mono.from(this.connectionFactory.create())
-        .delayUntil(connection -> connection.beginTransaction())
         .map(connection -> connection.createStatement("Select count(1) FROM books"))
         .flatMapMany(statement -> statement.execute())
         .flatMap(spannerResult -> spannerResult.map(
@@ -152,7 +151,6 @@ public class SpannerIT {
         .block();
 
     List<String> result = Mono.from(this.connectionFactory.create())
-        .delayUntil(connection -> connection.beginTransaction())
         .map(connection -> connection.createStatement("SELECT title, author FROM books"))
         .flatMapMany(statement -> statement.execute())
         .flatMap(spannerResult -> spannerResult.map(

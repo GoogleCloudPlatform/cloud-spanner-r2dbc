@@ -18,7 +18,6 @@ package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.result.PartialResultFluxConverter;
-import com.google.cloud.spanner.r2dbc.result.PartialResultSetStatsConverter;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
@@ -95,6 +94,9 @@ public class SpannerStatement implements Statement {
     return Mono
         .just(new SpannerResult(
             Flux.create(sink -> result.subscribe(new PartialResultFluxConverter(sink))),
-            Mono.create(sink -> result.subscribe(new PartialResultSetStatsConverter(sink)))));
+            result.next().flatMap(partialResultSet -> partialResultSet.hasStats() ? Mono
+                .just(Math.toIntExact(partialResultSet.getStats().getRowCountExact()))
+                : Mono.just(0))
+        ));
   }
 }
