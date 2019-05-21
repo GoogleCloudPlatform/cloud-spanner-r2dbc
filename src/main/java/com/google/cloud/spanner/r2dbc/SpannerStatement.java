@@ -17,7 +17,8 @@
 package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
-import com.google.cloud.spanner.r2dbc.result.PartialResultFluxConverter;
+import com.google.cloud.spanner.r2dbc.result.PartialResultRowExtractor;
+import com.google.cloud.spanner.r2dbc.util.ConvertingFluxAdapter;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
@@ -45,13 +46,14 @@ public class SpannerStatement implements Statement {
    *
    * <p>If no transaction is present, a temporary strongly consistent readonly transaction will be
    * used.
+   *
    * @param client cloud spanner client to use for performing the query operation
    * @param session current cloud spanner session
    * @param transaction current cloud spanner transaction, or empty if no transaction is started
    * @param sql the query to execute
    */
   public SpannerStatement(
-      Client client, Session session,  Mono<Transaction> transaction, String sql) {
+      Client client, Session session, Mono<Transaction> transaction, String sql) {
     this.client = client;
     this.session = session;
     this.transaction = transaction;
@@ -95,5 +97,7 @@ public class SpannerStatement implements Statement {
                 ? Math.toIntExact(partialResultSet.getStats().getRowCountExact())
                 : 0)
         ));
+            Flux.create(sink -> result
+                .subscribe(new ConvertingFluxAdapter(sink, new PartialResultRowExtractor())))));
   }
 }
