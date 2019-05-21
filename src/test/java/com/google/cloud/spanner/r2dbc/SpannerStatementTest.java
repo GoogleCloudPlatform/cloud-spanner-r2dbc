@@ -51,8 +51,10 @@ public class SpannerStatementTest {
 
   private final ResultSetMetadata resultSetMetadata = ResultSetMetadata.newBuilder().setRowType(
       StructType.newBuilder()
-          .addFields(Field.newBuilder().setName("boolField").build())
-          .addFields(Field.newBuilder().setName("stringField").build())
+          .addFields(Field.newBuilder().setName("boolField")
+              .setType(Type.newBuilder().setCode(TypeCode.BOOL).build()).build())
+          .addFields(Field.newBuilder().setName("stringField")
+              .setType(Type.newBuilder().setCode(TypeCode.STRING).build()).build())
           .build()
   ).build();
 
@@ -95,8 +97,13 @@ public class SpannerStatementTest {
 
     when(this.mockClient.executeStreamingSql(any(), any(), any())).thenReturn(inputs);
 
-    assertThat(Mono.from(new SpannerStatement(this.mockClient, null, null, null).execute())
-        .flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isZero();
+    Mono<SpannerResult> resultMono = (Mono<SpannerResult>) Mono
+        .from(new SpannerStatement(this.mockClient, null, null, null).execute());
+
+    assertThat(resultMono.flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isZero();
+    assertThat(resultMono.flatMapMany(r -> r
+        .map((row, meta) -> row.get(0, Boolean.class).toString() + "-" + row.get(1, String.class)))
+        .collectList().block()).containsExactly("false-abc");
   }
 
   @Test
