@@ -26,7 +26,7 @@ import reactor.core.publisher.FluxSink;
  * A {@link org.reactivestreams.Subscriber} that given a function {@code Function<T, List<R>>
  * converter}, maps and forwards a stream  of {@code T} objects to a sink of {@code R} objects.
  */
-public class OneToManyFluxMapper<T, R> implements CoreSubscriber<T> {
+public class ConvertingFluxMapper<T, R> implements CoreSubscriber<T> {
 
   private final FluxSink<R> sink;
   private final Function<T, List<R>> converter;
@@ -39,7 +39,7 @@ public class OneToManyFluxMapper<T, R> implements CoreSubscriber<T> {
    * @param sink the flux sink to which converted object will be forwarded
    * @param converter the converter that will map input objects to lists of output objects
    */
-  public OneToManyFluxMapper(FluxSink<R> sink, Function<T, List<R>> converter) {
+  public ConvertingFluxMapper(FluxSink<R> sink, Function<T, List<R>> converter) {
     this.sink = sink;
     this.converter = converter;
   }

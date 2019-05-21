@@ -18,7 +18,7 @@ package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.result.PartialResultRowExtractor;
-import com.google.cloud.spanner.r2dbc.util.OneToManyFluxMapper;
+import com.google.cloud.spanner.r2dbc.util.ConvertingFluxMapper;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
@@ -96,6 +96,6 @@ public class SpannerStatement implements Statement {
     return Mono
         .just(new SpannerResult(
             Flux.create(sink -> result
-                .subscribe(new OneToManyFluxMapper(sink, new PartialResultRowExtractor())))));
+                .subscribe(new ConvertingFluxMapper(sink, new PartialResultRowExtractor())))));
   }
 }

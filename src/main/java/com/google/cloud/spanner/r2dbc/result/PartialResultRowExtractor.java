@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * NOT thread-safe. But it likely does not need to be.
+ * Converts a stream of {@link PartialResultSet} to a stream of {@link SpannerRow}.
  */
 public class PartialResultRowExtractor implements Function<PartialResultSet, List<SpannerRow>> {
 
