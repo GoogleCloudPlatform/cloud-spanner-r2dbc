@@ -186,7 +186,8 @@ public class PartialResultRowExtractorTest {
 
   private void verifyRows(Flux<PartialResultSet> inputs) {
     List<SpannerRow> results = Flux.<SpannerRow>create(
-        sink -> inputs.subscribe(new ConvertingFluxAdapter<>(sink, new PartialResultRowExtractor())))
+        sink -> inputs
+            .subscribe(new ConvertingFluxAdapter<>(sink, new PartialResultRowExtractor())))
         .collectList()
         .block();
 
