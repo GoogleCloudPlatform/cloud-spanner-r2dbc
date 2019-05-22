@@ -38,17 +38,14 @@ public class SpannerRowMetadata implements RowMetadata {
   /**
    * Mapping of column names to its integer index position in the row.
    */
-  private final HashMap<String, Integer> columnNameIndex;
+  private final HashMap<String, Integer> columnNameIndex = new HashMap<>();
 
   /**
-   * Extracts column metadata and initializes lookup data structures from the passed-in
-   * {@link ResultSetMetadata}.
+   * Constructor.
    *
    * @param resultSetMetadata the row from Cloud Spanner.
    */
   public SpannerRowMetadata(ResultSetMetadata resultSetMetadata) {
-
-    this.columnNameIndex = new HashMap<>();
     List<ColumnMetadata> tmpColumnMetadata = new ArrayList<>();
     List<String> tmpColumnNames = new ArrayList<>();
 
