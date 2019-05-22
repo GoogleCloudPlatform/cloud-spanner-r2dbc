@@ -34,6 +34,7 @@ import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Result;
+import java.util.List;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -141,15 +142,15 @@ public class SpannerStatementTest {
   }
 
   @Test
-  public void executeQueryCalledOnlyOnce() {
+  public void noopMapOnUpdateQueries() {
     Client mockClient = mock(Client.class);
-    String sql = "select book from library";
+    String sql = "delete from Books where true";
     PartialResultSet partialResultSet = PartialResultSet.newBuilder()
         .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
             .addFields(
                 Field.newBuilder().setName("book")
                     .setType(Type.newBuilder().setCode(TypeCode.STRING)))))
-        .addValues(Value.newBuilder().setStringValue("Odyssey"))
+        .setStats(ResultSetStats.getDefaultInstance())
         .build();
     when(mockClient.executeStreamingSql(TEST_SESSION, Mono.empty(), sql))
         .thenReturn(Flux.just(partialResultSet));
@@ -159,7 +160,8 @@ public class SpannerStatementTest {
 
     SpannerResult result = ((Mono<SpannerResult>) statement.execute()).block();
 
-    result.map((r, m) -> (String)r.get(0)).blockFirst().equals("Odyssey");
+    List<String> rowStrings = result.map((r, m) -> (String)r.get(0)).collectList().block();
+    assertThat(rowStrings).isEmpty();
 
     int rowsUpdated = Mono.from(result.getRowsUpdated()).block();
     assertThat(rowsUpdated).isEqualTo(0);
