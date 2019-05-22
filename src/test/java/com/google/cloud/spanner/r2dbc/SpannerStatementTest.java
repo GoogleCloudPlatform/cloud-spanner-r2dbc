@@ -19,6 +19,7 @@ package com.google.cloud.spanner.r2dbc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -139,4 +140,30 @@ public class SpannerStatementTest {
         .flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isEqualTo(555);
   }
 
+  @Test
+  public void executeQueryCalledOnlyOnce() {
+    Client mockClient = mock(Client.class);
+    String sql = "select book from library";
+    PartialResultSet partialResultSet = PartialResultSet.newBuilder()
+        .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
+            .addFields(
+                Field.newBuilder().setName("book")
+                    .setType(Type.newBuilder().setCode(TypeCode.STRING)))))
+        .addValues(Value.newBuilder().setStringValue("Odyssey"))
+        .build();
+    when(mockClient.executeStreamingSql(TEST_SESSION, Mono.empty(), sql))
+        .thenReturn(Flux.just(partialResultSet));
+
+    SpannerStatement statement
+        = new SpannerStatement(mockClient, TEST_SESSION, Mono.empty(),sql);
+
+    SpannerResult result = ((Mono<SpannerResult>) statement.execute()).block();
+
+    result.map((r, m) -> (String)r.get(0)).blockFirst().equals("Odyssey");
+
+    int rowsUpdated = Mono.from(result.getRowsUpdated()).block();
+    assertThat(rowsUpdated).isEqualTo(0);
+
+    verify(mockClient, times(1)).executeStreamingSql(TEST_SESSION, Mono.empty(), sql);
+  }
 }
