@@ -27,6 +27,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
+import com.google.cloud.spanner.r2dbc.SpannerResult;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.spanner.v1.DatabaseName;
 import com.google.spanner.v1.ListSessionsRequest;
@@ -61,6 +62,15 @@ public class SpannerIT {
 
   private static final String TEST_DATABASE = "testdb";
 
+  private static final ConnectionFactory connectionFactory =
+      ConnectionFactories.get(ConnectionFactoryOptions.builder()
+          // TODO: consider whether to bring autodiscovery of project ID
+          .option(Option.valueOf("project"), ServiceOptions.getDefaultProjectId())
+          .option(DRIVER, DRIVER_NAME)
+          .option(INSTANCE, TEST_INSTANCE)
+          .option(DATABASE, TEST_DATABASE)
+          .build());
+
   private SpannerStub spanner;
 
   /**
@@ -84,18 +94,11 @@ public class SpannerIT {
 
   @Test
   public void testSessionManagement() {
-    ConnectionFactory connectionFactory =
-        ConnectionFactories.get(ConnectionFactoryOptions.builder()
-            // TODO: consider whether to bring autodiscovery of project ID
-            .option(Option.valueOf("project"), ServiceOptions.getDefaultProjectId())
-            .option(DRIVER, DRIVER_NAME)
-            .option(INSTANCE, TEST_INSTANCE)
-            .option(DATABASE, TEST_DATABASE)
-            .build());
 
-    assertThat(connectionFactory).isInstanceOf(SpannerConnectionFactory.class);
 
-    Mono<Connection> connection = (Mono<Connection>) connectionFactory.create();
+    assertThat(this.connectionFactory).isInstanceOf(SpannerConnectionFactory.class);
+
+    Mono<Connection> connection = (Mono<Connection>) this.connectionFactory.create();
     SpannerConnection spannerConnection = (SpannerConnection)connection.block();
     String activeSessionName = spannerConnection.getSession().getName();
 
@@ -106,6 +109,67 @@ public class SpannerIT {
 
     activeSessions = getSessionNames();
     assertThat(activeSessions).doesNotContain(activeSessionName);
+  }
+
+  @Test
+  public void testQuerying() {
+
+    Mono.from(this.connectionFactory.create())
+        .delayUntil(c -> c.beginTransaction())
+        .delayUntil(c -> Mono.from(c.createStatement("DELETE FROM books WHERE true").execute())
+            .flatMap(r -> Mono.from(r.getRowsUpdated())))
+        .delayUntil(c -> c.commitTransaction())
+        .block();
+
+    assertThat(Mono.from(this.connectionFactory.create())
+        .map(connection -> connection.createStatement("Select count(1) FROM books"))
+        .flatMapMany(statement -> statement.execute())
+        .flatMap(spannerResult -> spannerResult.map(
+            (r, meta) -> r.get(0, Long.class)
+        ))
+        .collectList()
+        .block().get(0)).isZero();
+
+    Mono.from(this.connectionFactory.create())
+        .delayUntil(c -> c.beginTransaction())
+        .delayUntil(c -> Mono.from(c.createStatement(
+            "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY) VALUES"
+                + " ('df0e3d06-2743-4691-8e51-6d33d90c5cb9', 'Effective Java', "
+                + "'Joshua Bloch', 100)")
+            .execute()).flatMap(r -> Mono.from(r.getRowsUpdated())))
+        .delayUntil(c -> c.commitTransaction())
+        .block();
+
+    Mono.from(this.connectionFactory.create())
+        .delayUntil(c -> c.beginTransaction())
+        .delayUntil(c -> Mono.from(c.createStatement(
+            "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY) VALUES"
+                + " ('2b2cbd78-ecd8-430e-b685-fa7910f8a4c7', 'JavaScript: "
+                + "The Good Parts', 'Douglas Crockford', 100);")
+            .execute()).flatMap(r -> Mono.from(r.getRowsUpdated())))
+        .delayUntil(c -> c.commitTransaction())
+        .block();
+
+    List<String> result = Mono.from(this.connectionFactory.create())
+        .map(connection -> connection.createStatement("SELECT title, author FROM books"))
+        .flatMapMany(statement -> statement.execute())
+        .flatMap(spannerResult -> spannerResult.map(
+            (r, meta) -> r.get(0, String.class) + " by " + r.get(1, String.class)
+        ))
+        .doOnNext(s -> System.out.println("Book: " + s))
+        .collectList()
+        .block();
+
+    assertThat(result).containsExactlyInAnyOrder(
+        "JavaScript: The Good Parts by Douglas Crockford",
+        "Effective Java by Joshua Bloch");
+
+    Mono<SpannerResult> deleteResult = Mono.from(this.connectionFactory.create())
+        .delayUntil(c -> c.beginTransaction())
+        .flatMap(c -> Mono.from(c.createStatement("DELETE FROM books WHERE true").execute()))
+        .cast(SpannerResult.class);
+
+    assertThat(deleteResult.map(r -> Mono.from(r.getRowsUpdated()).block()).block()).isEqualTo(2);
   }
 
   private List<String> getSessionNames() {

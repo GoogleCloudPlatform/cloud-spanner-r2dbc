@@ -21,6 +21,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.protobuf.Value;
 import com.google.spanner.v1.ResultSetMetadata;
+import com.google.spanner.v1.StructType;
+import com.google.spanner.v1.StructType.Field;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
@@ -33,54 +37,73 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerResultTest {
 
-  private Flux<List<Value>> resultSet;
+  private Flux<SpannerRow> resultSet;
 
-  private Mono<ResultSetMetadata> resultSetMetadata = Mono
-      .just(ResultSetMetadata.newBuilder().build());
+  private ResultSetMetadata resultSetMetadata;
 
   /**
    * Setup.
    */
   @Before
   public void setup() {
+
+    this.resultSetMetadata =
+        ResultSetMetadata.newBuilder()
+            .setRowType(
+                StructType.newBuilder().addFields(
+                    Field.newBuilder()
+                        .setName("first_column")
+                        .setType(Type.newBuilder().setCode(TypeCode.STRING))))
+            .build();
+
+    SpannerRowMetadata metadata = new SpannerRowMetadata(this.resultSetMetadata);
     this.resultSet = Flux
-        .just(Collections.singletonList(Value.newBuilder().setStringValue("key1").build()),
-            Collections.singletonList(Value.newBuilder().setStringValue("key2").build()));
+        .just(new SpannerRow(
+                Collections.singletonList(Value.newBuilder().setStringValue("key1").build()),
+                metadata),
+            new SpannerRow(
+                Collections.singletonList(Value.newBuilder().setStringValue("key2").build()),
+                metadata));
   }
 
   @Test
   public void getRowsUpdatedTest() {
     assertThat(
-        ((Mono) new SpannerResult(this.resultSet, this.resultSetMetadata).getRowsUpdated()).block())
-        .isEqualTo(0);
-    assertThat(((Mono) new SpannerResult(Mono.just(2)).getRowsUpdated()).block())
+        ((Mono) new SpannerResult(this.resultSet,Mono.just(2)).getRowsUpdated()).block())
         .isEqualTo(2);
   }
 
   @Test
   public void nullResultSetTest() {
-    assertThatThrownBy(() -> new SpannerResult(null, null))
+    assertThatThrownBy(() -> new SpannerResult(null, Mono.empty()))
         .hasMessage("A non-null flux of rows is required.");
   }
 
   @Test
-  public void nullRowMetadataTest() {
-    assertThatThrownBy(() -> new SpannerResult(this.resultSet, null))
-        .hasMessage("Non-null row metadata is required.");
+  public void nullRowsTest() {
+    assertThatThrownBy(() -> new SpannerResult(Flux.empty(),null))
+        .hasMessage("A non-null mono of rows updated is required.");
   }
 
   @Test
   public void mapTest() {
-    String metadataString = this.resultSetMetadata.block().toString();
-    assertThat(new SpannerResult(this.resultSet, this.resultSetMetadata).map((row, metadata) ->
-        ((SpannerRow) row).getValues().get(0).getStringValue() + "-"
-            + ((SpannerRowMetadata) metadata).getRowMetadata().toString()).collectList().block())
-        .containsExactly("key1-" + metadataString, "key2-" + metadataString);
-  }
 
-  @Test
-  public void noResultsMapTest() {
-    assertThat(new SpannerResult(Mono.just(2)).map((x, y) -> "unused"))
-        .isEqualTo(Flux.empty());
+    String columnName = this.resultSetMetadata
+        .getRowType()
+        .getFields(0)
+        .getName();
+
+    List<String> result =
+        new SpannerResult(this.resultSet, Mono.just(0))
+            .map((row, metadata) ->
+                row.get(0, String.class)
+                    + "-"
+                    + metadata.getColumnMetadata(0).getName())
+            .collectList()
+            .block();
+
+    assertThat(result)
+        .containsExactly("key1-" + columnName, "key2-" + columnName);
+
   }
 }

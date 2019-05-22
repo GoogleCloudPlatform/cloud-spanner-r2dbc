@@ -24,13 +24,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.protobuf.Value;
 import com.google.spanner.v1.CommitResponse;
+import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.ResultSetMetadata;
 import com.google.spanner.v1.Session;
+import com.google.spanner.v1.StructType;
+import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.Type;
+import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Statement;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -58,15 +66,31 @@ public class SpannerConnectionTest {
   }
 
   @Test
-  public void createStatementDummyImplementation() {
-    SpannerConnection connection = new SpannerConnection(mockClient, TEST_SESSION);
-    Statement statement = connection.createStatement("not actual sql");
+  public void executeStatementReturnsWorkingStatementWithCorrectQuery() {
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    String sql = "select book from library";
+    PartialResultSet partialResultSet = PartialResultSet.newBuilder()
+        .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
+            .addFields(
+                Field.newBuilder().setName("book")
+                    .setType(Type.newBuilder().setCode(TypeCode.STRING)))))
+        .addValues(Value.newBuilder().setStringValue("Odyssey"))
+        .build();
+
+    when(this.mockClient.executeStreamingSql(TEST_SESSION, Mono.empty(), sql))
+        .thenReturn(Flux.just(partialResultSet));
+
+    Statement statement = connection.createStatement(sql);
     assertThat(statement).isInstanceOf(SpannerStatement.class);
+    Mono<SpannerResult> result = (Mono<SpannerResult>)statement.execute();
+    result.block().map((r, m) -> (String)r.get(0)).blockFirst().equals("Odyssey");
+
+    verify(this.mockClient).executeStreamingSql(TEST_SESSION, Mono.empty(), sql);
   }
 
   @Test
   public void beginAndCommitTransactions() {
-    SpannerConnection connection = new SpannerConnection(mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
 
     Mono.from(connection.commitTransaction()).block();
     verify(this.mockClient, never()).commitTransaction(any(), any());
@@ -81,7 +105,7 @@ public class SpannerConnectionTest {
 
   @Test
   public void rollbackTransactions() {
-    SpannerConnection connection = new SpannerConnection(mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
 
     Mono.from(connection.rollbackTransaction()).block();
     verify(this.mockClient, never()).rollbackTransaction(any(), any());

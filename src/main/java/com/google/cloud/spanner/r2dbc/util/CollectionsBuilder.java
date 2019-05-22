@@ -14,30 +14,27 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc;
+package com.google.cloud.spanner.r2dbc.util;
 
-import com.google.spanner.v1.StructType.Field;
-import com.google.spanner.v1.Type;
-import io.r2dbc.spi.ColumnMetadata;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * {@link ColumnMetadata} implementation for Cloud Spanner.
+ * Provides helpers for building immutable collections of objects conveniently.
  */
-public class SpannerColumnMetadata implements ColumnMetadata {
+public class CollectionsBuilder {
 
-  private final Field columnField;
+  private CollectionsBuilder() {}
 
-  public SpannerColumnMetadata(Field columnField) {
-    this.columnField = columnField;
-  }
-
-  @Override
-  public String getName() {
-    return this.columnField.getName();
-  }
-
-  @Override
-  public Type getNativeTypeMetadata() {
-    return this.columnField.getType();
+  /**
+   * Returns an unmodifiable set of the items provided.
+   */
+  public static <T> Set<T> setOf(T... items) {
+    HashSet<T> set = new HashSet<T>();
+    for (T item : items) {
+      set.add(item);
+    }
+    return Collections.unmodifiableSet(set);
   }
 }

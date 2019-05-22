@@ -32,15 +32,18 @@ import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.ReadOnly;
 import com.google.spanner.v1.TransactionOptions.ReadWrite;
+import com.google.spanner.v1.TransactionSelector;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
-import org.reactivestreams.Publisher;
+import java.io.IOException;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 /**
@@ -69,6 +72,16 @@ public class GrpcClient implements Client {
     // Create the asynchronous stub for Cloud Spanner
     this.spanner = SpannerGrpc.newStub(this.channel)
         .withCallCredentials(callCredentials);
+  }
+
+  /**
+   * Constructor that builds the client from a user-specified {@code SpannerStub}.
+   *
+   * @param spanner The asynchronous gRPC Spanner client stub.
+   */
+  public GrpcClient(SpannerStub spanner) throws IOException {
+    this.spanner = spanner;
+    this.channel = null;
   }
 
   @Override
@@ -137,44 +150,94 @@ public class GrpcClient implements Client {
               .build();
 
       return ObservableReactiveUtil.<Empty>unaryCall(
-          (obs) -> this.spanner.deleteSession(deleteSessionRequest, obs))
+          (observer) -> this.spanner.deleteSession(deleteSessionRequest, observer))
           .then();
     });
   }
 
+  // TODO: add information about parameters being added to signature
   @Override
-  public Publisher<PartialResultSet> executeStreamingSql(ExecuteSqlRequest request) {
-    return Flux.create(sink -> {
-      ClientResponseObserver<ExecuteSqlRequest, PartialResultSet> clientResponseObserver =
-          new ClientResponseObserver<ExecuteSqlRequest, PartialResultSet>() {
-            @Override
-            public void onNext(PartialResultSet value) {
-              sink.next(value);
-            }
+  public Flux<PartialResultSet> executeStreamingSql(
+      Session session, Mono<Transaction> transaction, String sql) {
+    return transaction
+        .map(t -> TransactionSelector.newBuilder().setId(t.getId()).build())
+        .defaultIfEmpty(readOnlySingleUseTransaction())
+        .map(t ->  ExecuteSqlRequest.newBuilder()
+            .setSql(sql)
+            .setSession(session.getName())
+            .setTransaction(t)
+            .build())
+        .flatMapMany(request -> Flux.create(
+            sink -> {
+              SinkResponseObserver responseObserver = new SinkResponseObserver<>(sink);
 
-            @Override
-            public void onError(Throwable t) {
-              sink.error(t);
-            }
+              sink.onCancel(
+                  () -> responseObserver.getRequestStream().cancel("Flux requested cancel.", null));
 
-            @Override
-            public void onCompleted() {
-              sink.complete();
-            }
+              this.spanner.executeStreamingSql(request, responseObserver);
 
-            @Override
-            public void beforeStart(ClientCallStreamObserver<ExecuteSqlRequest> requestStream) {
-              requestStream.disableAutoInboundFlowControl();
-              sink.onRequest(demand -> requestStream.request((int) demand));
-              sink.onCancel(() -> requestStream.cancel(null, null));
-            }
-          };
-      this.spanner.executeStreamingSql(request, clientResponseObserver);
-    });
+              // must be invoked after the actual method so that the stream is already started
+              sink.onRequest(demand -> responseObserver.getRequestStream()
+                  .request((int) Math.min(demand, Integer.MAX_VALUE)));
+          }));
+  }
+
+  private static final class SinkResponseObserver<ReqT, RespT> implements
+      ClientResponseObserver<ReqT, RespT> {
+
+    private FluxSink<RespT> sink;
+    private ClientCallStreamObserver<ReqT> requestStream;
+
+    public SinkResponseObserver(FluxSink<RespT> sink) {
+      this.sink = sink;
+    }
+
+    @Override
+    public void onNext(RespT value) {
+      this.sink.next(value);
+    }
+
+    @Override
+    public void onError(Throwable t) {
+      this.sink.error(t);
+    }
+
+    @Override
+    public void onCompleted() {
+      this.sink.complete();
+    }
+
+    @Override
+    public void beforeStart(ClientCallStreamObserver<ReqT> requestStream) {
+      this.requestStream = requestStream;
+      requestStream.disableAutoInboundFlowControl();
+    }
+
+    public ClientCallStreamObserver<ReqT> getRequestStream() {
+      return this.requestStream;
+    }
   }
 
   @Override
   public Mono<Void> close() {
-    return Mono.fromRunnable(() -> this.channel.shutdownNow());
+    return Mono.fromRunnable(() -> {
+      if (this.channel != null) {
+        this.channel.shutdownNow();
+      }
+    });
+  }
+
+  /**
+   * Creates a temporary read-only transaction with strong concurrency, which is also the default
+   * for {@code ExecuteStreamingSql} when the transaction field is empty.
+   */
+  private TransactionSelector readOnlySingleUseTransaction() {
+    return TransactionSelector.newBuilder()
+        .setSingleUse(
+            TransactionOptions.newBuilder()
+                .setReadOnly(
+                    ReadOnly.newBuilder()
+                        .setStrong(true)))
+        .build();
   }
 }

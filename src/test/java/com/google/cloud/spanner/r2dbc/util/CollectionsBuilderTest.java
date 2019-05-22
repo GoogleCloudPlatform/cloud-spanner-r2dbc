@@ -14,30 +14,18 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc;
+package com.google.cloud.spanner.r2dbc.util;
 
-import com.google.spanner.v1.StructType.Field;
-import com.google.spanner.v1.Type;
-import io.r2dbc.spi.ColumnMetadata;
+import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * {@link ColumnMetadata} implementation for Cloud Spanner.
- */
-public class SpannerColumnMetadata implements ColumnMetadata {
+import java.util.Set;
+import org.junit.Test;
 
-  private final Field columnField;
+public class CollectionsBuilderTest {
 
-  public SpannerColumnMetadata(Field columnField) {
-    this.columnField = columnField;
-  }
-
-  @Override
-  public String getName() {
-    return this.columnField.getName();
-  }
-
-  @Override
-  public Type getNativeTypeMetadata() {
-    return this.columnField.getType();
+  @Test
+  public void testSetCreation() {
+    Set<String> items = CollectionsBuilder.setOf("Hello", "bob", "world");
+    assertThat(items).containsExactlyInAnyOrder("Hello", "bob", "world");
   }
 }

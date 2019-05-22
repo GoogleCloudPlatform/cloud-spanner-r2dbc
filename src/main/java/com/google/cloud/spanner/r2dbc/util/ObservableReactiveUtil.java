@@ -16,15 +16,30 @@
 
 package com.google.cloud.spanner.r2dbc.util;
 
+import static com.google.cloud.spanner.r2dbc.util.SpannerExceptionUtil.isRetryable;
+
+import io.grpc.stub.ClientCallStreamObserver;
+import io.grpc.stub.ClientResponseObserver;
 import io.grpc.stub.StreamObserver;
+import java.time.Duration;
 import java.util.function.Consumer;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
+import reactor.retry.Retry;
 
 /**
  * Converter from a gRPC async calls to Reactor primitives ({@link Mono}).
  */
 public class ObservableReactiveUtil {
+
+  // Retry settings inspired from:
+  // https://github.com/googleapis/googleapis/blob/master/google/spanner/v1/spanner_gapic.yaml#L48
+  private static final Retry retryStrategy =
+      Retry.onlyIf(retryContext -> isRetryable(retryContext.exception()))
+          .exponentialBackoffWithJitter(Duration.ofSeconds(1), Duration.ofSeconds(32))
+          .timeout(Duration.ofSeconds(60));
 
   /**
    * Invokes a lambda that in turn issues a remote call, directing the response to a {@link Mono}
@@ -36,9 +51,61 @@ public class ObservableReactiveUtil {
    */
   public static <ResponseT> Mono<ResponseT> unaryCall(
       Consumer<StreamObserver<ResponseT>> remoteCall) {
-    return Mono.create(sink -> {
-      remoteCall.accept(new UnaryStreamObserver(sink));
+    return Mono.create(sink -> remoteCall.accept(new UnaryStreamObserver(sink)))
+        .retryWhen(retryStrategy);
+  }
+
+  /**
+   * This will go away in favor of Mike's implementation.
+   * @param remoteCall call to make
+   * @param <RequestT> request type
+   * @param <ResponseT> response type
+   * @return
+   */
+  public static <RequestT, ResponseT> Flux<ResponseT> streamingCall(
+      Consumer<StreamObserver<ResponseT>> remoteCall) {
+
+    return Flux.create(sink -> {
+      StreamingObserver observer = new StreamingObserver(sink);
+      remoteCall.accept(observer);
+      sink.onRequest(demand -> observer.request(demand));
     });
+  }
+
+  static class StreamingObserver<RequestT, ResponseT>
+      implements ClientResponseObserver<RequestT, ResponseT>  {
+    ClientCallStreamObserver<RequestT> rsObserver;
+    FluxSink<ResponseT> sink;
+
+    public StreamingObserver(FluxSink<ResponseT> sink) {
+      this.sink = sink;
+    }
+
+    @Override
+    public void onNext(ResponseT value) {
+      this.sink.next(value);
+    }
+
+    @Override
+    public void onError(Throwable t) {
+      this.sink.error(t);
+    }
+
+    @Override
+    public void onCompleted() {
+      this.sink.complete();
+    }
+
+    @Override
+    public void beforeStart(ClientCallStreamObserver<RequestT> requestStream) {
+      this.rsObserver = requestStream;
+      requestStream.disableAutoInboundFlowControl();
+      this.sink.onCancel(() -> requestStream.cancel(null, null));
+    }
+
+    public void request(long n) {
+      this.rsObserver.request(n > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int)n);
+    }
   }
 
   /**
@@ -73,7 +140,7 @@ public class ObservableReactiveUtil {
 
     @Override
     public void onCompleted() {
-      if (!terminalEventReceived) {
+      if (!this.terminalEventReceived) {
         this.sink.error(
             new RuntimeException("Unary gRPC call completed without yielding a value or an error"));
       }
