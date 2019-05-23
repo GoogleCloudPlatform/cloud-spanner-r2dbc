@@ -183,6 +183,20 @@ public class PartialResultRowExtractorTest {
     verifyRows(inputs);
   }
 
+  @Test
+  public void handleEmptyPartialResultSet() {
+    PartialResultSet emptyResultSet =
+        PartialResultSet.newBuilder().setMetadata(this.resultSetMetadata).build();
+
+    Flux<PartialResultSet> inputs = Flux.just(emptyResultSet);
+
+    List<SpannerRow> results =
+        inputs.flatMapIterable(new PartialResultRowExtractor())
+            .collectList()
+            .block();
+    assertThat(results).isEmpty();
+  }
+
   private void verifyRows(Flux<PartialResultSet> inputs) {
     List<SpannerRow> results =
         inputs.flatMapIterable(new PartialResultRowExtractor())
