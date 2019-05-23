@@ -95,7 +95,7 @@ public class SpannerStatement implements Statement {
           }
 
           PartialResultSet firstPartialResultSet = signal.get();
-          if (firstPartialResultSet.hasStats()) {
+          if (hasUpdatedRowCount(firstPartialResultSet)) {
             Mono<Integer> rowsChanged =
                 flux.next().map(partialResultSet ->
                     Math.toIntExact(partialResultSet.getStats().getRowCountExact()));
@@ -107,5 +107,14 @@ public class SpannerStatement implements Statement {
           }
         })
         .next();
+  }
+
+  private static boolean hasUpdatedRowCount(PartialResultSet firstPartialResultSet) {
+    if (firstPartialResultSet.hasStats()) {
+      return firstPartialResultSet.getStats().getRowCountExact() > 0
+          || firstPartialResultSet.getStats().getRowCountLowerBound() > 0;
+    }
+
+    return false;
   }
 }
