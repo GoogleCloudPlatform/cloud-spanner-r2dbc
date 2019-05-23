@@ -16,7 +16,6 @@
 
 package com.google.cloud.spanner.r2dbc.result;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.spanner.r2dbc.SpannerColumnMetadata;
