@@ -19,6 +19,7 @@ package com.google.cloud.spanner.r2dbc;
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.result.PartialResultRowExtractor;
 import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.ResultSetStats.RowCountCase;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
 import io.r2dbc.spi.Result;
@@ -110,11 +111,7 @@ public class SpannerStatement implements Statement {
   }
 
   private static boolean hasUpdatedRowCount(PartialResultSet firstPartialResultSet) {
-    if (firstPartialResultSet.hasStats()) {
-      return firstPartialResultSet.getStats().getRowCountExact() > 0
-          || firstPartialResultSet.getStats().getRowCountLowerBound() > 0;
-    }
-
-    return false;
+    return firstPartialResultSet.hasStats()
+        && firstPartialResultSet.getStats().getRowCountCase() != RowCountCase.ROWCOUNT_NOT_SET;
   }
 }
