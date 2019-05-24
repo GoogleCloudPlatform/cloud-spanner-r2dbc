@@ -90,6 +90,15 @@ public class SpannerConnectionTest {
   }
 
   @Test
+  public void noopCommitTransactionWhenTransactionNotStarted() {
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+
+    // No-op commit when connection is not started.
+    Mono.from(connection.commitTransaction()).block();
+    verify(this.mockClient, never()).commitTransaction(any(), any());
+  }
+
+  @Test
   public void beginAndCommitTransactions() {
     SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
 
@@ -102,9 +111,6 @@ public class SpannerConnectionTest {
         .thenReturn(beginTransactionProbe.mono());
     when(this.mockClient.commitTransaction(TEST_SESSION,  Transaction.getDefaultInstance()))
         .thenReturn(commitTransactionProbe.mono());
-
-    Mono.from(connection.commitTransaction()).block();
-    verify(this.mockClient, never()).commitTransaction(any(), any());
 
     Mono.from(connection.beginTransaction()).block();
     Mono.from(connection.commitTransaction()).block();
