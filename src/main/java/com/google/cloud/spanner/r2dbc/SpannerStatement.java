@@ -92,7 +92,7 @@ public class SpannerStatement implements Statement {
     return this.client.executeStreamingSql(this.session, this.transaction, this.sql)
         .switchOnFirst((signal, flux) -> {
           if (signal.hasError()) {
-            return flux.then(Mono.empty());
+            return Mono.error(signal.getThrowable());
           }
 
           PartialResultSet firstPartialResultSet = signal.get();

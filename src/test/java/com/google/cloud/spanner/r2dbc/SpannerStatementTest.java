@@ -142,14 +142,11 @@ public class SpannerStatementTest {
   }
 
   @Test
-  public void noopMapOnUpdateQueries() {
+  public void noopMapOnUpdateQueriesWhenNoRowsAffected() {
     Client mockClient = mock(Client.class);
     String sql = "delete from Books where true";
     PartialResultSet partialResultSet = PartialResultSet.newBuilder()
-        .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
-            .addFields(
-                Field.newBuilder().setName("book")
-                    .setType(Type.newBuilder().setCode(TypeCode.STRING)))))
+        .setMetadata(ResultSetMetadata.getDefaultInstance())
         .setStats(ResultSetStats.getDefaultInstance())
         .build();
     when(mockClient.executeStreamingSql(TEST_SESSION, Mono.empty(), sql))
