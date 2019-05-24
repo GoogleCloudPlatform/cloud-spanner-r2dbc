@@ -35,13 +35,12 @@ import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Statement;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.publisher.PublisherProbe;
 
 /**
  * Test for {@link SpannerConnection}.
@@ -94,14 +93,15 @@ public class SpannerConnectionTest {
   public void beginAndCommitTransactions() {
     SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
 
-    AtomicInteger beginTransactionCounter = new AtomicInteger(0);
-    AtomicInteger commitTransactionCounter = new AtomicInteger(0);
+    PublisherProbe<Transaction> beginTransactionProbe = PublisherProbe.of(
+        Mono.just(Transaction.getDefaultInstance()));
+    PublisherProbe<CommitResponse> commitTransactionProbe = PublisherProbe.of(
+        Mono.just(CommitResponse.getDefaultInstance()));
+
     when(this.mockClient.beginTransaction(TEST_SESSION))
-        .thenReturn(this.getTrackingMono(
-            () -> Transaction.getDefaultInstance(), beginTransactionCounter));
+        .thenReturn(beginTransactionProbe.mono());
     when(this.mockClient.commitTransaction(TEST_SESSION,  Transaction.getDefaultInstance()))
-        .thenReturn(this.getTrackingMono(
-            () -> CommitResponse.getDefaultInstance(), commitTransactionCounter));
+        .thenReturn(commitTransactionProbe.mono());
 
     Mono.from(connection.commitTransaction()).block();
     verify(this.mockClient, never()).commitTransaction(any(), any());
@@ -113,27 +113,22 @@ public class SpannerConnectionTest {
     verify(this.mockClient, times(1))
         .commitTransaction(TEST_SESSION, Transaction.getDefaultInstance());
 
-    assertThat(beginTransactionCounter.get())
-        .withFailMessage("beginTransaction publisher was never subscribed to.")
-        .isEqualTo(1);
-    assertThat(commitTransactionCounter.get())
-        .withFailMessage("commitTransaction publisher was never subscribed to.")
-        .isEqualTo(1);
+    beginTransactionProbe.assertWasSubscribed();
+    commitTransactionProbe.assertWasSubscribed();
   }
 
   @Test
   public void rollbackTransactions() {
     SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
 
-    AtomicInteger beginTransactionCounter = new AtomicInteger(0);
-    AtomicInteger rollbackTransactionCounter = new AtomicInteger(0);
+    PublisherProbe<Transaction> beginTransactionProbe = PublisherProbe.of(
+        Mono.just(Transaction.getDefaultInstance()));
+    PublisherProbe<Void> rollbackProbe = PublisherProbe.empty();
 
     when(this.mockClient.beginTransaction(TEST_SESSION))
-        .thenReturn(this.getTrackingMono(
-            () -> Transaction.getDefaultInstance(), beginTransactionCounter));
+        .thenReturn(beginTransactionProbe.mono());
     when(this.mockClient.rollbackTransaction(TEST_SESSION, Transaction.getDefaultInstance()))
-        .thenReturn(this.getTrackingMono(
-            () -> "unused", rollbackTransactionCounter).then());
+        .thenReturn(rollbackProbe.mono());
 
     Mono.from(connection.rollbackTransaction()).block();
     verify(this.mockClient, never()).rollbackTransaction(any(), any());
@@ -145,19 +140,8 @@ public class SpannerConnectionTest {
     verify(this.mockClient, times(1))
         .rollbackTransaction(TEST_SESSION, Transaction.getDefaultInstance());
 
-    assertThat(beginTransactionCounter.get())
-        .withFailMessage("beginTransaction publisher was never subscribed to.")
-        .isEqualTo(1);
-    assertThat(rollbackTransactionCounter.get())
-        .withFailMessage("rollbackTransaction publisher was never subscribed to.")
-        .isEqualTo(1);
-  }
-
-  private <T> Mono<T> getTrackingMono(Supplier<T> returnObjectSupplier, AtomicInteger counter) {
-    return Mono.fromSupplier(() -> {
-      counter.addAndGet(1);
-      return returnObjectSupplier.get();
-    });
+    beginTransactionProbe.assertWasSubscribed();
+    rollbackProbe.assertWasSubscribed();
   }
 
 }
