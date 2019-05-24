@@ -105,6 +105,9 @@ public class GrpcClientTest {
     assertEquals(transId, requestCaptor.getValue().getTransaction().getId());
   }
 
+  /**
+   * Tests that the Host, Port, and User Agent are set properly in the Spanner Stub.
+   */
   @Test
   public void testChannelConfig()
       throws IOException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
