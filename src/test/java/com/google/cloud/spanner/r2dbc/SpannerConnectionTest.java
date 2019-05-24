@@ -113,8 +113,12 @@ public class SpannerConnectionTest {
     verify(this.mockClient, times(1))
         .commitTransaction(TEST_SESSION, Transaction.getDefaultInstance());
 
-    verifyTrackingMono("beginTransaction", beginTransactionCounter);
-    verifyTrackingMono("commitTransaction", commitTransactionCounter);
+    assertThat(beginTransactionCounter.get())
+        .withFailMessage("beginTransaction publisher was never subscribed to.")
+        .isEqualTo(1);
+    assertThat(commitTransactionCounter.get())
+        .withFailMessage("commitTransaction publisher was never subscribed to.")
+        .isEqualTo(1);
   }
 
   @Test
@@ -141,8 +145,12 @@ public class SpannerConnectionTest {
     verify(this.mockClient, times(1))
         .rollbackTransaction(TEST_SESSION, Transaction.getDefaultInstance());
 
-    verifyTrackingMono("beginTransaction", beginTransactionCounter);
-    verifyTrackingMono("rollbackTransaction", rollbackTransactionCounter);
+    assertThat(beginTransactionCounter.get())
+        .withFailMessage("beginTransaction publisher was never subscribed to.")
+        .isEqualTo(1);
+    assertThat(rollbackTransactionCounter.get())
+        .withFailMessage("rollbackTransaction publisher was never subscribed to.")
+        .isEqualTo(1);
   }
 
   private <T> Mono<T> getTrackingMono(Supplier<T> returnObjectSupplier, AtomicInteger counter) {
@@ -150,12 +158,6 @@ public class SpannerConnectionTest {
       counter.addAndGet(1);
       return returnObjectSupplier.get();
     });
-  }
-
-  private void verifyTrackingMono(String description, AtomicInteger counter) {
-    assertThat(counter.get())
-        .withFailMessage(description + " publisher was never subscribed to.")
-        .isEqualTo(1);
   }
 
 }
