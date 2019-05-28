@@ -105,15 +105,19 @@ public class GrpcClientTest {
     assertEquals(transId, requestCaptor.getValue().getTransaction().getId());
   }
 
-  /**
-   * Tests that the Host, Port, and User Agent are set properly in the Spanner Stub.
-   */
   @Test
-  public void testChannelConfig()
+  public void testHostPortConfig()
+      throws IOException {
+    assertEquals("spanner.googleapis.com:443",
+        new GrpcClient(GoogleCredentials.getApplicationDefault()).getSpanner().getChannel()
+            .authority());
+  }
+
+  @Test
+  public void testUserAgentConfig()
       throws IOException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     GrpcClient grpcClient = new GrpcClient(GoogleCredentials.getApplicationDefault());
     Channel channel = grpcClient.getSpanner().getChannel();
-    assertEquals("spanner.googleapis.com:443", channel.authority());
     Class innerChannelWrapperClass = Class.forName("io.grpc.internal.ForwardingManagedChannel");
     Class channelImplClass = Class.forName("io.grpc.internal.ManagedChannelImpl");
 
