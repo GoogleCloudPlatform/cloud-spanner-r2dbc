@@ -21,25 +21,17 @@ import static com.google.cloud.spanner.r2dbc.util.SpannerExceptionUtil.isRetryab
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import io.grpc.stub.StreamObserver;
-import java.time.Duration;
+import io.r2dbc.spi.R2dbcTransientResourceException;
 import java.util.function.Consumer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
-import reactor.retry.Retry;
 
 /**
  * Converter from a gRPC async calls to Reactor primitives ({@link Mono}).
  */
 public class ObservableReactiveUtil {
-
-  // Retry settings inspired from:
-  // https://github.com/googleapis/googleapis/blob/master/google/spanner/v1/spanner_gapic.yaml#L48
-  private static final Retry retryStrategy =
-      Retry.onlyIf(retryContext -> isRetryable(retryContext.exception()))
-          .exponentialBackoffWithJitter(Duration.ofSeconds(1), Duration.ofSeconds(32))
-          .timeout(Duration.ofSeconds(60));
 
   /**
    * Invokes a lambda that in turn issues a remote call, directing the response to a {@link Mono}
@@ -51,8 +43,7 @@ public class ObservableReactiveUtil {
    */
   public static <ResponseT> Mono<ResponseT> unaryCall(
       Consumer<StreamObserver<ResponseT>> remoteCall) {
-    return Mono.create(sink -> remoteCall.accept(new UnaryStreamObserver(sink)))
-        .retryWhen(retryStrategy);
+    return Mono.create(sink -> remoteCall.accept(new UnaryStreamObserver(sink)));
   }
 
   /**
@@ -88,6 +79,10 @@ public class ObservableReactiveUtil {
 
     @Override
     public void onError(Throwable t) {
+      if (isRetryable(t)) {
+        t = new R2dbcTransientResourceException(t);
+      }
+
       this.sink.error(t);
     }
 
@@ -100,7 +95,7 @@ public class ObservableReactiveUtil {
     public void beforeStart(ClientCallStreamObserver<RequestT> requestStream) {
       this.rsObserver = requestStream;
       requestStream.disableAutoInboundFlowControl();
-      this.sink.onCancel(() -> requestStream.cancel(null, null));
+      this.sink.onCancel(() -> requestStream.cancel("Flux requested cancel.", null));
     }
 
     public void request(long n) {
@@ -135,6 +130,11 @@ public class ObservableReactiveUtil {
     @Override
     public void onError(Throwable throwable) {
       this.terminalEventReceived = true;
+
+      if (isRetryable(throwable)) {
+        throwable = new R2dbcTransientResourceException(throwable);
+      }
+
       this.sink.error(throwable);
     }
 
