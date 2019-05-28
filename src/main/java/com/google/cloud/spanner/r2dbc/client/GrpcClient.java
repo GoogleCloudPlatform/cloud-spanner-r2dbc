@@ -43,6 +43,7 @@ import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import java.io.IOException;
+import javax.annotation.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -162,28 +163,34 @@ public class GrpcClient implements Client {
   // TODO: add information about parameters being added to signature
   @Override
   public Flux<PartialResultSet> executeStreamingSql(
-      Session session, Mono<Transaction> transaction, String sql) {
-    return transaction
-        .map(t -> TransactionSelector.newBuilder().setId(t.getId()).build())
-        .defaultIfEmpty(readOnlySingleUseTransaction())
-        .map(t ->  ExecuteSqlRequest.newBuilder()
+      Session session, @Nullable Transaction transaction, String sql) {
+
+    return Flux.create(sink -> {
+      TransactionSelector transactionSelector;
+      if (transaction != null) {
+        transactionSelector =
+            TransactionSelector.newBuilder().setId(transaction.getId()).build();
+      } else {
+        transactionSelector = readOnlySingleUseTransaction();
+      }
+
+      ExecuteSqlRequest executeSqlRequest =
+          ExecuteSqlRequest.newBuilder()
             .setSql(sql)
             .setSession(session.getName())
-            .setTransaction(t)
-            .build())
-        .flatMapMany(request -> Flux.create(
-            sink -> {
-              SinkResponseObserver responseObserver = new SinkResponseObserver<>(sink);
+              .setTransaction(transactionSelector)
+              .build();
 
-              sink.onCancel(
-                  () -> responseObserver.getRequestStream().cancel("Flux requested cancel.", null));
+      SinkResponseObserver responseObserver = new SinkResponseObserver<>(sink);
+      sink.onCancel(
+          () -> responseObserver.getRequestStream().cancel("Flux requested cancel.", null));
 
-              this.spanner.executeStreamingSql(request, responseObserver);
+      this.spanner.executeStreamingSql(executeSqlRequest, responseObserver);
 
-              // must be invoked after the actual method so that the stream is already started
-              sink.onRequest(demand -> responseObserver.getRequestStream()
-                  .request((int) Math.min(demand, Integer.MAX_VALUE)));
-          }));
+      // must be invoked after the actual method so that the stream is already started
+      sink.onRequest(demand -> responseObserver.getRequestStream()
+          .request((int) Math.min(demand, Integer.MAX_VALUE)));
+    });
   }
 
   @VisibleForTesting
