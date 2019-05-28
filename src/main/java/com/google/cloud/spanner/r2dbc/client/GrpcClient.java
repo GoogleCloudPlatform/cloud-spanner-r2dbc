@@ -20,6 +20,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.Empty;
+import com.google.protobuf.Struct;
 import com.google.spanner.v1.BeginTransactionRequest;
 import com.google.spanner.v1.CommitRequest;
 import com.google.spanner.v1.CommitResponse;
@@ -36,6 +37,7 @@ import com.google.spanner.v1.TransactionOptions;
 import com.google.spanner.v1.TransactionOptions.ReadOnly;
 import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.TransactionSelector;
+import com.google.spanner.v1.Type;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -43,6 +45,7 @@ import io.grpc.auth.MoreCallCredentials;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import java.io.IOException;
+import java.util.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -162,12 +165,14 @@ public class GrpcClient implements Client {
   // TODO: add information about parameters being added to signature
   @Override
   public Flux<PartialResultSet> executeStreamingSql(
-      Session session, Mono<Transaction> transaction, String sql) {
+      Session session, Mono<Transaction> transaction, String sql, Struct params, Map<String, Type> types) {
     return transaction
         .map(t -> TransactionSelector.newBuilder().setId(t.getId()).build())
         .defaultIfEmpty(readOnlySingleUseTransaction())
         .map(t ->  ExecuteSqlRequest.newBuilder()
             .setSql(sql)
+            .setParams(params)
+            .putAllParamTypes(types)
             .setSession(session.getName())
             .setTransaction(t)
             .build())

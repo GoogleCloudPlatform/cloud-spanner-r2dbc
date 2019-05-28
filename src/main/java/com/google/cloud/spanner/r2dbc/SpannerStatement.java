@@ -16,13 +16,20 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.codecs.Codecs;
+import com.google.cloud.spanner.r2dbc.codecs.DefaultCodecs;
 import com.google.cloud.spanner.r2dbc.result.PartialResultRowExtractor;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -39,6 +46,10 @@ public class SpannerStatement implements Statement {
   private Mono<Transaction> transaction;
 
   private String sql;
+
+  private LinkedList<Map<String, Object>> bindings = new LinkedList<>();
+
+  private Codecs codecs = new DefaultCodecs();
 
   /**
    * Creates a Spanner statement for a given SQL statement.
@@ -57,31 +68,38 @@ public class SpannerStatement implements Statement {
     this.session = session;
     this.transaction = transaction;
     this.sql = sql;
+    add();
   }
 
   @Override
   public Statement add() {
-    return null;
+    bindings.add(new HashMap<>());
+    return this;
   }
 
   @Override
-  public Statement bind(Object o, Object o1) {
-    return null;
+  public Statement bind(Object identifier, Object value) {
+    requireNonNull(identifier);
+    if (identifier instanceof String) {
+      bindings.getLast().put((String)identifier, value);
+      return this;
+    }
+    throw new IllegalArgumentException("Only String identifiers are supported");
   }
 
   @Override
   public Statement bind(int i, Object o) {
-    return null;
+    throw new IllegalArgumentException("Only named parameters are supported");
   }
 
   @Override
-  public Statement bindNull(Object o, Class<?> type) {
-    return null;
+  public Statement bindNull(Object identifier, Class<?> type) {
+    return bind(identifier, null);
   }
 
   @Override
   public Statement bindNull(int i, Class<?> type) {
-    return null;
+    throw new IllegalArgumentException("Only named parameters are supported");
   }
 
   @Override
@@ -117,4 +135,27 @@ public class SpannerStatement implements Statement {
   private static boolean isDmlQuery(PartialResultSet firstPartialResultSet) {
     return firstPartialResultSet.getMetadata().getRowType().getFieldsList().isEmpty();
   }
+
+//  public Publisher<? extends Result> executeBind() {
+//    List<Flux<PartialResultSet>> results = new ArrayList<>();
+//    for (Map<String, Object> bindingsBatch : bindings) {
+//      Builder builder = Struct.newBuilder();
+//      Map<String, Type> types = new HashMap<>();
+//      for (Map.Entry<String, Object> binding : bindingsBatch.entrySet()){
+//        Codec codec = codecs.getCodec(binding.getValue());
+//        builder.putFields(binding.getKey(), codec.encode(binding.getValue()));
+//        types.put(binding.getKey(), Type.newBuilder().setCode(codec.getTypeCode()).build());
+//      }
+//      Struct params = builder.build();
+//      results.add(
+//          this.client.executeStreamingSql(this.session, this.transaction, this.sql, params, types));
+//    }
+//
+//    return Flux.fromIterable(results).map(result -> new SpannerResult(
+//        Flux.create(sink -> result
+//            .subscribe(new ConvertingFluxAdapter(sink, new PartialResultRowExtractor()))),
+//        result.next().map(partialResultSet -> partialResultSet.hasStats()
+//            ? Math.toIntExact(partialResultSet.getStats().getRowCountExact())
+//            : 0)));
+//  }
 }

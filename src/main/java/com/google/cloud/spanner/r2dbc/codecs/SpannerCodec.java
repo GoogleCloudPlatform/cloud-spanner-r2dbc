@@ -82,6 +82,11 @@ class SpannerCodec<T> implements Codec<T> {
     return dataType.getCode() == this.typeCode;
   }
 
+  @Override
+  public TypeCode getTypeCode(){
+    return typeCode;
+  }
+
   T doDecode(Value value, Type spannerType, Class<? extends T> type) {
     return (T) ValueUtils.decodeValue(spannerType, value);
   }

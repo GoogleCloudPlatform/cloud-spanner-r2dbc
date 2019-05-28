@@ -16,10 +16,13 @@
 
 package com.google.cloud.spanner.r2dbc.client;
 
+import com.google.protobuf.Struct;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.Type;
+import java.util.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -70,7 +73,12 @@ public interface Client {
    * Execute a streaming query and get partial results.
    */
   Flux<PartialResultSet> executeStreamingSql(
-      Session session, Mono<Transaction> transaction, String sql);
+      Session session, Mono<Transaction> transaction, String sql, Struct params, Map<String, Type> types);
+
+  default Flux<PartialResultSet> executeStreamingSql(
+      Session session, Mono<Transaction> transaction, String sql){
+    return  executeStreamingSql(session, transaction, sql, null, null);
+  }
 
   /**
    * Release any resources held by the {@link Client}.

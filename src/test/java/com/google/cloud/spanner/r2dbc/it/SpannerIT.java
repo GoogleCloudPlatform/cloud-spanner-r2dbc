@@ -45,6 +45,7 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Before;
@@ -130,9 +131,9 @@ public class SpannerIT {
     Mono.from(this.connectionFactory.create())
         .delayUntil(c -> c.beginTransaction())
         .delayUntil(c -> Mono.from(c.createStatement(
-            "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY) VALUES"
+            "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, PUBLISHED, WORDS_PER_SENTENCE) VALUES"
                 + " ('df0e3d06-2743-4691-8e51-6d33d90c5cb9', 'Effective Java', "
-                + "'Joshua Bloch', 100)")
+                + "'Joshua Bloch', 100, TRUE, DATE(2008,5,1), 20.8)")
             .execute()).flatMap(r -> Mono.from(r.getRowsUpdated())))
         .delayUntil(c -> c.commitTransaction())
         .block();
@@ -140,9 +141,23 @@ public class SpannerIT {
     Mono.from(this.connectionFactory.create())
         .delayUntil(c -> c.beginTransaction())
         .delayUntil(c -> Mono.from(c.createStatement(
-            "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY) VALUES"
-                + " ('2b2cbd78-ecd8-430e-b685-fa7910f8a4c7', 'JavaScript: "
-                + "The Good Parts', 'Douglas Crockford', 100);")
+            "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, PUBLISHED, WORDS_PER_SENTENCE) VALUES"
+                + " (@uuid, @title, @author, @category, @fiction, @published, @wps);")
+            .bind("uuid", "2b2cbd78-ecd8-430e-b685-fa7910f8a4c7")
+            .bind("author", "Douglas Crockford")
+            .bind("category", 100L)
+            .bind("title", "JavaScript: The Good Parts")
+            .bind("fiction", true)
+            .bind("published", LocalDate.of(2008,5,1))
+            .bind("wps", 20.8)
+//            .add()
+//            .bind("uuid", "df0e3d06-2743-4691-8e51-6d33d90c5cb9")
+//            .bind("author", "Joshua Bloch'")
+//            .bind("category", 100L)
+//            .bind("title", "Effective Java")
+//            .bind("fiction", false)
+//            .bind("published", LocalDate.of(2018,1,6))
+//            .bind("wps", 15.1)
             .execute()).flatMap(r -> Mono.from(r.getRowsUpdated())))
         .delayUntil(c -> c.commitTransaction())
         .block();
@@ -158,6 +173,56 @@ public class SpannerIT {
         .block();
 
     assertThat(result).containsExactlyInAnyOrder(
+        "JavaScript: The Good Parts by Douglas Crockford",
+        "Effective Java by Joshua Bloch");
+
+    List<String> result2 = Mono.from(this.connectionFactory.create())
+        .map(connection -> connection
+            .createStatement("SELECT title, author FROM books WHERE author = @author"))
+        .flatMapMany(statement -> statement
+            .bind("author", "Joshua Bloch")
+            .execute())
+        .flatMap(spannerResult -> spannerResult.map(
+            (r, meta) -> r.get(0, String.class) + " by " + r.get(1, String.class)
+        ))
+        .doOnNext(s -> System.out.println("Book: " + s))
+        .collectList()
+        .block();
+
+    assertThat(result2).containsExactly("Effective Java by Joshua Bloch");
+
+    List<String> result3 = Mono.from(this.connectionFactory.create())
+        .map(connection -> connection
+            .createStatement("SELECT title, author FROM books WHERE author = @author"))
+        .flatMapMany(statement -> statement
+            .bind("author", "Joshua Bloch").add()
+            .bind("author", "Douglas Crockford")
+            .execute())
+        .flatMap(spannerResult -> spannerResult.map(
+            (r, meta) -> r.get(0, String.class) + " by " + r.get(1, String.class)
+        ))
+        .doOnNext(s -> System.out.println("Book: " + s))
+        .collectList()
+        .block();
+
+    assertThat(result3).containsExactlyInAnyOrder(
+        "JavaScript: The Good Parts by Douglas Crockford",
+        "Effective Java by Joshua Bloch");
+
+    List<String> result4 = Mono.from(this.connectionFactory.create())
+        .map(connection -> connection
+            .createStatement("SELECT title, author FROM books WHERE category = @cat"))
+        .flatMapMany(statement -> statement
+            .bind("cat", 100L)
+            .execute())
+        .flatMap(spannerResult -> spannerResult.map(
+            (r, meta) -> r.get(0, String.class) + " by " + r.get(1, String.class)
+        ))
+        .doOnNext(s -> System.out.println("Book: " + s))
+        .collectList()
+        .block();
+
+    assertThat(result4).containsExactlyInAnyOrder(
         "JavaScript: The Good Parts by Douglas Crockford",
         "Effective Java by Joshua Bloch");
 
