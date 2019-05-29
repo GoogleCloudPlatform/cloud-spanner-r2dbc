@@ -47,6 +47,7 @@ public class ObservableReactiveUtilTest {
       observer.onError(new IllegalArgumentException("oh no"));
     });
     assertThatThrownBy(() -> mono.block())
+        .hasCauseInstanceOf(IllegalArgumentException.class)
         .isInstanceOf(R2dbcNonTransientException.class)
         .hasMessage("oh no");
   }
@@ -69,6 +70,7 @@ public class ObservableReactiveUtilTest {
         ObservableReactiveUtil.unaryCall(observer -> observer.onError(retryableException));
 
     assertThatThrownBy(() -> result.block())
+        .hasCauseInstanceOf(StatusRuntimeException.class)
         .isInstanceOf(R2dbcTransientResourceException.class);
   }
 
@@ -79,6 +81,7 @@ public class ObservableReactiveUtilTest {
             observer -> observer.onError(new IllegalArgumentException()));
 
     assertThatThrownBy(() -> result.block())
+        .hasCauseInstanceOf(IllegalArgumentException.class)
         .isInstanceOf(R2dbcNonTransientException.class);
   }
 
@@ -92,6 +95,7 @@ public class ObservableReactiveUtilTest {
         ObservableReactiveUtil.streamingCall(observer -> observer.onError(retryableException));
 
     assertThatThrownBy(() -> result.blockFirst())
+        .hasCauseInstanceOf(StatusRuntimeException.class)
         .isInstanceOf(R2dbcTransientResourceException.class);
   }
 }
