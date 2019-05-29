@@ -34,7 +34,6 @@ import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadOnly;
 import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.TransactionSelector;
 import com.google.spanner.v1.Type;
@@ -46,6 +45,7 @@ import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import java.io.IOException;
 import java.util.Map;
+import javax.annotation.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -165,30 +165,31 @@ public class GrpcClient implements Client {
   // TODO: add information about parameters being added to signature
   @Override
   public Flux<PartialResultSet> executeStreamingSql(
-      Session session, Mono<Transaction> transaction, String sql, Struct params, Map<String, Type> types) {
-    return transaction
-        .map(t -> TransactionSelector.newBuilder().setId(t.getId()).build())
-        .defaultIfEmpty(readOnlySingleUseTransaction())
-        .map(t ->  ExecuteSqlRequest.newBuilder()
-            .setSql(sql)
-            .setParams(params)
-            .putAllParamTypes(types)
-            .setSession(session.getName())
-            .setTransaction(t)
-            .build())
-        .flatMapMany(request -> Flux.create(
-            sink -> {
-              SinkResponseObserver responseObserver = new SinkResponseObserver<>(sink);
+      Session session, @Nullable Transaction transaction, String sql, Struct params, Map<String, Type> types) {
 
-              sink.onCancel(
-                  () -> responseObserver.getRequestStream().cancel("Flux requested cancel.", null));
+    return Flux.create(sink -> {
+      ExecuteSqlRequest.Builder executeSqlRequest =
+          ExecuteSqlRequest.newBuilder()
+              .setSql(sql)
+              .setParams(params)
+              .putAllParamTypes(types)
+              .setSession(session.getName());
 
-              this.spanner.executeStreamingSql(request, responseObserver);
+      if (transaction != null) {
+        executeSqlRequest.setTransaction(
+            TransactionSelector.newBuilder().setId(transaction.getId()).build());
+      }
 
-              // must be invoked after the actual method so that the stream is already started
-              sink.onRequest(demand -> responseObserver.getRequestStream()
-                  .request((int) Math.min(demand, Integer.MAX_VALUE)));
-          }));
+      SinkResponseObserver responseObserver = new SinkResponseObserver<>(sink);
+      sink.onCancel(
+          () -> responseObserver.getRequestStream().cancel("Flux requested cancel.", null));
+
+      this.spanner.executeStreamingSql(executeSqlRequest.build(), responseObserver);
+
+      // must be invoked after the actual method so that the stream is already started
+      sink.onRequest(demand -> responseObserver.getRequestStream()
+          .request((int) Math.min(demand, Integer.MAX_VALUE)));
+    });
   }
 
   @VisibleForTesting
@@ -239,19 +240,5 @@ public class GrpcClient implements Client {
         this.channel.shutdownNow();
       }
     });
-  }
-
-  /**
-   * Creates a temporary read-only transaction with strong concurrency, which is also the default
-   * for {@code ExecuteStreamingSql} when the transaction field is empty.
-   */
-  private TransactionSelector readOnlySingleUseTransaction() {
-    return TransactionSelector.newBuilder()
-        .setSingleUse(
-            TransactionOptions.newBuilder()
-                .setReadOnly(
-                    ReadOnly.newBuilder()
-                        .setStrong(true)))
-        .build();
   }
 }

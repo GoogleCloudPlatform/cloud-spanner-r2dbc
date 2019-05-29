@@ -27,6 +27,7 @@ import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -43,7 +44,7 @@ public class SpannerStatement implements Statement {
 
   private Session session;
 
-  private Mono<Transaction> transaction;
+  private Transaction transaction;
 
   private String sql;
 
@@ -63,7 +64,11 @@ public class SpannerStatement implements Statement {
    * @param sql the query to execute
    */
   public SpannerStatement(
-      Client client, Session session, Mono<Transaction> transaction, String sql) {
+      Client client,
+      Session session,
+      @Nullable Transaction transaction,
+      String sql) {
+
     this.client = client;
     this.session = session;
     this.transaction = transaction;
@@ -135,27 +140,4 @@ public class SpannerStatement implements Statement {
   private static boolean isDmlQuery(PartialResultSet firstPartialResultSet) {
     return firstPartialResultSet.getMetadata().getRowType().getFieldsList().isEmpty();
   }
-
-//  public Publisher<? extends Result> executeBind() {
-//    List<Flux<PartialResultSet>> results = new ArrayList<>();
-//    for (Map<String, Object> bindingsBatch : bindings) {
-//      Builder builder = Struct.newBuilder();
-//      Map<String, Type> types = new HashMap<>();
-//      for (Map.Entry<String, Object> binding : bindingsBatch.entrySet()){
-//        Codec codec = codecs.getCodec(binding.getValue());
-//        builder.putFields(binding.getKey(), codec.encode(binding.getValue()));
-//        types.put(binding.getKey(), Type.newBuilder().setCode(codec.getTypeCode()).build());
-//      }
-//      Struct params = builder.build();
-//      results.add(
-//          this.client.executeStreamingSql(this.session, this.transaction, this.sql, params, types));
-//    }
-//
-//    return Flux.fromIterable(results).map(result -> new SpannerResult(
-//        Flux.create(sink -> result
-//            .subscribe(new ConvertingFluxAdapter(sink, new PartialResultRowExtractor()))),
-//        result.next().map(partialResultSet -> partialResultSet.hasStats()
-//            ? Math.toIntExact(partialResultSet.getStats().getRowCountExact())
-//            : 0)));
-//  }
 }

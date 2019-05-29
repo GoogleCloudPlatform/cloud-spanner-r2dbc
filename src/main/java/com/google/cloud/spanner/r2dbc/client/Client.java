@@ -23,6 +23,7 @@ import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.Type;
 import java.util.Map;
+import javax.annotation.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -73,10 +74,10 @@ public interface Client {
    * Execute a streaming query and get partial results.
    */
   Flux<PartialResultSet> executeStreamingSql(
-      Session session, Mono<Transaction> transaction, String sql, Struct params, Map<String, Type> types);
+      Session session, @Nullable Transaction transaction, String sql, Struct params, Map<String, Type> types);
 
   default Flux<PartialResultSet> executeStreamingSql(
-      Session session, Mono<Transaction> transaction, String sql){
+      Session session, @Nullable Transaction transaction, String sql){
     return  executeStreamingSql(session, transaction, sql, null, null);
   }
 
