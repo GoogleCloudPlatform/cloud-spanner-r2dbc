@@ -33,7 +33,6 @@ import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadOnly;
 import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.TransactionSelector;
 import io.grpc.CallCredentials;
@@ -166,26 +165,21 @@ public class GrpcClient implements Client {
       Session session, @Nullable Transaction transaction, String sql) {
 
     return Flux.create(sink -> {
-      TransactionSelector transactionSelector;
-      if (transaction != null) {
-        transactionSelector =
-            TransactionSelector.newBuilder().setId(transaction.getId()).build();
-      } else {
-        transactionSelector = readOnlySingleUseTransaction();
-      }
-
-      ExecuteSqlRequest executeSqlRequest =
+      ExecuteSqlRequest.Builder executeSqlRequest =
           ExecuteSqlRequest.newBuilder()
-            .setSql(sql)
-            .setSession(session.getName())
-              .setTransaction(transactionSelector)
-              .build();
+              .setSql(sql)
+              .setSession(session.getName());
+
+      if (transaction != null) {
+        executeSqlRequest.setTransaction(
+            TransactionSelector.newBuilder().setId(transaction.getId()).build());
+      }
 
       SinkResponseObserver responseObserver = new SinkResponseObserver<>(sink);
       sink.onCancel(
           () -> responseObserver.getRequestStream().cancel("Flux requested cancel.", null));
 
-      this.spanner.executeStreamingSql(executeSqlRequest, responseObserver);
+      this.spanner.executeStreamingSql(executeSqlRequest.build(), responseObserver);
 
       // must be invoked after the actual method so that the stream is already started
       sink.onRequest(demand -> responseObserver.getRequestStream()
@@ -241,19 +235,5 @@ public class GrpcClient implements Client {
         this.channel.shutdownNow();
       }
     });
-  }
-
-  /**
-   * Creates a temporary read-only transaction with strong concurrency, which is also the default
-   * for {@code ExecuteStreamingSql} when the transaction field is empty.
-   */
-  private TransactionSelector readOnlySingleUseTransaction() {
-    return TransactionSelector.newBuilder()
-        .setSingleUse(
-            TransactionOptions.newBuilder()
-                .setReadOnly(
-                    ReadOnly.newBuilder()
-                        .setStrong(true)))
-        .build();
   }
 }

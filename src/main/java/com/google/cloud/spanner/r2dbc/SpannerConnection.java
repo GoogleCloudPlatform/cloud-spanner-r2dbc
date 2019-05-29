@@ -75,7 +75,7 @@ public class SpannerConnection implements Connection {
   public Publisher<Void> rollbackTransaction() {
     return Mono.defer(() -> {
       if (this.currentTransaction == null) {
-        this.logger.warn("commitTransaction() is a no-op; called with no transaction active.");
+        this.logger.warn("rollbackTransaction() is a no-op; called with no transaction active.");
         return Mono.empty();
       } else {
         return this.client.rollbackTransaction(this.session, this.currentTransaction);
