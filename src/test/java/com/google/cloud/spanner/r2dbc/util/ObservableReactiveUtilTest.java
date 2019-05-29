@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import io.r2dbc.spi.R2dbcNonTransientException;
 import io.r2dbc.spi.R2dbcTransientResourceException;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -46,7 +47,7 @@ public class ObservableReactiveUtilTest {
       observer.onError(new IllegalArgumentException("oh no"));
     });
     assertThatThrownBy(() -> mono.block())
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(R2dbcNonTransientException.class)
         .hasMessage("oh no");
   }
 
@@ -78,7 +79,7 @@ public class ObservableReactiveUtilTest {
             observer -> observer.onError(new IllegalArgumentException()));
 
     assertThatThrownBy(() -> result.block())
-        .isInstanceOf(IllegalArgumentException.class);
+        .isInstanceOf(R2dbcNonTransientException.class);
   }
 
   @Test

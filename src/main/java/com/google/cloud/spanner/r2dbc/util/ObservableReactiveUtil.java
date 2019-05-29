@@ -21,6 +21,7 @@ import static com.google.cloud.spanner.r2dbc.util.SpannerExceptionUtil.isRetryab
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
 import io.grpc.stub.StreamObserver;
+import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import io.r2dbc.spi.R2dbcTransientResourceException;
 import java.util.function.Consumer;
 import reactor.core.publisher.Flux;
@@ -47,7 +48,9 @@ public class ObservableReactiveUtil {
   }
 
   /**
-   * This will go away in favor of Mike's implementation.
+   * Invokes a lambda that issues a streaming call and directs the response to a {@link Flux}
+   * stream.
+   *
    * @param remoteCall call to make
    * @param <RequestT> request type
    * @param <ResponseT> response type
@@ -78,12 +81,14 @@ public class ObservableReactiveUtil {
     }
 
     @Override
-    public void onError(Throwable t) {
-      if (isRetryable(t)) {
-        t = new R2dbcTransientResourceException(t);
+    public void onError(Throwable throwable) {
+      if (isRetryable(throwable)) {
+        throwable = new R2dbcTransientResourceException(throwable.getMessage(), throwable);
+      } else {
+        throwable = new R2dbcNonTransientResourceException(throwable.getMessage(), throwable);
       }
 
-      this.sink.error(t);
+      this.sink.error(throwable);
     }
 
     @Override
@@ -132,7 +137,9 @@ public class ObservableReactiveUtil {
       this.terminalEventReceived = true;
 
       if (isRetryable(throwable)) {
-        throwable = new R2dbcTransientResourceException(throwable);
+        throwable = new R2dbcTransientResourceException(throwable.getMessage(), throwable);
+      } else {
+        throwable = new R2dbcNonTransientResourceException(throwable.getMessage(), throwable);
       }
 
       this.sink.error(throwable);
