@@ -33,13 +33,13 @@ import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadOnly;
 import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.TransactionSelector;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
+import javax.annotation.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -158,18 +158,22 @@ public class GrpcClient implements Client {
   // TODO: add information about parameters being added to signature
   @Override
   public Flux<PartialResultSet> executeStreamingSql(
-      Session session, Mono<Transaction> transaction, String sql) {
-    return transaction
-        .map(t -> TransactionSelector.newBuilder().setId(t.getId()).build())
-        .defaultIfEmpty(readOnlySingleUseTransaction())
-        .map(t ->  ExecuteSqlRequest.newBuilder()
-            .setSql(sql)
-            .setSession(session.getName())
-            .setTransaction(t)
-            .build())
-        .flatMapMany(
-            req -> ObservableReactiveUtil.streamingCall(
-                obs -> this.spanner.executeStreamingSql(req, obs)));
+      Session session, @Nullable Transaction transaction, String sql) {
+
+    return Flux.defer(() -> {
+      ExecuteSqlRequest.Builder executeSqlRequest =
+          ExecuteSqlRequest.newBuilder()
+              .setSql(sql)
+              .setSession(session.getName());
+
+      if (transaction != null) {
+        executeSqlRequest.setTransaction(
+            TransactionSelector.newBuilder().setId(transaction.getId()).build());
+      }
+
+      return ObservableReactiveUtil.streamingCall(
+          obs -> this.spanner.executeStreamingSql(executeSqlRequest.build(), obs));
+    });
   }
 
   @Override
@@ -184,19 +188,5 @@ public class GrpcClient implements Client {
   @VisibleForTesting
   SpannerStub getSpanner() {
     return this.spanner;
-  }
-
-  /**
-   * Creates a temporary read-only transaction with strong concurrency, which is also the default
-   * for {@code ExecuteStreamingSql} when the transaction field is empty.
-   */
-  private TransactionSelector readOnlySingleUseTransaction() {
-    return TransactionSelector.newBuilder()
-        .setSingleUse(
-            TransactionOptions.newBuilder()
-                .setReadOnly(
-                    ReadOnly.newBuilder()
-                        .setStrong(true)))
-        .build();
   }
 }
