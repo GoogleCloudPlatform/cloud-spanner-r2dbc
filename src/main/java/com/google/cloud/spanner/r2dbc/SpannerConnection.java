@@ -23,6 +23,7 @@ import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.Statement;
+import java.util.concurrent.atomic.AtomicLong;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,8 @@ public class SpannerConnection implements Connection {
   private final Session session;
 
   private volatile Transaction currentTransaction;
+
+  public final AtomicLong seqNum = new AtomicLong(0);
 
   /**
    * Instantiates a Spanner session with given configuration.
@@ -100,7 +103,8 @@ public class SpannerConnection implements Connection {
 
   @Override
   public Statement createStatement(String sql) {
-    return new SpannerStatement(this.client, this.session, this.currentTransaction, sql);
+    return new SpannerStatement(this.client, this.session,
+        SpannerTransactionContext.from(this.currentTransaction), sql);
   }
 
   @Override

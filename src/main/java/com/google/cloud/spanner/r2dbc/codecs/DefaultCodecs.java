@@ -98,6 +98,7 @@ public final class DefaultCodecs implements Codecs {
         String.format("Cannot decode value of type %s to %s", spannerType, type.getName()));
   }
 
+  @Override
   public Codec getCodec(Object value) {
     for (Codec<?> codec : this.codecs) {
       if (codec.canEncode(value)) {

@@ -19,18 +19,24 @@ package com.google.cloud.spanner.r2dbc;
 import static java.util.Objects.requireNonNull;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.codecs.Codec;
 import com.google.cloud.spanner.r2dbc.codecs.Codecs;
 import com.google.cloud.spanner.r2dbc.codecs.DefaultCodecs;
 import com.google.cloud.spanner.r2dbc.result.PartialResultRowExtractor;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Struct.Builder;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
-import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.Type;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
-import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -44,7 +50,7 @@ public class SpannerStatement implements Statement {
 
   private Session session;
 
-  private Transaction transaction;
+  private SpannerTransactionContext transaction;
 
   private String sql;
 
@@ -52,12 +58,15 @@ public class SpannerStatement implements Statement {
 
   private Codecs codecs = new DefaultCodecs();
 
+  private Map<String, Type> types = Collections.EMPTY_MAP;
+
+  private Map<String, Codec> resolvedCodecs = new HashMap<>();
+
   /**
    * Creates a Spanner statement for a given SQL statement.
    *
    * <p>If no transaction is present, a temporary strongly consistent readonly transaction will be
    * used.
-   *
    * @param client cloud spanner client to use for performing the query operation
    * @param session current cloud spanner session
    * @param transaction current cloud spanner transaction, or empty if no transaction is started
@@ -66,7 +75,7 @@ public class SpannerStatement implements Statement {
   public SpannerStatement(
       Client client,
       Session session,
-      @Nullable Transaction transaction,
+      @Nullable SpannerTransactionContext transaction,
       String sql) {
 
     this.client = client;
@@ -78,7 +87,7 @@ public class SpannerStatement implements Statement {
 
   @Override
   public Statement add() {
-    bindings.add(new HashMap<>());
+    this.bindings.add(new HashMap<>());
     return this;
   }
 
@@ -86,7 +95,7 @@ public class SpannerStatement implements Statement {
   public Statement bind(Object identifier, Object value) {
     requireNonNull(identifier);
     if (identifier instanceof String) {
-      bindings.getLast().put((String)identifier, value);
+      this.bindings.getLast().put((String)identifier, value);
       return this;
     }
     throw new IllegalArgumentException("Only String identifiers are supported");
@@ -109,9 +118,45 @@ public class SpannerStatement implements Statement {
 
   @Override
   public Publisher<? extends Result> execute() {
+    List<Struct> paramsStructs = new ArrayList<>();
+    for (Map<String, Object> bindingsBatch : this.bindings) {
+      Builder paramsStructBuilder = Struct.newBuilder();
+      Map<String, Type> types = this.types.isEmpty() ? new HashMap<>() : null;
+
+      for (Map.Entry<String, Object> binding : bindingsBatch.entrySet()) {
+        String paramName = binding.getKey();
+        Codec codec = this.resolvedCodecs.computeIfAbsent(paramName,
+            name -> this.codecs.getCodec(binding.getValue()));
+        paramsStructBuilder
+            .putFields(paramName, codec.encode(binding.getValue()));
+
+        if (this.types.isEmpty()) {
+          types.put(paramName,
+              Type.newBuilder().setCode(codec.getTypeCode()).build());
+        }
+
+      }
+
+      if (types != null) {
+        this.types = types;
+      }
+
+      paramsStructs.add(paramsStructBuilder.build());
+    }
+
+    Flux<Struct> structFlux = Flux.fromIterable(paramsStructs);
+
+    if (this.sql != null && this.sql.trim().toLowerCase().startsWith("select")) {
+      return structFlux.flatMap(this::runSingleStatement);
+    }
+    return structFlux.concatMapDelayError(this::runSingleStatement);
+  }
+
+  private Mono<? extends Result> runSingleStatement(Struct params) {
     PartialResultRowExtractor partialResultRowExtractor = new PartialResultRowExtractor();
 
-    return this.client.executeStreamingSql(this.session, this.transaction, this.sql)
+    return this.client
+        .executeStreamingSql(this.session, this.transaction, this.sql, params, this.types)
         .switchOnFirst((signal, flux) -> {
           if (signal.hasError()) {
             return Mono.error(signal.getThrowable());

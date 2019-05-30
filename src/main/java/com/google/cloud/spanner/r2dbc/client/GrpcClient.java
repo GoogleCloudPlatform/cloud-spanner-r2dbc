@@ -17,6 +17,7 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.spanner.r2dbc.SpannerTransactionContext;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.Empty;
@@ -162,22 +163,27 @@ public class GrpcClient implements Client {
     });
   }
 
-  // TODO: add information about parameters being added to signature
   @Override
   public Flux<PartialResultSet> executeStreamingSql(
-      Session session, @Nullable Transaction transaction, String sql, Struct params, Map<String, Type> types) {
+      Session session, @Nullable SpannerTransactionContext transactionContext, String sql,
+      Struct params, Map<String, Type> types) {
 
     return Flux.create(sink -> {
       ExecuteSqlRequest.Builder executeSqlRequest =
           ExecuteSqlRequest.newBuilder()
               .setSql(sql)
-              .setParams(params)
-              .putAllParamTypes(types)
               .setSession(session.getName());
+      if (params != null) {
+        executeSqlRequest
+            .setParams(params)
+            .putAllParamTypes(types);
+      }
 
-      if (transaction != null) {
+      if (transactionContext != null && transactionContext.getTransaction() != null) {
         executeSqlRequest.setTransaction(
-            TransactionSelector.newBuilder().setId(transaction.getId()).build());
+            TransactionSelector.newBuilder().setId(transactionContext.getTransaction().getId())
+                .build());
+        executeSqlRequest.setSeqno(transactionContext.nextSeqNum());
       }
 
       SinkResponseObserver responseObserver = new SinkResponseObserver<>(sink);

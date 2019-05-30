@@ -83,8 +83,8 @@ class SpannerCodec<T> implements Codec<T> {
   }
 
   @Override
-  public TypeCode getTypeCode(){
-    return typeCode;
+  public TypeCode getTypeCode() {
+    return this.typeCode;
   }
 
   T doDecode(Value value, Type spannerType, Class<? extends T> type) {

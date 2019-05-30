@@ -16,6 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc.client;
 
+import com.google.cloud.spanner.r2dbc.SpannerTransactionContext;
 import com.google.protobuf.Struct;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.PartialResultSet;
@@ -74,10 +75,11 @@ public interface Client {
    * Execute a streaming query and get partial results.
    */
   Flux<PartialResultSet> executeStreamingSql(
-      Session session, @Nullable Transaction transaction, String sql, Struct params, Map<String, Type> types);
+      Session session, @Nullable SpannerTransactionContext transaction, String sql, Struct params,
+      Map<String, Type> types);
 
   default Flux<PartialResultSet> executeStreamingSql(
-      Session session, @Nullable Transaction transaction, String sql){
+      Session session, @Nullable SpannerTransactionContext transaction, String sql) {
     return  executeStreamingSql(session, transaction, sql, null, null);
   }
 
