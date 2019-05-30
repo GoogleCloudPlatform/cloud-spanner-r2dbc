@@ -42,13 +42,9 @@ import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
-import io.grpc.stub.ClientCallStreamObserver;
-import io.grpc.stub.ClientResponseObserver;
-import java.io.IOException;
 import java.util.Map;
 import javax.annotation.Nullable;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 /**
@@ -87,7 +83,7 @@ public class GrpcClient implements Client {
   }
 
   @VisibleForTesting
-  GrpcClient(SpannerStub spanner) throws IOException {
+  GrpcClient(SpannerStub spanner) {
     this.spanner = spanner;
     this.channel = null;
   }
@@ -168,7 +164,7 @@ public class GrpcClient implements Client {
       Session session, @Nullable SpannerTransactionContext transactionContext, String sql,
       Struct params, Map<String, Type> types) {
 
-    return Flux.create(sink -> {
+    return Flux.defer(() -> {
       ExecuteSqlRequest.Builder executeSqlRequest =
           ExecuteSqlRequest.newBuilder()
               .setSql(sql)
@@ -186,57 +182,9 @@ public class GrpcClient implements Client {
         executeSqlRequest.setSeqno(transactionContext.nextSeqNum());
       }
 
-      SinkResponseObserver responseObserver = new SinkResponseObserver<>(sink);
-      sink.onCancel(
-          () -> responseObserver.getRequestStream().cancel("Flux requested cancel.", null));
-
-      this.spanner.executeStreamingSql(executeSqlRequest.build(), responseObserver);
-
-      // must be invoked after the actual method so that the stream is already started
-      sink.onRequest(demand -> responseObserver.getRequestStream()
-          .request((int) Math.min(demand, Integer.MAX_VALUE)));
+      return ObservableReactiveUtil.streamingCall(
+          obs -> this.spanner.executeStreamingSql(executeSqlRequest.build(), obs));
     });
-  }
-
-  @VisibleForTesting
-  SpannerStub getSpanner() {
-    return this.spanner;
-  }
-
-  private static final class SinkResponseObserver<ReqT, RespT> implements
-      ClientResponseObserver<ReqT, RespT> {
-
-    private FluxSink<RespT> sink;
-    private ClientCallStreamObserver<ReqT> requestStream;
-
-    public SinkResponseObserver(FluxSink<RespT> sink) {
-      this.sink = sink;
-    }
-
-    @Override
-    public void onNext(RespT value) {
-      this.sink.next(value);
-    }
-
-    @Override
-    public void onError(Throwable t) {
-      this.sink.error(t);
-    }
-
-    @Override
-    public void onCompleted() {
-      this.sink.complete();
-    }
-
-    @Override
-    public void beforeStart(ClientCallStreamObserver<ReqT> requestStream) {
-      this.requestStream = requestStream;
-      requestStream.disableAutoInboundFlowControl();
-    }
-
-    public ClientCallStreamObserver<ReqT> getRequestStream() {
-      return this.requestStream;
-    }
   }
 
   @Override
@@ -246,5 +194,10 @@ public class GrpcClient implements Client {
         this.channel.shutdownNow();
       }
     });
+  }
+
+  @VisibleForTesting
+  SpannerStub getSpanner() {
+    return this.spanner;
   }
 }
