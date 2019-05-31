@@ -25,6 +25,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
+import com.google.cloud.spanner.DatabaseAdminClient;
+import com.google.cloud.spanner.DatabaseId;
+import com.google.cloud.spanner.Spanner;
+import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
@@ -48,6 +52,8 @@ import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -95,6 +101,34 @@ public class SpannerIT {
     // Create the asynchronous stub for Cloud Spanner
     this.spanner = SpannerGrpc.newStub(channel)
         .withCallCredentials(callCredentials);
+
+    SpannerOptions options = SpannerOptions.newBuilder().build();
+    Spanner spanner = options.getService();
+
+    DatabaseId id = DatabaseId.of(options.getProjectId(), TEST_INSTANCE, TEST_DATABASE);
+
+    DatabaseAdminClient dbAdminClient = spanner.getDatabaseAdminClient();
+
+    dbAdminClient.updateDatabaseDdl(
+        id.getInstanceId().getInstance(),
+        id.getDatabase(),
+        Collections.singletonList("DROP TABLE books"),
+        null);
+
+    dbAdminClient.updateDatabaseDdl(
+        id.getInstanceId().getInstance(),
+        id.getDatabase(),
+        Arrays.asList(
+            "CREATE TABLE BOOKS (\n",
+            "  UUID STRING(36) NOT NULL,\n",
+            "  TITLE STRING(256) NOT NULL,\n",
+            "  AUTHOR STRING(256) NOT NULL,\n",
+            "  FICTION BOOL NOT NULL,\n",
+            "  PUBLISHED DATE NOT NULL,\n",
+            "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,\n",
+            "  CATEGORY INT64 NOT NULL\n",
+            ") PRIMARY KEY (UUID);"),
+        null);
   }
 
   @Test
@@ -116,8 +150,6 @@ public class SpannerIT {
 
   @Test
   public void testQuerying() {
-    executeDmlQuery("DELETE FROM books WHERE true");
-
     long count = executeReadQuery(
         "Select count(1) as count FROM books",
         (row, rowMetadata) -> row.get("count", Long.class)).get(0);
