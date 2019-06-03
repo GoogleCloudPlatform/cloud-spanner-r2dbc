@@ -84,7 +84,7 @@ public class SpannerStatementTest {
         .thenReturn(Flux.just(partialResultSet));
 
     SpannerStatement statement
-        = new SpannerStatement(mockClient, TEST_SESSION, null,sql);
+        = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>)statement.execute();
 
@@ -100,7 +100,7 @@ public class SpannerStatementTest {
   public void executeDummyImplementationBind() {
 
     Client mockClient = mock(Client.class);
-    String sql = "select book from library where id = @id";
+    //set up mock results
     PartialResultSet partialResultSet1 = PartialResultSet.newBuilder()
         .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
             .addFields(
@@ -117,6 +117,9 @@ public class SpannerStatementTest {
         .addValues(Value.newBuilder().setStringValue("Fables"))
         .build();
 
+    String sql = "select book from library where id = @id";
+
+    //set up mock client to return the results
     Map<String, Type> types = new HashMap<>();
     types.put("id", Type.newBuilder().setCode(TypeCode.STRING).build());
     Struct idBinding1 = Struct.newBuilder()
@@ -131,8 +134,9 @@ public class SpannerStatementTest {
         idBinding2, types))
         .thenReturn(Flux.just(partialResultSet2));
 
+    //execute query
     SpannerStatement statement
-        = new SpannerStatement(mockClient, TEST_SESSION, null,sql);
+        = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>)statement
         .bind("id", "b1").add()
@@ -141,6 +145,7 @@ public class SpannerStatementTest {
 
     assertThat(result).isNotNull();
 
+    //collect results to a list
     List<String> results = result.collectList().block()
         .stream().map(x ->
             x.map((r, m) -> (String)r.get(0)).blockFirst()).collect(Collectors.toList());
@@ -165,7 +170,7 @@ public class SpannerStatementTest {
     when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
 
     Mono<Result> resultMono = Mono
-        .from(new SpannerStatement(this.mockClient, null, null, null).execute());
+        .from(new SpannerStatement(this.mockClient, null, null, "").execute());
 
     assertThat(resultMono.flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isZero();
     assertThat(resultMono.flatMapMany(r -> r
@@ -187,7 +192,7 @@ public class SpannerStatementTest {
 
     when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
 
-    assertThat(Mono.from(new SpannerStatement(this.mockClient, null, null, null).execute())
+    assertThat(Mono.from(new SpannerStatement(this.mockClient, null, null, "").execute())
         .flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isZero();
   }
 
@@ -201,7 +206,7 @@ public class SpannerStatementTest {
 
     when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
 
-    assertThat(Mono.from(new SpannerStatement(this.mockClient, null, null, null).execute())
+    assertThat(Mono.from(new SpannerStatement(this.mockClient, null, null, "").execute())
         .flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isEqualTo(555);
   }
 
@@ -218,7 +223,7 @@ public class SpannerStatementTest {
         .thenReturn(Flux.just(partialResultSet));
 
     SpannerStatement statement
-        = new SpannerStatement(mockClient, TEST_SESSION, null,sql);
+        = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
 
     SpannerResult result = ((Flux<SpannerResult>) statement.execute()).next().block();
 

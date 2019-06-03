@@ -24,16 +24,13 @@ import com.google.cloud.spanner.r2dbc.codecs.Codecs;
 import com.google.cloud.spanner.r2dbc.codecs.DefaultCodecs;
 import com.google.cloud.spanner.r2dbc.result.PartialResultRowExtractor;
 import com.google.protobuf.Struct;
-import com.google.protobuf.Struct.Builder;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Type;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -54,11 +51,13 @@ public class SpannerStatement implements Statement {
 
   private String sql;
 
-  private LinkedList<Map<String, Object>> bindings = new LinkedList<>();
+  private List<Struct> bindingsStucts = new ArrayList<>();
 
   private Codecs codecs = new DefaultCodecs();
 
-  private Map<String, Type> types = Collections.EMPTY_MAP;
+  private Map<String, Type> types = new HashMap<>();
+
+  private Struct.Builder currentBindingsBuilder;
 
   private Map<String, Codec> resolvedCodecs = new HashMap<>();
 
@@ -81,13 +80,15 @@ public class SpannerStatement implements Statement {
     this.client = client;
     this.session = session;
     this.transaction = transaction;
-    this.sql = sql;
-    add();
+    this.sql = requireNonNull(sql, "SQL string can not be null");
   }
 
   @Override
   public Statement add() {
-    this.bindings.add(new HashMap<>());
+    if (this.currentBindingsBuilder != null) {
+      this.bindingsStucts.add(this.currentBindingsBuilder.build());
+    }
+    this.currentBindingsBuilder = null;
     return this;
   }
 
@@ -95,7 +96,18 @@ public class SpannerStatement implements Statement {
   public Statement bind(Object identifier, Object value) {
     requireNonNull(identifier);
     if (identifier instanceof String) {
-      this.bindings.getLast().put((String)identifier, value);
+      String paramName = (String) identifier;
+      //we assume all parameters with the same name have the same type
+      Codec codec = this.resolvedCodecs
+          .computeIfAbsent(paramName, n -> this.codecs.getCodec(value));
+      if (this.currentBindingsBuilder == null) {
+        this.currentBindingsBuilder = Struct.newBuilder();
+      }
+      this.currentBindingsBuilder.putFields(paramName, codec.encode(value));
+      if (this.bindingsStucts.isEmpty()) {
+        //first binding, fill types map
+        this.types.put(paramName, Type.newBuilder().setCode(codec.getTypeCode()).build());
+      }
       return this;
     }
     throw new IllegalArgumentException("Only String identifiers are supported");
@@ -103,7 +115,7 @@ public class SpannerStatement implements Statement {
 
   @Override
   public Statement bind(int i, Object o) {
-    throw new IllegalArgumentException("Only named parameters are supported");
+    throw new UnsupportedOperationException("Only named parameters are supported");
   }
 
   @Override
@@ -113,43 +125,26 @@ public class SpannerStatement implements Statement {
 
   @Override
   public Statement bindNull(int i, Class<?> type) {
-    throw new IllegalArgumentException("Only named parameters are supported");
+    throw new UnsupportedOperationException("Only named parameters are supported");
   }
 
   @Override
   public Publisher<? extends Result> execute() {
-    List<Struct> paramsStructs = new ArrayList<>();
-    for (Map<String, Object> bindingsBatch : this.bindings) {
-      Builder paramsStructBuilder = Struct.newBuilder();
-      Map<String, Type> types = this.types.isEmpty() ? new HashMap<>() : null;
-
-      for (Map.Entry<String, Object> binding : bindingsBatch.entrySet()) {
-        String paramName = binding.getKey();
-        Codec codec = this.resolvedCodecs.computeIfAbsent(paramName,
-            name -> this.codecs.getCodec(binding.getValue()));
-        paramsStructBuilder
-            .putFields(paramName, codec.encode(binding.getValue()));
-
-        if (this.types.isEmpty()) {
-          types.put(paramName,
-              Type.newBuilder().setCode(codec.getTypeCode()).build());
-        }
-
-      }
-
-      if (types != null) {
-        this.types = types;
-      }
-
-      paramsStructs.add(paramsStructBuilder.build());
+    add();
+    if (this.bindingsStucts.size() == 0) {
+      this.bindingsStucts.add(Struct.newBuilder().build());
     }
+    Flux<Struct> structFlux = Flux.fromIterable(this.bindingsStucts);
 
-    Flux<Struct> structFlux = Flux.fromIterable(paramsStructs);
-
-    if (this.sql != null && this.sql.trim().toLowerCase().startsWith("select")) {
+    if (isSelectQuery()) {
       return structFlux.flatMap(this::runSingleStatement);
     }
+    //DML statements have to be executed sequentially because they need seqNo to be in order
     return structFlux.concatMapDelayError(this::runSingleStatement);
+  }
+
+  private boolean isSelectQuery() {
+    return this.sql.trim().toLowerCase().startsWith("select");
   }
 
   private Mono<? extends Result> runSingleStatement(Struct params) {

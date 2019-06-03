@@ -101,7 +101,13 @@ public class SpannerIT {
     // Create the asynchronous stub for Cloud Spanner
     this.spanner = SpannerGrpc.newStub(channel)
         .withCallCredentials(callCredentials);
+  }
 
+  /**
+   * Setup the Spanner table for testing.
+   */
+  @Before
+  public void setupSpannerTable() {
     SpannerOptions options = SpannerOptions.newBuilder().build();
     Spanner spanner = options.getService();
 
@@ -150,6 +156,8 @@ public class SpannerIT {
 
   @Test
   public void testQuerying() {
+    executeDmlQuery("DELETE FROM books WHERE true");
+
     long count = executeReadQuery(
         "Select count(1) as count FROM books",
         (row, rowMetadata) -> row.get("count", Long.class)).get(0);
