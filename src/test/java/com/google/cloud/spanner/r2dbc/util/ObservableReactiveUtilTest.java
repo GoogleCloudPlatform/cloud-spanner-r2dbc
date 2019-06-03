@@ -18,12 +18,15 @@ package com.google.cloud.spanner.r2dbc.util;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import io.r2dbc.spi.R2dbcNonTransientException;
 import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import io.r2dbc.spi.R2dbcTransientResourceException;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Test for {@link ObservableReactiveUtil}.
@@ -74,8 +77,10 @@ public class ObservableReactiveUtilTest {
         ObservableReactiveUtil.unaryCall(observer -> observer.onError(retryableException));
 
     StepVerifier.create(result)
-        .expectError(R2dbcTransientResourceException.class)
-        .verify();
+            .expectErrorSatisfies(throwable ->
+                    assertThat(throwable).hasCauseInstanceOf(StatusRuntimeException.class)
+                            .isInstanceOf(R2dbcTransientResourceException.class))
+            .verify();
   }
 
   @Test
@@ -85,8 +90,10 @@ public class ObservableReactiveUtilTest {
             observer -> observer.onError(new IllegalArgumentException()));
 
     StepVerifier.create(result)
-        .expectError(R2dbcNonTransientResourceException.class)
-        .verify();
+            .expectErrorSatisfies(throwable ->
+                    assertThat(throwable).hasCauseInstanceOf(IllegalArgumentException.class)
+                            .isInstanceOf(R2dbcNonTransientException.class))
+            .verify();
   }
 
   @Test
@@ -99,7 +106,8 @@ public class ObservableReactiveUtilTest {
         ObservableReactiveUtil.streamingCall(observer -> observer.onError(retryableException));
 
     StepVerifier.create(result)
-        .expectError(R2dbcTransientResourceException.class)
-        .verify();
+            .expectErrorSatisfies(throwable ->
+                    assertThat(throwable).hasCauseInstanceOf(StatusRuntimeException.class).isInstanceOf(R2dbcTransientResourceException.class))
+            .verify();
   }
 }
