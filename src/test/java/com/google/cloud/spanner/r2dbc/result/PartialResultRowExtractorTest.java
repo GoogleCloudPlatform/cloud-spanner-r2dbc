@@ -192,7 +192,7 @@ public class PartialResultRowExtractorTest {
         inputs.flatMapIterable(new PartialResultRowExtractor());
 
     StepVerifier.create(results)
-        .expectComplete();
+        .verifyComplete();
   }
 
   private void verifyRows(Flux<PartialResultSet> inputs) {
