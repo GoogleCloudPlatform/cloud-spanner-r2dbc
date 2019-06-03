@@ -84,7 +84,9 @@ public class SpannerStatementTest {
 
     assertThat(result).isNotNull();
 
-    result.block().map((r, m) -> (String) r.get(0)).blockFirst().equals("Odyssey");
+    StepVerifier.create(result.flatMapMany(spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0))))
+            .expectNext("Odyssey")
+            .verifyComplete();
 
     verify(mockClient).executeStreamingSql(TEST_SESSION, null, sql);
   }
