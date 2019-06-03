@@ -37,8 +37,8 @@ public class ObservableReactiveUtilTest {
       observer.onCompleted();
     });
     StepVerifier.create(mono)
-            .expectNext(42)
-            .verifyComplete();
+        .expectNext(42)
+        .verifyComplete();
   }
 
   @Test
@@ -48,9 +48,9 @@ public class ObservableReactiveUtilTest {
     });
 
     StepVerifier.create(mono)
-            .expectErrorMatches(throwable -> throwable instanceof R2dbcNonTransientResourceException &&
-                    throwable.getMessage().equals("oh no"))
-            .verify();
+        .expectErrorMatches(throwable -> throwable instanceof R2dbcNonTransientResourceException
+            && throwable.getMessage().equals("oh no"))
+        .verify();
   }
 
   @Test
@@ -58,9 +58,10 @@ public class ObservableReactiveUtilTest {
     Mono<Integer> mono = ObservableReactiveUtil.unaryCall(observer -> observer.onCompleted());
 
     StepVerifier.create(mono)
-            .expectErrorMatches(throwable -> throwable instanceof RuntimeException &&
-                    throwable.getMessage().equals("Unary gRPC call completed without yielding a value or an error"))
-            .verify();
+        .expectErrorMatches(throwable -> throwable instanceof RuntimeException
+            && throwable.getMessage().equals(
+                "Unary gRPC call completed without yielding a value or an error"))
+        .verify();
   }
 
   @Test
@@ -73,8 +74,8 @@ public class ObservableReactiveUtilTest {
         ObservableReactiveUtil.unaryCall(observer -> observer.onError(retryableException));
 
     StepVerifier.create(result)
-            .expectError(R2dbcTransientResourceException.class)
-            .verify();
+        .expectError(R2dbcTransientResourceException.class)
+        .verify();
   }
 
   @Test
@@ -84,8 +85,8 @@ public class ObservableReactiveUtilTest {
             observer -> observer.onError(new IllegalArgumentException()));
 
     StepVerifier.create(result)
-            .expectError(R2dbcNonTransientResourceException.class)
-            .verify();
+        .expectError(R2dbcNonTransientResourceException.class)
+        .verify();
   }
 
   @Test
@@ -98,7 +99,7 @@ public class ObservableReactiveUtilTest {
         ObservableReactiveUtil.streamingCall(observer -> observer.onError(retryableException));
 
     StepVerifier.create(result)
-            .expectError(R2dbcTransientResourceException.class)
-            .verify();
+        .expectError(R2dbcTransientResourceException.class)
+        .verify();
   }
 }

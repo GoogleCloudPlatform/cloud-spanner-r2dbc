@@ -78,13 +78,13 @@ public class SpannerStatementTest {
         .thenReturn(Flux.just(partialResultSet));
 
     SpannerStatement statement
-        = new SpannerStatement(mockClient, TEST_SESSION, null,sql);
+        = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
 
-    Mono<SpannerResult> result = (Mono<SpannerResult>)statement.execute();
+    Mono<SpannerResult> result = (Mono<SpannerResult>) statement.execute();
 
     assertThat(result).isNotNull();
 
-    result.block().map((r, m) -> (String)r.get(0)).blockFirst().equals("Odyssey");
+    result.block().map((r, m) -> (String) r.get(0)).blockFirst().equals("Odyssey");
 
     verify(mockClient).executeStreamingSql(TEST_SESSION, null, sql);
   }
@@ -105,12 +105,12 @@ public class SpannerStatementTest {
         .from(new SpannerStatement(this.mockClient, null, null, null).execute());
 
     StepVerifier.create(resultMono.flatMap(r -> Mono.from(r.getRowsUpdated())))
-            .expectNext(0)
-            .verifyComplete();
+        .expectNext(0)
+        .verifyComplete();
     StepVerifier.create(resultMono.flatMapMany(r -> r
-            .map((row, meta) -> row.get(0, Boolean.class).toString() + "-" + row.get(1, String.class))))
-            .expectNext("false-abc")
-            .verifyComplete();
+        .map((row, meta) -> row.get(0, Boolean.class).toString() + "-" + row.get(1, String.class))))
+        .expectNext("false-abc")
+        .verifyComplete();
   }
 
   @Test
@@ -128,9 +128,9 @@ public class SpannerStatementTest {
     when(this.mockClient.executeStreamingSql(any(), any(), any())).thenReturn(inputs);
 
     StepVerifier.create(Mono.from(new SpannerStatement(this.mockClient, null, null, null).execute())
-            .flatMap(r -> Mono.from(r.getRowsUpdated())))
-            .expectNext(0)
-            .verifyComplete();
+        .flatMap(r -> Mono.from(r.getRowsUpdated())))
+        .expectNext(0)
+        .verifyComplete();
   }
 
   @Test
@@ -144,9 +144,9 @@ public class SpannerStatementTest {
     when(this.mockClient.executeStreamingSql(any(), any(), any())).thenReturn(inputs);
 
     StepVerifier.create(Mono.from(new SpannerStatement(this.mockClient, null, null, null).execute())
-            .flatMap(r -> Mono.from(r.getRowsUpdated())))
-            .expectNext(555)
-            .verifyComplete();
+        .flatMap(r -> Mono.from(r.getRowsUpdated())))
+        .expectNext(555)
+        .verifyComplete();
   }
 
   @Test
@@ -161,17 +161,19 @@ public class SpannerStatementTest {
         .thenReturn(Flux.just(partialResultSet));
 
     SpannerStatement statement
-        = new SpannerStatement(mockClient, TEST_SESSION, null,sql);
+        = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
 
     Mono<SpannerResult> result = (Mono<SpannerResult>) statement.execute();
 
-    StepVerifier.create(result.flatMap(spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0)).collectList()))
-            .expectNext(Collections.emptyList())
-            .verifyComplete();
+    StepVerifier.create(result.flatMap(
+        spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0))
+            .collectList()))
+        .expectNext(Collections.emptyList())
+        .verifyComplete();
 
-    StepVerifier.create(result.flatMap(results-> Mono.from(results.getRowsUpdated())))
-            .expectNext(0)
-            .verifyComplete();
+    StepVerifier.create(result.flatMap(results -> Mono.from(results.getRowsUpdated())))
+        .expectNext(0)
+        .verifyComplete();
 
     verify(mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql);
   }

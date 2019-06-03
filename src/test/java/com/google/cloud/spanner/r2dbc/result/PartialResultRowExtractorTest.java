@@ -192,7 +192,7 @@ public class PartialResultRowExtractorTest {
         inputs.flatMapIterable(new PartialResultRowExtractor());
 
     StepVerifier.create(results)
-            .expectComplete();
+        .expectComplete();
   }
 
   private void verifyRows(Flux<PartialResultSet> inputs) {
@@ -209,15 +209,15 @@ public class PartialResultRowExtractorTest {
     expectedColNames.toArray(expectedColumnNames);
 
     StepVerifier.create(results
-                        .flatMap(row -> Flux.fromIterable(row.getRowMetadata().getColumnMetadatas())
-                        .map(ColumnMetadata::getName)))
-            .expectNext(expectedColumnNames)
-            .expectNext(expectedColumnNames)
-    .verifyComplete();
+        .flatMap(row -> Flux.fromIterable(row.getRowMetadata().getColumnMetadatas())
+            .map(ColumnMetadata::getName)))
+        .expectNext(expectedColumnNames)
+        .expectNext(expectedColumnNames)
+        .verifyComplete();
 
     StepVerifier.create(results.map(SpannerRow::getValues))
-            .expectNext(Arrays.asList(this.a1, this.a2, this.a3))
-            .expectNext(Arrays.asList(this.b1, this.b2, this.b3))
-            .verifyComplete();
+        .expectNext(Arrays.asList(this.a1, this.a2, this.a3))
+        .expectNext(Arrays.asList(this.b1, this.b2, this.b3))
+        .verifyComplete();
   }
 }

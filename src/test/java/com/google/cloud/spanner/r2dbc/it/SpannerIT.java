@@ -46,12 +46,11 @@ import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
+import io.r2dbc.spi.Statement;
 import java.io.IOException;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-
-import io.r2dbc.spi.Statement;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -104,7 +103,7 @@ public class SpannerIT {
     assertThat(this.connectionFactory).isInstanceOf(SpannerConnectionFactory.class);
 
     Mono<Connection> connection = (Mono<Connection>) this.connectionFactory.create();
-    SpannerConnection spannerConnection = (SpannerConnection)connection.block();
+    SpannerConnection spannerConnection = (SpannerConnection) connection.block();
     String activeSessionName = spannerConnection.getSession().getName();
 
     List<String> activeSessions = getSessionNames();
@@ -121,10 +120,10 @@ public class SpannerIT {
     executeDmlQuery("DELETE FROM books WHERE true");
 
     StepVerifier.create(executeReadQuery(
-            "Select count(1) as count FROM books",
-            (row, rowMetadata) -> row.get("count", Long.class)))
-            .expectNext(0L)
-            .verifyComplete();
+        "Select count(1) as count FROM books",
+        (row, rowMetadata) -> row.get("count", Long.class)))
+        .expectNext(0L)
+        .verifyComplete();
 
     executeDmlQuery(
         "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY) VALUES"
@@ -139,12 +138,13 @@ public class SpannerIT {
     StepVerifier.create(executeReadQuery(
         "SELECT title, author FROM books",
         (r, meta) -> r.get(0, String.class) + " by " + r.get(1, String.class)))
-            .expectNext("JavaScript: The Good Parts by Douglas Crockford", "Effective Java by Joshua Bloch")
-            .verifyComplete();
+        .expectNext("JavaScript: The Good Parts by Douglas Crockford",
+            "Effective Java by Joshua Bloch")
+        .verifyComplete();
 
     StepVerifier.create(executeDmlQuery("DELETE FROM books WHERE true"))
-            .expectNext(2)
-            .verifyComplete();
+        .expectNext(2)
+        .verifyComplete();
   }
 
   @Test
@@ -155,11 +155,12 @@ public class SpannerIT {
             "UPDATE BOOKS set author = 'blah2' where title = 'asdasdf_dont_exist'").execute()));
 
     StepVerifier.create(result.flatMap(result1 -> Mono.from(result1.getRowsUpdated())))
-            .expectNext(0)
-            .verifyComplete();
+        .expectNext(0)
+        .verifyComplete();
 
-    StepVerifier.create(result.flatMap(result1 -> Mono.from(result1.map((row, rowMetadata) -> row.toString()))))
-            .verifyComplete();
+    StepVerifier.create(
+        result.flatMap(result1 -> Mono.from(result1.map((row, rowMetadata) -> row.toString()))))
+        .verifyComplete();
   }
 
   @Test
@@ -169,7 +170,7 @@ public class SpannerIT {
         (r, meta) -> r.get(0, String.class));
 
     StepVerifier.create(results)
-            .verifyComplete();
+        .verifyComplete();
   }
 
   /**
@@ -177,13 +178,13 @@ public class SpannerIT {
    */
   private Mono<Integer> executeDmlQuery(String sql) {
     return Mono.from(connectionFactory.create())
-            .flatMap(connection -> {
-              connection.beginTransaction();
-              Mono<Integer> rowsUpdated = Mono.from(connection.createStatement(sql).execute())
-                      .flatMap(result -> Mono.from(result.getRowsUpdated()));
-              connection.commitTransaction();
-              return rowsUpdated;
-            });
+        .flatMap(connection -> {
+          connection.beginTransaction();
+          Mono<Integer> rowsUpdated = Mono.from(connection.createStatement(sql).execute())
+              .flatMap(result -> Mono.from(result.getRowsUpdated()));
+          connection.commitTransaction();
+          return rowsUpdated;
+        });
   }
 
   /**
