@@ -97,7 +97,7 @@ public class SpannerStatement implements Statement {
     requireNonNull(identifier);
     if (identifier instanceof String) {
       String paramName = (String) identifier;
-      //we assume all parameters with the same name have the same type
+      // we assume all parameters with the same name have the same type
       Codec codec = this.resolvedCodecs
           .computeIfAbsent(paramName, n -> this.codecs.getCodec(value));
       if (this.currentBindingsBuilder == null) {
@@ -105,7 +105,7 @@ public class SpannerStatement implements Statement {
       }
       this.currentBindingsBuilder.putFields(paramName, codec.encode(value));
       if (this.bindingsStucts.isEmpty()) {
-        //first binding, fill types map
+        // first binding, fill types map
         this.types.put(paramName, Type.newBuilder().setCode(codec.getTypeCode()).build());
       }
       return this;
@@ -139,7 +139,7 @@ public class SpannerStatement implements Statement {
     if (isSelectQuery()) {
       return structFlux.flatMap(this::runSingleStatement);
     }
-    //DML statements have to be executed sequentially because they need seqNo to be in order
+    // DML statements have to be executed sequentially because they need seqNo to be in order
     return structFlux.concatMapDelayError(this::runSingleStatement);
   }
 
