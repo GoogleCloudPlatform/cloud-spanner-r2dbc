@@ -41,6 +41,8 @@ public class SpannerStatement implements Statement {
 
   private String sql;
 
+  private int partialResultSetPrefetch = 1;
+
   /**
    * Creates a Spanner statement for a given SQL statement.
    *
@@ -98,6 +100,9 @@ public class SpannerStatement implements Statement {
           if (signal.hasError()) {
             return Mono.error(signal.getThrowable());
           }
+          if (signal.isOnComplete()) {
+            return Mono.just(new SpannerResult(Flux.empty(), Mono.just(0)));
+          }
 
           PartialResultSet firstPartialResultSet = signal.get();
           if (isDmlQuery(firstPartialResultSet)) {
@@ -109,7 +114,7 @@ public class SpannerStatement implements Statement {
             return Mono.just(new SpannerResult(Flux.empty(), rowsChanged));
           } else {
             return Mono.just(new SpannerResult(
-                flux.flatMapIterable(partialResultRowExtractor),
+                flux.flatMapIterable(partialResultRowExtractor, this.partialResultSetPrefetch),
                 Mono.just(0)));
           }
         })
@@ -122,4 +127,13 @@ public class SpannerStatement implements Statement {
   private static boolean isDmlQuery(PartialResultSet firstPartialResultSet) {
     return firstPartialResultSet.getMetadata().getRowType().getFieldsList().isEmpty();
   }
+
+  /**
+   * Allows customizing the number of {@link PartialResultSet} objects to request at a time.
+   * @param prefetch batch size to request from Cloud Spanner
+   */
+  public void setPartialResultSetPrefetch(int prefetch) {
+    this.partialResultSetPrefetch = prefetch;
+  }
+
 }

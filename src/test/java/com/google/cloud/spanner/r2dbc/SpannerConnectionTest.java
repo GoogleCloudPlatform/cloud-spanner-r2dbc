@@ -40,6 +40,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import reactor.test.publisher.PublisherProbe;
 
 /**
@@ -68,7 +69,12 @@ public class SpannerConnectionTest {
 
   @Test
   public void executeStatementReturnsWorkingStatementWithCorrectQuery() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnectionConfiguration mockConfiguration
+        = Mockito.mock(SpannerConnectionConfiguration.class);
+    when(mockConfiguration.getPartialResultSetPrefetch()).thenReturn(1);
+
+    SpannerConnection connection
+        = new SpannerConnection(this.mockClient, TEST_SESSION, mockConfiguration);
     String sql = "select book from library";
     PartialResultSet partialResultSet = PartialResultSet.newBuilder()
         .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
@@ -81,17 +87,24 @@ public class SpannerConnectionTest {
     when(this.mockClient.executeStreamingSql(TEST_SESSION, null, sql))
         .thenReturn(Flux.just(partialResultSet));
 
+
+
     Statement statement = connection.createStatement(sql);
     assertThat(statement).isInstanceOf(SpannerStatement.class);
-    Mono<SpannerResult> result = (Mono<SpannerResult>)statement.execute();
-    result.block().map((r, m) -> (String)r.get(0)).blockFirst().equals("Odyssey");
+
+    StepVerifier.create(
+        ((Mono<SpannerResult>)statement.execute())
+            .flatMapMany(res -> res.map((r, m) -> (String) r.get(0))))
+        .expectNext("Odyssey")
+        .expectComplete()
+        .verify();
 
     verify(this.mockClient).executeStreamingSql(TEST_SESSION, null, sql);
   }
 
   @Test
   public void noopCommitTransactionWhenTransactionNotStarted() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
 
     // No-op commit when connection is not started.
     Mono.from(connection.commitTransaction()).block();
@@ -100,7 +113,7 @@ public class SpannerConnectionTest {
 
   @Test
   public void beginAndCommitTransactions() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
 
     PublisherProbe<Transaction> beginTransactionProbe = PublisherProbe.of(
         Mono.just(Transaction.getDefaultInstance()));
@@ -126,7 +139,7 @@ public class SpannerConnectionTest {
 
   @Test
   public void rollbackTransactions() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
 
     PublisherProbe<Transaction> beginTransactionProbe = PublisherProbe.of(
         Mono.just(Transaction.getDefaultInstance()));

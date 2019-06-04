@@ -41,15 +41,18 @@ public class SpannerConnection implements Connection {
 
   private volatile Transaction currentTransaction;
 
+  private SpannerConnectionConfiguration config;
+
   /**
    * Instantiates a Spanner session with given configuration.
    * @param client client controlling low-level Spanner operations
    * @param session Spanner session to use for all interactions on this connection.
    */
-  public SpannerConnection(Client client, Session session) {
+  public SpannerConnection(Client client, Session session, SpannerConnectionConfiguration config) {
     this.client = client;
     this.session = session;
     this.currentTransaction = null;
+    this.config = config;
   }
 
   @Override
@@ -100,7 +103,10 @@ public class SpannerConnection implements Connection {
 
   @Override
   public Statement createStatement(String sql) {
-    return new SpannerStatement(this.client, this.session, this.currentTransaction, sql);
+    SpannerStatement statement
+        = new SpannerStatement(this.client, this.session, this.currentTransaction, sql);
+    statement.setPartialResultSetPrefetch(this.config.getPartialResultSetPrefetch());
+    return statement;
   }
 
   @Override

@@ -46,6 +46,9 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   /** Option name for GCP Spanner instance. */
   public static final Option<String> INSTANCE = Option.valueOf("instance");
 
+  public static final Option<Integer> PARTIAL_RESULT_SET_PREFETCH
+      = Option.valueOf("partial_result_set_prefetch");
+
   /**
    * Option specifying the location of the GCP credentials file.
    */
@@ -56,22 +59,14 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 
   @Override
   public ConnectionFactory create(ConnectionFactoryOptions connectionFactoryOptions) {
-    try {
-      SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
-          .setProjectId(connectionFactoryOptions.getRequiredValue(PROJECT))
-          .setInstanceName(connectionFactoryOptions.getRequiredValue(INSTANCE))
-          .setDatabaseName(connectionFactoryOptions.getRequiredValue(DATABASE))
-          .setCredentials(connectionFactoryOptions.getValue(GOOGLE_CREDENTIALS))
-          .build();
 
-      if (this.client == null) {
-        // GrpcClient should only be instantiated if/when a SpannerConnectionFactory is needed.
-        this.client = new GrpcClient(config.getCredentials());
-      }
-      return new SpannerConnectionFactory(this.client, config);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    SpannerConnectionConfiguration config = createConfiguration(connectionFactoryOptions);
+
+    if (this.client == null) {
+      // GrpcClient should only be instantiated if/when a SpannerConnectionFactory is needed.
+      this.client = new GrpcClient(config.getCredentials());
     }
+    return new SpannerConnectionFactory(this.client, config);
   }
 
   @Override
@@ -90,6 +85,25 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   @VisibleForTesting
   void setClient(Client client) {
     this.client = client;
+  }
+
+  private SpannerConnectionConfiguration createConfiguration(ConnectionFactoryOptions options) {
+    try {
+      SpannerConnectionConfiguration.Builder configBuilder
+          = new SpannerConnectionConfiguration.Builder()
+          .setProjectId(options.getRequiredValue(PROJECT))
+          .setInstanceName(options.getRequiredValue(INSTANCE))
+          .setDatabaseName(options.getRequiredValue(DATABASE))
+          .setCredentials(options.getValue(GOOGLE_CREDENTIALS));
+
+      if (options.hasOption(PARTIAL_RESULT_SET_PREFETCH)) {
+        configBuilder.setPartialResultSetPrefetch(
+            options.getValue(PARTIAL_RESULT_SET_PREFETCH));
+      }
+      return configBuilder.build();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }

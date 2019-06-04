@@ -32,6 +32,8 @@ public class SpannerConnectionConfiguration {
 
   private final GoogleCredentials credentials;
 
+  private int partialResultSetPrefetch = 1;
+
   /**
    * Basic property initializing constructor.
    *
@@ -67,6 +69,10 @@ public class SpannerConnectionConfiguration {
     return this.credentials;
   }
 
+  public int getPartialResultSetPrefetch() {
+    return this.partialResultSetPrefetch;
+  }
+
   public static class Builder {
 
     private String projectId;
@@ -76,6 +82,8 @@ public class SpannerConnectionConfiguration {
     private String databaseName;
 
     private GoogleCredentials credentials;
+
+    private int partialResultSetPrefetch = 1;
 
     public Builder setProjectId(String projectId) {
       this.projectId = projectId;
@@ -97,6 +105,11 @@ public class SpannerConnectionConfiguration {
       return this;
     }
 
+    public Builder setPartialResultSetPrefetch(int prefetch) {
+      this.partialResultSetPrefetch = prefetch;
+      return this;
+    }
+
     /**
      * Constructs an instance of the {@link SpannerConnectionConfiguration}.
      */
@@ -105,11 +118,15 @@ public class SpannerConnectionConfiguration {
         this.credentials = GoogleCredentials.getApplicationDefault();
       }
 
-      return new SpannerConnectionConfiguration(
+      SpannerConnectionConfiguration configuration = new SpannerConnectionConfiguration(
           this.projectId,
           this.instanceName,
           this.databaseName,
           this.credentials);
+
+      configuration.partialResultSetPrefetch = this.partialResultSetPrefetch;
+
+      return configuration;
     }
 
   }
