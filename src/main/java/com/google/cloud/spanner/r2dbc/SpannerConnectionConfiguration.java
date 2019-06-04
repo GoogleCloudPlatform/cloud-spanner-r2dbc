@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import java.io.IOException;
 
 /**
@@ -32,7 +33,7 @@ public class SpannerConnectionConfiguration {
 
   private final GoogleCredentials credentials;
 
-  private int partialResultSetPrefetch = 1;
+  private Integer partialResultSetFetchSize;
 
   /**
    * Basic property initializing constructor.
@@ -69,8 +70,8 @@ public class SpannerConnectionConfiguration {
     return this.credentials;
   }
 
-  public int getPartialResultSetPrefetch() {
-    return this.partialResultSetPrefetch;
+  public Integer getPartialResultSetFetchSize() {
+    return this.partialResultSetFetchSize;
   }
 
   public static class Builder {
@@ -83,7 +84,7 @@ public class SpannerConnectionConfiguration {
 
     private GoogleCredentials credentials;
 
-    private int partialResultSetPrefetch = 1;
+    private Integer partialResultSetFetchSize;
 
     public Builder setProjectId(String projectId) {
       this.projectId = projectId;
@@ -105,17 +106,22 @@ public class SpannerConnectionConfiguration {
       return this;
     }
 
-    public Builder setPartialResultSetPrefetch(int prefetch) {
-      this.partialResultSetPrefetch = prefetch;
+    public Builder setPartialResultSetFetchSize(int prefetch) {
+      this.partialResultSetFetchSize = prefetch;
       return this;
     }
 
     /**
      * Constructs an instance of the {@link SpannerConnectionConfiguration}.
      */
-    public SpannerConnectionConfiguration build() throws IOException {
-      if (this.credentials == null) {
-        this.credentials = GoogleCredentials.getApplicationDefault();
+    public SpannerConnectionConfiguration build() {
+      try {
+        if (this.credentials == null) {
+          this.credentials = GoogleCredentials.getApplicationDefault();
+        }
+      } catch (IOException e) {
+        throw new R2dbcNonTransientResourceException(
+            "Could not acquire default application credentials", e);
       }
 
       SpannerConnectionConfiguration configuration = new SpannerConnectionConfiguration(
@@ -124,7 +130,9 @@ public class SpannerConnectionConfiguration {
           this.databaseName,
           this.credentials);
 
-      configuration.partialResultSetPrefetch = this.partialResultSetPrefetch;
+      if (this.partialResultSetFetchSize != null) {
+        configuration.partialResultSetFetchSize = this.partialResultSetFetchSize;
+      }
 
       return configuration;
     }

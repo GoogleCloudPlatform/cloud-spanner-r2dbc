@@ -28,7 +28,6 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.ConnectionFactoryProvider;
 import io.r2dbc.spi.Option;
-import java.io.IOException;
 
 /**
  * An implementation of {@link ConnectionFactoryProvider} for creating {@link
@@ -47,7 +46,7 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   public static final Option<String> INSTANCE = Option.valueOf("instance");
 
   public static final Option<Integer> PARTIAL_RESULT_SET_PREFETCH
-      = Option.valueOf("partial_result_set_prefetch");
+      = Option.valueOf("partial_result_set_fetch_size");
 
   /**
    * Option specifying the location of the GCP credentials file.
@@ -87,23 +86,20 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
     this.client = client;
   }
 
-  private SpannerConnectionConfiguration createConfiguration(ConnectionFactoryOptions options) {
-    try {
-      SpannerConnectionConfiguration.Builder configBuilder
-          = new SpannerConnectionConfiguration.Builder()
-          .setProjectId(options.getRequiredValue(PROJECT))
-          .setInstanceName(options.getRequiredValue(INSTANCE))
-          .setDatabaseName(options.getRequiredValue(DATABASE))
-          .setCredentials(options.getValue(GOOGLE_CREDENTIALS));
+  private static SpannerConnectionConfiguration createConfiguration(
+      ConnectionFactoryOptions options) {
+    SpannerConnectionConfiguration.Builder configBuilder
+        = new SpannerConnectionConfiguration.Builder()
+        .setProjectId(options.getRequiredValue(PROJECT))
+        .setInstanceName(options.getRequiredValue(INSTANCE))
+        .setDatabaseName(options.getRequiredValue(DATABASE))
+        .setCredentials(options.getValue(GOOGLE_CREDENTIALS));
 
-      if (options.hasOption(PARTIAL_RESULT_SET_PREFETCH)) {
-        configBuilder.setPartialResultSetPrefetch(
-            options.getValue(PARTIAL_RESULT_SET_PREFETCH));
-      }
-      return configBuilder.build();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    if (options.hasOption(PARTIAL_RESULT_SET_PREFETCH)) {
+      configBuilder.setPartialResultSetFetchSize(
+          options.getValue(PARTIAL_RESULT_SET_PREFETCH));
     }
+    return configBuilder.build();
   }
 
 }

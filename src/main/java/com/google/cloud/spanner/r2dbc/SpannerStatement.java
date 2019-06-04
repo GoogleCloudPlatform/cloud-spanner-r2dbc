@@ -101,7 +101,8 @@ public class SpannerStatement implements Statement {
             return Mono.error(signal.getThrowable());
           }
           if (signal.isOnComplete()) {
-            return Mono.just(new SpannerResult(Flux.empty(), Mono.just(0)));
+            // Empty response returned from Cloud Spanner.
+            return flux.then(Mono.just(new SpannerResult(Flux.empty(), Mono.just(0))));
           }
 
           PartialResultSet firstPartialResultSet = signal.get();

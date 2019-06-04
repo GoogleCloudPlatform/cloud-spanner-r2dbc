@@ -71,10 +71,10 @@ public class SpannerConnectionTest {
   public void executeStatementReturnsWorkingStatementWithCorrectQuery() {
     SpannerConnectionConfiguration mockConfiguration
         = Mockito.mock(SpannerConnectionConfiguration.class);
-    when(mockConfiguration.getPartialResultSetPrefetch()).thenReturn(1);
 
     SpannerConnection connection
-        = new SpannerConnection(this.mockClient, TEST_SESSION, mockConfiguration);
+        = new SpannerConnection(this.mockClient, TEST_SESSION);
+    connection.setPartialResultSetFetchSize(1);
     String sql = "select book from library";
     PartialResultSet partialResultSet = PartialResultSet.newBuilder()
         .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
@@ -102,7 +102,7 @@ public class SpannerConnectionTest {
 
   @Test
   public void noopCommitTransactionWhenTransactionNotStarted() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
 
     // No-op commit when connection is not started.
     Mono.from(connection.commitTransaction()).block();
@@ -111,7 +111,7 @@ public class SpannerConnectionTest {
 
   @Test
   public void beginAndCommitTransactions() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
 
     PublisherProbe<Transaction> beginTransactionProbe = PublisherProbe.of(
         Mono.just(Transaction.getDefaultInstance()));
@@ -137,7 +137,7 @@ public class SpannerConnectionTest {
 
   @Test
   public void rollbackTransactions() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
 
     PublisherProbe<Transaction> beginTransactionProbe = PublisherProbe.of(
         Mono.just(Transaction.getDefaultInstance()));

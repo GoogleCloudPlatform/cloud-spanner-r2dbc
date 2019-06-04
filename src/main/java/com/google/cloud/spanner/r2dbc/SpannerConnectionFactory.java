@@ -40,7 +40,13 @@ public class SpannerConnectionFactory implements ConnectionFactory {
   @Override
   public Mono<SpannerConnection> create() {
     return this.client.createSession(this.config.getFullyQualifiedDatabaseName())
-      .map(session -> new SpannerConnection(this.client, session, this.config));
+      .map(session -> {
+        SpannerConnection connection = new SpannerConnection(this.client, session);
+        if (this.config.getPartialResultSetFetchSize() != null) {
+          connection.setPartialResultSetFetchSize(this.config.getPartialResultSetFetchSize());
+        }
+        return connection;
+      });
   }
 
   @Override
