@@ -17,8 +17,6 @@
 package com.google.cloud.spanner.r2dbc.it;
 
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
-import static com.google.cloud.spanner.r2dbc.client.GrpcClient.HOST;
-import static com.google.cloud.spanner.r2dbc.client.GrpcClient.PORT;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,17 +29,13 @@ import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
+import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.spanner.v1.DatabaseName;
 import com.google.spanner.v1.ListSessionsRequest;
 import com.google.spanner.v1.ListSessionsResponse;
 import com.google.spanner.v1.Session;
-import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
-import io.grpc.CallCredentials;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.auth.MoreCallCredentials;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -57,6 +51,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -83,24 +78,21 @@ public class SpannerIT {
           .build());
 
   private SpannerStub spanner;
+  
+  private GrpcClient grpcClient;
 
   /**
    * Setup the Spanner stub for testing.
    */
   @Before
   public void setupStubs() throws IOException {
-    // Create a channel
-    ManagedChannel channel = ManagedChannelBuilder
-        .forAddress(HOST, PORT)
-        .build();
+    this.grpcClient = new GrpcClient(GoogleCredentials.getApplicationDefault());
+    this.spanner = this.grpcClient.getSpanner();
+  }
 
-    // Create blocking and async stubs using the channel
-    CallCredentials callCredentials = MoreCallCredentials
-        .from(GoogleCredentials.getApplicationDefault());
-
-    // Create the asynchronous stub for Cloud Spanner
-    this.spanner = SpannerGrpc.newStub(channel)
-        .withCallCredentials(callCredentials);
+  @After
+  public void shutdown() {
+    this.grpcClient.close().block();
   }
 
   /**

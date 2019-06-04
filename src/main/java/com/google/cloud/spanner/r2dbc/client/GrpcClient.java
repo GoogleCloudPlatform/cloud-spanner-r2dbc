@@ -197,7 +197,7 @@ public class GrpcClient implements Client {
   }
 
   @VisibleForTesting
-  SpannerStub getSpanner() {
+  public SpannerStub getSpanner() {
     return this.spanner;
   }
 }

@@ -41,10 +41,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 /**
  * Test for {@link SpannerStatement}.
@@ -143,18 +143,19 @@ public class SpannerStatementTest {
         .bind("id", "b2")
         .execute();
 
-    assertThat(result).isNotNull();
-
-    //collect results to a list
-    List<String> results = result.collectList().block()
-        .stream().map(x ->
-            x.map((r, m) -> (String)r.get(0)).blockFirst()).collect(Collectors.toList());
-    assertThat(results).containsExactly("Odyssey", "Fables");
+    StepVerifier.create(result)
+        .expectNextMatches(spannerResult -> firstColumIsEqualTo(spannerResult, "Odyssey"))
+        .expectNextMatches(spannerResult -> firstColumIsEqualTo(spannerResult, "Fables"))
+        .verifyComplete();
 
     verify(mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
         idBinding1, types);
     verify(mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
         idBinding2, types);
+  }
+
+  private boolean firstColumIsEqualTo(SpannerResult spannerResult, String pattern) {
+    return spannerResult.map((row, rowMetadata) -> (String)row.get(0)).blockFirst().equals(pattern);
   }
 
   @Test
