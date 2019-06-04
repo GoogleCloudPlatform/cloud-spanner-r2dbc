@@ -16,6 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc.it;
 
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
 import static com.google.cloud.spanner.r2dbc.client.GrpcClient.HOST;
 import static com.google.cloud.spanner.r2dbc.client.GrpcClient.PORT;
@@ -56,11 +57,9 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerIT {
 
-  private static final String DRIVER_NAME = "spanner";
+  public static final String TEST_INSTANCE = "reactivetest";
 
-  private static final String TEST_INSTANCE = "reactivetest";
-
-  private static final String TEST_DATABASE = "testdb";
+  public static final String TEST_DATABASE = "testdb";
 
   private static final ConnectionFactory connectionFactory =
       ConnectionFactories.get(ConnectionFactoryOptions.builder()
