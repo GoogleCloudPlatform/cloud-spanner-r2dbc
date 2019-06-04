@@ -46,14 +46,17 @@ import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -78,8 +81,10 @@ public class SpannerIT {
           .build());
 
   private SpannerStub spanner;
-  
+
   private GrpcClient grpcClient;
+
+  private static final Logger logger = LoggerFactory.getLogger(SpannerIT.class);
 
   /**
    * Setup the Spanner stub for testing.
@@ -98,8 +103,8 @@ public class SpannerIT {
   /**
    * Setup the Spanner table for testing.
    */
-  @Before
-  public void setupSpannerTable() {
+  @BeforeClass
+  public static void setupSpannerTable() throws InterruptedException, ExecutionException {
     SpannerOptions options = SpannerOptions.newBuilder().build();
     Spanner spanner = options.getService();
 
@@ -107,26 +112,30 @@ public class SpannerIT {
 
     DatabaseAdminClient dbAdminClient = spanner.getDatabaseAdminClient();
 
-    dbAdminClient.updateDatabaseDdl(
-        id.getInstanceId().getInstance(),
-        id.getDatabase(),
-        Collections.singletonList("DROP TABLE books"),
-        null);
+    try {
+      dbAdminClient.updateDatabaseDdl(
+          id.getInstanceId().getInstance(),
+          id.getDatabase(),
+          Collections.singletonList("DROP TABLE BOOKS"),
+          null).get();
+    } catch (Exception e) {
+      logger.info("The BOOKS table doesn't exist", e);
+    }
 
     dbAdminClient.updateDatabaseDdl(
         id.getInstanceId().getInstance(),
         id.getDatabase(),
-        Arrays.asList(
-            "CREATE TABLE BOOKS (\n",
-            "  UUID STRING(36) NOT NULL,\n",
-            "  TITLE STRING(256) NOT NULL,\n",
-            "  AUTHOR STRING(256) NOT NULL,\n",
-            "  FICTION BOOL NOT NULL,\n",
-            "  PUBLISHED DATE NOT NULL,\n",
-            "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,\n",
-            "  CATEGORY INT64 NOT NULL\n",
-            ") PRIMARY KEY (UUID);"),
-        null);
+        Collections.singletonList(
+            "CREATE TABLE BOOKS ("
+                + "  UUID STRING(36) NOT NULL,"
+                + "  TITLE STRING(256) NOT NULL,"
+                + "  AUTHOR STRING(256) NOT NULL,"
+                + "  FICTION BOOL NOT NULL,"
+                + "  PUBLISHED DATE NOT NULL,"
+                + "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,"
+                + "  CATEGORY INT64 NOT NULL"
+                + ") PRIMARY KEY (UUID)"),
+        null).get();
   }
 
   @Test
