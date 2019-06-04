@@ -16,6 +16,8 @@
 
 package com.google.cloud.spanner.r2dbc.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.r2dbc.spi.R2dbcNonTransientException;
@@ -25,8 +27,6 @@ import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Test for {@link ObservableReactiveUtil}.
@@ -107,7 +107,9 @@ public class ObservableReactiveUtilTest {
 
     StepVerifier.create(result)
             .expectErrorSatisfies(throwable ->
-                    assertThat(throwable).hasCauseInstanceOf(StatusRuntimeException.class).isInstanceOf(R2dbcTransientResourceException.class))
+                    assertThat(throwable)
+                        .hasCauseInstanceOf(StatusRuntimeException.class)
+                        .isInstanceOf(R2dbcTransientResourceException.class))
             .verify();
   }
 }

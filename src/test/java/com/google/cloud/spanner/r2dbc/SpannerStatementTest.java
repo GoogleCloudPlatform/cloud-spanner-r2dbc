@@ -84,7 +84,8 @@ public class SpannerStatementTest {
 
     assertThat(result).isNotNull();
 
-    StepVerifier.create(result.flatMapMany(spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0))))
+    StepVerifier.create(result.flatMapMany(
+        spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0))))
             .expectNext("Odyssey")
             .verifyComplete();
 
