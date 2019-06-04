@@ -87,8 +87,6 @@ public class SpannerConnectionTest {
     when(this.mockClient.executeStreamingSql(TEST_SESSION, null, sql))
         .thenReturn(Flux.just(partialResultSet));
 
-
-
     Statement statement = connection.createStatement(sql);
     assertThat(statement).isInstanceOf(SpannerStatement.class);
 
