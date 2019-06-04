@@ -39,7 +39,6 @@ import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Result;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -86,12 +85,14 @@ public class SpannerStatementTest {
     SpannerStatement statement
         = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
 
-    Flux<SpannerResult> result = (Flux<SpannerResult>)statement.execute();
+    Flux<SpannerResult> result = (Flux<SpannerResult>) statement.execute();
 
     assertThat(result).isNotNull();
 
-    assertThat(result.next().block().map((r, m) -> (String)r.get(0)).blockFirst())
-        .isEqualTo("Odyssey");
+    StepVerifier.create(result.flatMap(
+        spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0))))
+            .expectNext("Odyssey")
+            .verifyComplete();
 
     verify(mockClient).executeStreamingSql(eq(TEST_SESSION), isNull(), eq(sql), any(), any());
   }
@@ -143,19 +144,16 @@ public class SpannerStatementTest {
         .bind("id", "b2")
         .execute();
 
-    StepVerifier.create(result)
-        .expectNextMatches(spannerResult -> firstColumIsEqualTo(spannerResult, "Odyssey"))
-        .expectNextMatches(spannerResult -> firstColumIsEqualTo(spannerResult, "Fables"))
+    StepVerifier.create(result.flatMap(
+        spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0))))
+        .expectNext("Odyssey")
+        .expectNext("Fables")
         .verifyComplete();
 
     verify(mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
         idBinding1, types);
     verify(mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
         idBinding2, types);
-  }
-
-  private boolean firstColumIsEqualTo(SpannerResult spannerResult, String pattern) {
-    return spannerResult.map((row, rowMetadata) -> (String)row.get(0)).blockFirst().equals(pattern);
   }
 
   @Test
@@ -173,10 +171,13 @@ public class SpannerStatementTest {
     Mono<Result> resultMono = Mono
         .from(new SpannerStatement(this.mockClient, null, null, "").execute());
 
-    assertThat(resultMono.flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isZero();
-    assertThat(resultMono.flatMapMany(r -> r
-        .map((row, meta) -> row.get(0, Boolean.class).toString() + "-" + row.get(1, String.class)))
-        .collectList().block()).containsExactly("false-abc");
+    StepVerifier.create(resultMono.flatMap(r -> Mono.from(r.getRowsUpdated())))
+        .expectNext(0)
+        .verifyComplete();
+    StepVerifier.create(resultMono.flatMapMany(r -> r
+        .map((row, meta) -> row.get(0, Boolean.class).toString() + "-" + row.get(1, String.class))))
+        .expectNext("false-abc")
+        .verifyComplete();
   }
 
   @Test
@@ -193,8 +194,10 @@ public class SpannerStatementTest {
 
     when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
 
-    assertThat(Mono.from(new SpannerStatement(this.mockClient, null, null, "").execute())
-        .flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isZero();
+    StepVerifier.create(Flux.from(new SpannerStatement(this.mockClient, null, null, "").execute())
+        .flatMap(r -> Mono.from(r.getRowsUpdated())))
+        .expectNext(0)
+        .verifyComplete();
   }
 
   @Test
@@ -207,8 +210,10 @@ public class SpannerStatementTest {
 
     when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
 
-    assertThat(Mono.from(new SpannerStatement(this.mockClient, null, null, "").execute())
-        .flatMap(r -> Mono.from(r.getRowsUpdated())).block()).isEqualTo(555);
+    StepVerifier.create(Flux.from(new SpannerStatement(this.mockClient, null, null, "").execute())
+        .flatMap(r -> Mono.from(r.getRowsUpdated())))
+        .expectNext(555)
+        .verifyComplete();
   }
 
   @Test
@@ -226,15 +231,19 @@ public class SpannerStatementTest {
     SpannerStatement statement
         = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
 
-    SpannerResult result = ((Flux<SpannerResult>) statement.execute()).next().block();
+    Flux<SpannerResult> result = (Flux<SpannerResult>) statement.execute();
 
-    List<String> rowStrings = result.map((r, m) -> (String)r.get(0)).collectList().block();
-    assertThat(rowStrings).isEmpty();
+    StepVerifier.create(result.flatMap(
+        spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0))
+            .collectList()))
+        .expectNext(Collections.emptyList())
+        .verifyComplete();
 
-    int rowsUpdated = Mono.from(result.getRowsUpdated()).block();
-    assertThat(rowsUpdated).isEqualTo(0);
+    StepVerifier.create(result.flatMap(results -> Mono.from(results.getRowsUpdated())))
+        .expectNext(0)
+        .verifyComplete();
 
-    verify(mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
+    verify(mockClient, times(2)).executeStreamingSql(TEST_SESSION, null, sql,
         Struct.newBuilder().build(), Collections.EMPTY_MAP);
   }
 }
