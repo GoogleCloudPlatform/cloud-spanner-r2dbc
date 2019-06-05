@@ -22,7 +22,6 @@ import static com.google.cloud.spanner.r2dbc.it.SpannerIT.TEST_DATABASE;
 import static com.google.cloud.spanner.r2dbc.it.SpannerIT.TEST_INSTANCE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -134,15 +133,15 @@ public class SpannerExample implements Example<String> {
         .block();
   }
 
-  @Override
-  public ConnectionFactory getConnectionFactory() {
-    return connectionFactory;
-  }
-
   private static <T> Mono<T> close(Connection connection) {
     return Mono.from(connection
         .close())
         .then(Mono.empty());
+  }
+
+  @Override
+  public ConnectionFactory getConnectionFactory() {
+    return connectionFactory;
   }
 
   // we don't need to create tables because it is slow. we do it upfront.
