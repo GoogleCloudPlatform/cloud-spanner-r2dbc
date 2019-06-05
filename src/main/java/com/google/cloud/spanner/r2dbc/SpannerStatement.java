@@ -158,15 +158,15 @@ public class SpannerStatement implements Statement {
             this.session, this.transaction, this.sql, params, this.types);
 
     if (statementType == StatementType.SELECT) {
-      return Mono.just(new SpannerResult(
-          resultSetFlux.flatMapIterable(partialResultRowExtractor, getPartialResultSetFetchSize()),
-          Mono.just(0)));
+      return resultSetFlux
+          .flatMapIterable(partialResultRowExtractor, getPartialResultSetFetchSize())
+          .transform(result -> Mono.just(new SpannerResult(result, Mono.just(0))))
+          .next();
     } else {
-      Mono<Integer> rowsChanged =
-          resultSetFlux.last()
-              .map(partialResultSet ->
-                  Math.toIntExact(partialResultSet.getStats().getRowCountExact()));
-      return Mono.just(new SpannerResult(Flux.empty(), rowsChanged));
+      return resultSetFlux
+          .last()
+          .map(partialResultSet -> Math.toIntExact(partialResultSet.getStats().getRowCountExact()))
+          .transform(rowCount -> Mono.just(new SpannerResult(Flux.empty(), rowCount)));
     }
   }
 
