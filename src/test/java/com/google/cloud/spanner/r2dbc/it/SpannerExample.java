@@ -80,8 +80,6 @@ public class SpannerExample implements Example<String> {
 
     doAnswer(invocation -> {
       String query = invocation.getArgument(0);
-
-      // the TCK either INSERTs or does DDL
       executeDml(c -> c.createStatement(query.replace("INTO test ", "INTO test (value) ")
           .replace("INTO test_two_column", "INTO test_two_column (col1,col2)")));
       return null;
@@ -108,14 +106,11 @@ public class SpannerExample implements Example<String> {
 
     DatabaseId id = DatabaseId.of(options.getProjectId(), TEST_INSTANCE, TEST_DATABASE);
     DatabaseAdminClient dbAdminClient = spanner.getDatabaseAdminClient();
-
-    /*
     runDdl(id, dbAdminClient, "CREATE TABLE test ( value INT64 ) PRIMARY KEY (value)");
     runDdl(id, dbAdminClient,
         "CREATE TABLE test_two_column ( col1 INT64, col2 STRING(MAX) )  PRIMARY KEY (col1)");
     runDdl(id, dbAdminClient, "CREATE TABLE blob_test ( value BYTES(MAX) )  PRIMARY KEY (value)");
     runDdl(id, dbAdminClient, "CREATE TABLE clob_test ( value BYTES(MAX) )  PRIMARY KEY (value)");
-    */
   }
 
   private static void runDdl(DatabaseId id, DatabaseAdminClient dbAdminClient, String query) {
