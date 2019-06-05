@@ -18,7 +18,7 @@ package com.google.cloud.spanner.r2dbc;
 
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
-import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PARTIAL_RESULT_SET_PREFETCH;
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PARTIAL_RESULT_SET_FETCH_SIZE;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PROJECT;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
@@ -111,10 +111,10 @@ public class SpannerConnectionFactoryProviderTest {
   }
 
   @Test
-  public void partialResultSetPrefetchPropagatesAsDemand() {
+  public void partialResultSetFetchSizePropagatesAsDemand() {
     ConnectionFactoryOptions options =
         ConnectionFactoryOptions.builder()
-            .option(PARTIAL_RESULT_SET_PREFETCH, 4)
+            .option(PARTIAL_RESULT_SET_FETCH_SIZE, 4)
             .option(DRIVER, DRIVER_NAME)
             .option(PROJECT, "project-id")
             .option(INSTANCE, "an-instance")

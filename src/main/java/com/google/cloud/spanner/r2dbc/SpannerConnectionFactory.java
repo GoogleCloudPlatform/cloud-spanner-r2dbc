@@ -42,9 +42,7 @@ public class SpannerConnectionFactory implements ConnectionFactory {
     return this.client.createSession(this.config.getFullyQualifiedDatabaseName())
       .map(session -> {
         SpannerConnection connection = new SpannerConnection(this.client, session);
-        if (this.config.getPartialResultSetFetchSize() != null) {
-          connection.setPartialResultSetFetchSize(this.config.getPartialResultSetFetchSize());
-        }
+        connection.setPartialResultSetFetchSize(this.config.getPartialResultSetFetchSize());
         return connection;
       });
   }

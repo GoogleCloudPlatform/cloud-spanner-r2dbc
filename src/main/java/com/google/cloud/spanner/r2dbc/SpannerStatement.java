@@ -43,6 +43,8 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerStatement implements Statement {
 
+  private static final int DEFAULT_PARTIAL_FETCH_SIZE = 1;
+
   private Client client;
 
   private Session session;
@@ -51,7 +53,7 @@ public class SpannerStatement implements Statement {
 
   private String sql;
 
-  private int partialResultSetPrefetch = 1;
+  private Integer partialResultSetFetchSize;
 
   private List<Struct> bindingsStucts = new ArrayList<>();
 
@@ -173,7 +175,7 @@ public class SpannerStatement implements Statement {
             return Mono.just(new SpannerResult(Flux.empty(), rowsChanged));
           } else {
             return Mono.just(new SpannerResult(
-                flux.flatMapIterable(partialResultRowExtractor, this.partialResultSetPrefetch),
+                flux.flatMapIterable(partialResultRowExtractor, getPartialResultSetFetchSize()),
                 Mono.just(0)));
           }
         })
@@ -189,10 +191,15 @@ public class SpannerStatement implements Statement {
 
   /**
    * Allows customizing the number of {@link PartialResultSet} objects to request at a time.
-   * @param prefetch batch size to request from Cloud Spanner
+   * @param fetchSize prefetch size to request from Cloud Spanner
    */
-  public void setPartialResultSetPrefetch(int prefetch) {
-    this.partialResultSetPrefetch = prefetch;
+  public void setPartialResultSetFetchSize(Integer fetchSize) {
+    this.partialResultSetFetchSize = fetchSize;
+  }
+
+  public int getPartialResultSetFetchSize() {
+    return this.partialResultSetFetchSize != null
+        ? this.partialResultSetFetchSize : DEFAULT_PARTIAL_FETCH_SIZE;
   }
 
 }

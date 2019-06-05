@@ -45,7 +45,7 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   /** Option name for GCP Spanner instance. */
   public static final Option<String> INSTANCE = Option.valueOf("instance");
 
-  public static final Option<Integer> PARTIAL_RESULT_SET_PREFETCH
+  public static final Option<Integer> PARTIAL_RESULT_SET_FETCH_SIZE
       = Option.valueOf("partial_result_set_fetch_size");
 
   /**
@@ -95,10 +95,8 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
         .setDatabaseName(options.getRequiredValue(DATABASE))
         .setCredentials(options.getValue(GOOGLE_CREDENTIALS));
 
-    if (options.hasOption(PARTIAL_RESULT_SET_PREFETCH)) {
-      configBuilder.setPartialResultSetFetchSize(
-          options.getValue(PARTIAL_RESULT_SET_PREFETCH));
-    }
+    configBuilder.setPartialResultSetFetchSize(options.getValue(PARTIAL_RESULT_SET_FETCH_SIZE));
+
     return configBuilder.build();
   }
 

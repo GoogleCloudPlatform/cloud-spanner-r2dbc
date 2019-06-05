@@ -106,8 +106,8 @@ public class SpannerConnectionConfiguration {
       return this;
     }
 
-    public Builder setPartialResultSetFetchSize(int prefetch) {
-      this.partialResultSetFetchSize = prefetch;
+    public Builder setPartialResultSetFetchSize(Integer fetchSize) {
+      this.partialResultSetFetchSize = fetchSize;
       return this;
     }
 
@@ -130,9 +130,7 @@ public class SpannerConnectionConfiguration {
           this.databaseName,
           this.credentials);
 
-      if (this.partialResultSetFetchSize != null) {
-        configuration.partialResultSetFetchSize = this.partialResultSetFetchSize;
-      }
+      configuration.partialResultSetFetchSize = this.partialResultSetFetchSize;
 
       return configuration;
     }

@@ -21,7 +21,6 @@ import com.google.spanner.v1.Session;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
-import io.r2dbc.spi.Statement;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,13 +102,12 @@ public class SpannerConnection implements Connection {
   }
 
   @Override
-  public Statement createStatement(String sql) {
+  public SpannerStatement createStatement(String sql) {
     SpannerStatement statement
         = new SpannerStatement(this.client, this.session, this.transactionContext, sql);
 
-    if (this.partialResultSetFetchSize != null) {
-      statement.setPartialResultSetPrefetch(this.partialResultSetFetchSize);
-    }
+    statement.setPartialResultSetFetchSize(this.partialResultSetFetchSize);
+
     return statement;
   }
 

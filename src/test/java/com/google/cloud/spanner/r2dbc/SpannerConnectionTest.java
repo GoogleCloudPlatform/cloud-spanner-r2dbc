@@ -166,4 +166,18 @@ public class SpannerConnectionTest {
     rollbackProbe.assertWasSubscribed();
   }
 
+  @Test
+  public void setPartialResultSetFetchSizePropagatesToStatement() {
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    connection.setPartialResultSetFetchSize(42);
+    SpannerStatement statement = connection.createStatement("SELECT 1");
+    assertThat(statement.getPartialResultSetFetchSize()).isEqualTo(42);
+  }
+
+  @Test
+  public void nullPartialResultSetFetchSizeLeavesStatementDefault() {
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerStatement statement = connection.createStatement("SELECT 1");
+    assertThat(statement.getPartialResultSetFetchSize()).isEqualTo(1);
+  }
 }
