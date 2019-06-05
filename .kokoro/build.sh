@@ -1,3 +1,4 @@
 #!/bin/bash
 
-./mvnw verify -B -V -DskipITs;
+./mvnw verify -B -V -DskipITs
+
