@@ -98,6 +98,7 @@ public class SpannerStatement implements Statement {
   @Override
   public Statement bind(Object identifier, Object value) {
     Assert.requireNonNull(identifier, "Identifier must not be null.");
+    Assert.requireNonNull(value, "Value bound must not be null.");
     if (identifier instanceof String) {
       String paramName = (String) identifier;
       // we assume all parameters with the same name have the same type

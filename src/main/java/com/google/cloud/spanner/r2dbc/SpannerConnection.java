@@ -89,7 +89,7 @@ public class SpannerConnection implements Connection {
 
   @Override
   public Publisher<Void> close() {
-    return commitTransaction().concatWith(this.client.deleteSession(this.session));
+    return commitTransaction().then(this.client.deleteSession(this.session));
   }
 
   @Override

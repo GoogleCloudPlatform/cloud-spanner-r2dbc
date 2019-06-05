@@ -34,7 +34,7 @@ import reactor.util.annotation.Nullable;
  */
 public final class DefaultCodecs implements Codecs {
 
-  public static final com.google.protobuf.Value NULL_VALUE =
+  static final com.google.protobuf.Value NULL_VALUE =
       com.google.protobuf.Value.newBuilder().setNullValue(NullValue.NULL_VALUE).build();
 
   private final List<Codec<?>> codecs;

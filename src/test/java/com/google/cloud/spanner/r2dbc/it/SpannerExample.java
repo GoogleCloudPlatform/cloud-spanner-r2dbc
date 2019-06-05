@@ -196,27 +196,6 @@ public class SpannerExample implements Example<String> {
      */
   }
 
-  @Override
-  @Test
-  public void bindNullFails() {
-    Mono.from(getConnectionFactory().create())
-        .flatMap(connection -> {
-
-          Statement statement = connection
-              .createStatement(String.format("INSERT INTO test VALUES(%s)", getPlaceholder(0)));
-          assertThrows(IllegalArgumentException.class, () -> statement.bindNull(null, String.class),
-              "bindNull(null, …) should fail");
-
-          // The following line has been excluded. Binding null values is allowed in Spanner.
-          //assertThrows(IllegalArgumentException.class, () ->
-          // statement.bindNull(getIdentifier(0), null), "bindNull(identifier, null) should fail");
-
-          return close(connection);
-        })
-        .as(StepVerifier::create)
-        .verifyComplete();
-  }
-
   @Ignore
   @Override
   @Test
