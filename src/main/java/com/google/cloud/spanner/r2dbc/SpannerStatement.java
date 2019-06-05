@@ -149,8 +149,8 @@ public class SpannerStatement implements Statement {
     PartialResultRowExtractor partialResultRowExtractor = new PartialResultRowExtractor();
     StatementType statementType = StatementParser.getStatementType(this.sql);
 
-    Flux<PartialResultSet> resultSetFlux
-        = this.client.executeStreamingSql(
+    Flux<PartialResultSet> resultSetFlux =
+        this.client.executeStreamingSql(
             this.session, this.transaction, this.sql, params, this.types);
 
     if (statementType == StatementType.SELECT) {
