@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.PartialResultSet;
@@ -35,6 +36,7 @@ import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Statement;
+import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -84,20 +86,22 @@ public class SpannerConnectionTest {
         .addValues(Value.newBuilder().setStringValue("Odyssey"))
         .build();
 
-    when(this.mockClient.executeStreamingSql(TEST_SESSION, null, sql))
+    when(this.mockClient.executeStreamingSql(TEST_SESSION, null, sql,
+        Struct.newBuilder().build(), Collections.EMPTY_MAP))
         .thenReturn(Flux.just(partialResultSet));
 
     Statement statement = connection.createStatement(sql);
     assertThat(statement).isInstanceOf(SpannerStatement.class);
 
     StepVerifier.create(
-        ((Mono<SpannerResult>)statement.execute())
-            .flatMapMany(res -> res.map((r, m) -> (String) r.get(0))))
+        ((Flux<SpannerResult>)statement.execute())
+            .flatMap(res -> res.map((r, m) -> (String) r.get(0))))
         .expectNext("Odyssey")
         .expectComplete()
         .verify();
 
-    verify(this.mockClient).executeStreamingSql(TEST_SESSION, null, sql);
+    verify(this.mockClient).executeStreamingSql(TEST_SESSION, null, sql,
+        Struct.newBuilder().build(), Collections.EMPTY_MAP);
   }
 
   @Test

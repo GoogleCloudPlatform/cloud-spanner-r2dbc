@@ -125,7 +125,7 @@ public class SpannerConnectionFactoryProviderTest {
         = (SpannerConnectionFactory)this.spannerConnectionFactoryProvider.create(options);
 
     TestPublisher<PartialResultSet> partialResultSetPublisher = TestPublisher.create();
-    when(this.mockClient.executeStreamingSql(any(), any(), any()))
+    when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any()))
         .thenReturn(partialResultSetPublisher.flux());
     Session session = Session.newBuilder().setName("session-name").build();
     when(this.mockClient.createSession(any()))
