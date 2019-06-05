@@ -23,6 +23,8 @@ import com.google.cloud.spanner.r2dbc.codecs.Codec;
 import com.google.cloud.spanner.r2dbc.codecs.Codecs;
 import com.google.cloud.spanner.r2dbc.codecs.DefaultCodecs;
 import com.google.cloud.spanner.r2dbc.result.PartialResultRowExtractor;
+import com.google.cloud.spanner.r2dbc.statement.StatementParser;
+import com.google.cloud.spanner.r2dbc.statement.StatementType;
 import com.google.protobuf.Struct;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
@@ -136,48 +138,31 @@ public class SpannerStatement implements Statement {
     }
     Flux<Struct> structFlux = Flux.fromIterable(this.bindingsStucts);
 
-    if (isSelectQuery()) {
+    if (StatementParser.getStatementType(this.sql) == StatementType.SELECT) {
       return structFlux.flatMap(this::runSingleStatement);
     }
     // DML statements have to be executed sequentially because they need seqNo to be in order
     return structFlux.concatMapDelayError(this::runSingleStatement);
   }
 
-  private boolean isSelectQuery() {
-    return this.sql.trim().toLowerCase().startsWith("select");
-  }
-
   private Mono<? extends Result> runSingleStatement(Struct params) {
     PartialResultRowExtractor partialResultRowExtractor = new PartialResultRowExtractor();
+    StatementType statementType = StatementParser.getStatementType(this.sql);
 
-    return this.client
-        .executeStreamingSql(this.session, this.transaction, this.sql, params, this.types)
-        .switchOnFirst((signal, flux) -> {
-          if (signal.hasError()) {
-            return Mono.error(signal.getThrowable());
-          }
+    Flux<PartialResultSet> resultSetFlux
+        = this.client.executeStreamingSql(
+            this.session, this.transaction, this.sql, params, this.types);
 
-          PartialResultSet firstPartialResultSet = signal.get();
-          if (isDmlQuery(firstPartialResultSet)) {
-            Mono<Integer> rowsChanged =
-                flux.last()
-                    .map(partialResultSet ->
-                        Math.toIntExact(partialResultSet.getStats().getRowCountExact()));
-
-            return Mono.just(new SpannerResult(Flux.empty(), rowsChanged));
-          } else {
-            return Mono.just(new SpannerResult(
-                flux.flatMapIterable(partialResultRowExtractor),
-                Mono.just(0)));
-          }
-        })
-        .next();
-  }
-
-  /**
-   * Returns whether we think the query is a DML query.
-   */
-  private static boolean isDmlQuery(PartialResultSet firstPartialResultSet) {
-    return firstPartialResultSet.getMetadata().getRowType().getFieldsList().isEmpty();
+    if (statementType == StatementType.SELECT) {
+      return Mono.just(new SpannerResult(
+          resultSetFlux.flatMapIterable(partialResultRowExtractor),
+          Mono.just(0)));
+    } else {
+      Mono<Integer> rowsChanged =
+          resultSetFlux.last()
+              .map(partialResultSet ->
+                  Math.toIntExact(partialResultSet.getStats().getRowCountExact()));
+      return Mono.just(new SpannerResult(Flux.empty(), rowsChanged));
+    }
   }
 }
