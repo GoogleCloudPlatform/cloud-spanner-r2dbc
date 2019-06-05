@@ -394,26 +394,23 @@ public class SpannerExample implements Example<String> {
     executeDml(c -> c.createStatement("INSERT INTO test (value) VALUES (100)"));
 
     Mono.from(getConnectionFactory().create())
-        .delayUntil(c -> c.beginTransaction())
-        .flatMapMany(connection -> Mono.empty()
-            .<Object>thenMany(Flux.from(connection.createStatement("SELECT value FROM test")
+        .flatMapMany(connection -> Mono.from(connection.beginTransaction())
+            .<Object>thenMany(Flux.defer(() -> connection.createStatement("SELECT value FROM test")
                 .execute())
                 .flatMap(Example::extractColumns))
 
-            .concatWith(Flux.from(connection.createStatement(
+            // NOTE: this defer is a from() in the original. needs a follow up to resolve
+            .concatWith(Flux.defer(() -> connection.createStatement(
                 String.format("INSERT INTO test (value) VALUES (%s)", getPlaceholder(0)))
                 .bind(getIdentifier(0), 200)
                 .execute())
                 .flatMap(Example::extractRowsUpdated))
-            .concatWith(Flux.from(connection.createStatement("SELECT value FROM test")
+            .concatWith(Flux.defer(() -> connection.createStatement("SELECT value FROM test")
                 .execute())
                 .flatMap(Example::extractColumns))
-
-            .concatWith(t -> connection.commitTransaction())
-            .concatWith(Flux.from(connection.createStatement("SELECT value FROM test")
+            .concatWith(Flux.defer(() -> connection.createStatement("SELECT value FROM test")
                 .execute())
                 .flatMap(Example::extractColumns))
-
             .concatWith(close(connection)))
         .as(StepVerifier::create)
         .expectNext(Collections.singletonList(100)).as("value from select 1")

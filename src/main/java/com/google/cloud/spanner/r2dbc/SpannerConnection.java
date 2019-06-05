@@ -67,7 +67,7 @@ public class SpannerConnection implements Connection {
         return Mono.empty();
       } else {
         return this.client.commitTransaction(this.session, this.transactionContext.getTransaction())
-            //.doOnNext(response -> this.transactionContext = null)
+            .doOnNext(response -> this.transactionContext = null)
             .then();
       }
     });
