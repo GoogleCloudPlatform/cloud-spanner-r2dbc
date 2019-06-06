@@ -136,6 +136,8 @@ public class SpannerIT {
                 + "  CATEGORY INT64 NOT NULL"
                 + ") PRIMARY KEY (UUID)"),
         null).get();
+
+    spanner.close();
   }
 
   @Test

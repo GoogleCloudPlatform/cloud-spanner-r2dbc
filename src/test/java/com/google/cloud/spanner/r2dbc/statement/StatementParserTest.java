@@ -59,4 +59,10 @@ public class StatementParserTest {
     String sql = "int number = 5";
     assertThat(StatementParser.getStatementType(sql)).isEqualTo(StatementType.UNKNOWN);
   }
+
+  @Test
+  public void parseQueryWithOptionsPrefix() {
+    String sql = "@{FORCE_INDEX=index_name} @{JOIN_METHOD=HASH_JOIN} SELECT * FROM blahblah";
+    assertThat(StatementParser.getStatementType(sql)).isEqualTo(StatementType.SELECT);
+  }
 }

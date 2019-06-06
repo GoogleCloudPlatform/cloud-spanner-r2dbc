@@ -24,6 +24,9 @@ import java.util.List;
  */
 public class StatementParser {
 
+  /** Matches on the Spanner SQL hints in the form @{hintName...} */
+  private static final String SQL_OPTIONS_REGEX = "(?m)@\\{.*\\}";
+
   private static final List<String> SELECT_STATEMENTS = Arrays.asList("select");
   private static final List<String> DDL_STATEMENTS = Arrays.asList("create", "drop", "alter");
   private static final List<String> DML_STATEMENTS = Arrays.asList("insert", "update", "delete");
@@ -34,29 +37,24 @@ public class StatementParser {
    * Returns the statement type of a given SQL string.
    */
   public static StatementType getStatementType(String sql) {
-    String processedSql = sql.trim().toLowerCase();
+    String processedSql = processSql(sql);
 
-    if (isSelectQuery(processedSql)) {
+    if (statementStartsWith(processedSql, SELECT_STATEMENTS)) {
       return StatementType.SELECT;
-    } else if (isDdl(processedSql)) {
+    } else if (statementStartsWith(processedSql, DDL_STATEMENTS)) {
       return StatementType.DDL;
-    } else if (isDml(processedSql)) {
+    } else if (statementStartsWith(processedSql, DML_STATEMENTS)) {
       return StatementType.DML;
     } else {
       return StatementType.UNKNOWN;
     }
   }
 
-  private static boolean isSelectQuery(String sql) {
-    return statementStartsWith(sql, SELECT_STATEMENTS);
-  }
-
-  private static boolean isDdl(String sql) {
-    return statementStartsWith(sql, DDL_STATEMENTS);
-  }
-
-  private static boolean isDml(String sql) {
-    return statementStartsWith(sql, DML_STATEMENTS);
+  private static String processSql(String rawSql) {
+    return rawSql
+        .replaceAll(SQL_OPTIONS_REGEX, "")
+        .trim()
+        .toLowerCase();
   }
 
   private static boolean statementStartsWith(String sqlStatement, List<String> prefixes) {
