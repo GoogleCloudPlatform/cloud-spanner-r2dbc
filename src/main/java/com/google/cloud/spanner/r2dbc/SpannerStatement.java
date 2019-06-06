@@ -166,7 +166,7 @@ public class SpannerStatement implements Statement {
       return resultSetFlux
           .last()
           .map(partialResultSet -> Math.toIntExact(partialResultSet.getStats().getRowCountExact()))
-          .transform(rowCount -> Mono.just(new SpannerResult(Flux.empty(), rowCount)));
+          .map(rowCount -> new SpannerResult(Flux.empty(), Mono.just(rowCount)));
     }
   }
 
