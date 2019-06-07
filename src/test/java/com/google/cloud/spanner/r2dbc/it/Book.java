@@ -43,6 +43,18 @@ public class Book {
 
   private final Integer category;
 
+  /**
+   * Constructor.
+   * @param id id
+   * @param title title
+   * @param author author
+   * @param synopsis text
+   * @param editions edition array
+   * @param fiction boolean
+   * @param published local date
+   * @param wordsPerSentence double
+   * @param category integer
+   */
   public Book(String id, String title, String author, String synopsis,
       String[] editions, Boolean fiction, LocalDate published, Double wordsPerSentence,
       Integer category) {
@@ -102,14 +114,14 @@ public class Book {
       return false;
     }
     Book that = (Book) o;
-    return Objects.equals(id, that.id)
-        && Objects.equals(title, that.title)
-        && Objects.equals(author, that.author)
-        && Objects.equals(synopsis, that.synopsis)
-        && Arrays.equals(editions, that.editions)
-        && Objects.equals(fiction, that.fiction)
-        && Objects.equals(published, that.published)
-        && Objects.equals(wordsPerSentence, that.wordsPerSentence)
-        && Objects.equals(category, that.category);
+    return Objects.equals(this.id, that.id)
+        && Objects.equals(this.title, that.title)
+        && Objects.equals(this.author, that.author)
+        && Objects.equals(this.synopsis, that.synopsis)
+        && Arrays.equals(this.editions, that.editions)
+        && Objects.equals(this.fiction, that.fiction)
+        && Objects.equals(this.published, that.published)
+        && Objects.equals(this.wordsPerSentence, that.wordsPerSentence)
+        && Objects.equals(this.category, that.category);
   }
 }

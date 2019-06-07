@@ -38,11 +38,11 @@ public class StatementBindingsTest {
 
     assertThat(statementBindings.getTypes())
         .containsExactly(
-            entry("array", Type.newBuilder().setCode(TypeCode.ARRAY)
-                .setArrayElementType(Type.newBuilder().setCode(TypeCode.STRING).build()).build()),
-            entry("name", Type.newBuilder().setCode(TypeCode.STRING).build()),
-            entry("age", Type.newBuilder().setCode(TypeCode.INT64).build())
-        );
+          entry("array", Type.newBuilder().setCode(TypeCode.ARRAY)
+              .setArrayElementType(Type.newBuilder().setCode(TypeCode.STRING).build()).build()),
+          entry("name", Type.newBuilder().setCode(TypeCode.STRING).build()),
+          entry("age", Type.newBuilder().setCode(TypeCode.INT64).build())
+      );
 
     assertThat(statementBindings.getBindings())
         .containsExactly(

@@ -85,8 +85,7 @@ public interface Codec<T> {
   /**
    * Get the inner element type code if it exists.
    *
-   * @return returns the type code of the elements if this is an array column. {@code null}
-   * otherwise.
+   * @return the type code of the elements if this is an array column. {@code null} otherwise.
    */
   TypeCode getArrayElementTypeCode();
 }

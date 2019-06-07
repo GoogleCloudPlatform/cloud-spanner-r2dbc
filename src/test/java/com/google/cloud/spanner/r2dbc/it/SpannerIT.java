@@ -153,12 +153,13 @@ public class SpannerIT {
     List<Book> books = new ArrayList<>();
 
     for (int i = 0; i < numberOfBooks; i++) {
-      String iString = String.valueOf(i);
-      int copies = maxStringLength / iString.length();
+      String bookString = String.valueOf(i);
+      int copies = maxStringLength / bookString.length();
       String[] editions = new String[copies];
-      Arrays.fill(editions, iString);
+      Arrays.fill(editions, bookString);
       books.add(
-          new Book("id" + i, "title" + i, "author" + i, Strings.repeat(iString, copies), editions,
+          new Book("id" + i, "title" + i, "author" + i,
+              Strings.repeat(bookString, copies), editions,
               i % 3 == 0, LocalDate.now(), i + 0.1, i));
     }
 
