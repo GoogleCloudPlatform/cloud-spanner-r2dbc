@@ -53,6 +53,13 @@ public class SpannerStatementTest {
   private static final Session TEST_SESSION =
       Session.newBuilder().setName("project/session/1234").build();
 
+  private static final SpannerConnectionConfiguration TEST_CONFIG =
+      new SpannerConnectionConfiguration.Builder()
+          .setInstanceName("test-instance")
+          .setProjectId("project")
+          .setDatabaseName("db")
+          .build();
+
   private final Client mockClient = mock(Client.class);
 
   private final Value a1 = Value.newBuilder().setBoolValue(false).build();
@@ -82,8 +89,8 @@ public class SpannerStatementTest {
     when(mockClient.executeStreamingSql(eq(TEST_SESSION), isNull(), eq(sql), any(), any()))
         .thenReturn(Flux.just(partialResultSet));
 
-    SpannerStatement statement
-        = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
+    SpannerStatement statement =
+        new SpannerStatement(mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>) statement.execute();
 
@@ -136,8 +143,8 @@ public class SpannerStatementTest {
         .thenReturn(Flux.just(partialResultSet2));
 
     //execute query
-    SpannerStatement statement
-        = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
+    SpannerStatement statement =
+        new SpannerStatement(mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>)statement
         .bind("id", "b1").add()
@@ -169,8 +176,13 @@ public class SpannerStatementTest {
     when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
 
     Mono<Result> resultMono =
-        Mono.from(new SpannerStatement(
-            this.mockClient, null, null, "SELECT * FROM table").execute());
+        Mono.from(
+            new SpannerStatement(
+                this.mockClient,
+                null,
+                null,
+                "SELECT * FROM table",
+                TEST_CONFIG).execute());
 
     StepVerifier.create(resultMono.flatMap(r -> Mono.from(r.getRowsUpdated())))
         .expectNext(0)
@@ -188,14 +200,17 @@ public class SpannerStatementTest {
     ).setChunkedValue(false)
         .addValues(this.a1).build();
 
-    PartialResultSet p2 = PartialResultSet.newBuilder().setChunkedValue(false)
-        .addValues(this.a2).build();
+    PartialResultSet p2 =
+        PartialResultSet.newBuilder().setChunkedValue(false).addValues(this.a2).build();
 
     Flux<PartialResultSet> inputs = Flux.just(p1, p2);
 
     when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
 
-    StepVerifier.create(Flux.from(new SpannerStatement(this.mockClient, null, null, "").execute())
+    SpannerStatement statement = new SpannerStatement(
+        this.mockClient, null, null, "", TEST_CONFIG);
+
+    StepVerifier.create(Flux.from(statement.execute())
         .flatMap(r -> Mono.from(r.getRowsUpdated())))
         .expectNext(0)
         .verifyComplete();
@@ -211,7 +226,10 @@ public class SpannerStatementTest {
 
     when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
 
-    StepVerifier.create(Flux.from(new SpannerStatement(this.mockClient, null, null, "").execute())
+    SpannerStatement statement =
+        new SpannerStatement(this.mockClient, null, null, "", TEST_CONFIG);
+
+    StepVerifier.create(Flux.from(statement.execute())
         .flatMap(r -> Mono.from(r.getRowsUpdated())))
         .expectNext(555)
         .verifyComplete();
@@ -229,8 +247,8 @@ public class SpannerStatementTest {
         Struct.newBuilder().build(), Collections.EMPTY_MAP))
         .thenReturn(Flux.just(partialResultSet));
 
-    SpannerStatement statement
-        = new SpannerStatement(mockClient, TEST_SESSION, null, sql);
+    SpannerStatement statement =
+        new SpannerStatement(mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>) statement.execute();
 

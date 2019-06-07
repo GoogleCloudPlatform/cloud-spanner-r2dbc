@@ -23,8 +23,10 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.spanner.DatabaseAdminClient;
 import com.google.cloud.spanner.r2dbc.SpannerTransactionContext;
 import com.google.protobuf.ByteString;
+import com.google.spanner.admin.database.v1.DatabaseAdminGrpc;
 import com.google.spanner.v1.CreateSessionRequest;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;

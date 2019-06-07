@@ -33,7 +33,7 @@ public class SpannerConnectionConfiguration {
 
   private final GoogleCredentials credentials;
 
-  private Integer partialResultSetFetchSize;
+  private int partialResultSetFetchSize;
 
   /**
    * Basic property initializing constructor.
@@ -70,7 +70,7 @@ public class SpannerConnectionConfiguration {
     return this.credentials;
   }
 
-  public Integer getPartialResultSetFetchSize() {
+  public int getPartialResultSetFetchSize() {
     return this.partialResultSetFetchSize;
   }
 
@@ -84,7 +84,7 @@ public class SpannerConnectionConfiguration {
 
     private GoogleCredentials credentials;
 
-    private Integer partialResultSetFetchSize;
+    private int partialResultSetFetchSize = 1;
 
     public Builder setProjectId(String projectId) {
       this.projectId = projectId;
@@ -106,7 +106,7 @@ public class SpannerConnectionConfiguration {
       return this;
     }
 
-    public Builder setPartialResultSetFetchSize(Integer fetchSize) {
+    public Builder setPartialResultSetFetchSize(int fetchSize) {
       this.partialResultSetFetchSize = fetchSize;
       return this;
     }
