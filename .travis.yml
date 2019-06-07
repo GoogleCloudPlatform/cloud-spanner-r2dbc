@@ -19,7 +19,7 @@ install:
 
 script:
   - if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
-      ./mvnw verify -B -V;
+      ./mvnw verify -B -V -q;
     else
       ./mvnw verify -B -V -DskipITs;
     fi;
