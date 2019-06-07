@@ -187,6 +187,7 @@ public class SpannerIT {
                 ).flatMap(r -> Mono.from(r.getRowsUpdated()))
         )
         .delayUntil(c -> c.commitTransaction())
+        .delayUntil(c -> c.close())
         .block();
 
     List<Book> result = Mono.from(this.connectionFactory.create())
