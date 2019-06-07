@@ -22,6 +22,7 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.DatabaseAdminClient;
@@ -108,6 +109,12 @@ public class SpannerIT {
    */
   @BeforeClass
   public static void setupSpannerTable() throws InterruptedException, ExecutionException {
+    // prevent printing out the contents of the actual Book rows being inserted
+    ch.qos.logback.classic.Logger root =
+        (ch.qos.logback.classic.Logger)
+            LoggerFactory.getLogger("io.grpc.netty.shaded.io.grpc.netty.NettyClientHandler");
+    root.setLevel(Level.INFO);
+
     SpannerOptions options = SpannerOptions.newBuilder().build();
     Spanner spanner = options.getService();
 
