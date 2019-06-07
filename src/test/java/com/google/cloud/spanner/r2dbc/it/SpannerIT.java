@@ -32,6 +32,7 @@ import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
+import com.google.common.base.Strings;
 import com.google.spanner.v1.DatabaseName;
 import com.google.spanner.v1.ListSessionsRequest;
 import com.google.spanner.v1.ListSessionsResponse;
@@ -47,6 +48,8 @@ import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -130,12 +133,81 @@ public class SpannerIT {
                 + "  UUID STRING(36) NOT NULL,"
                 + "  TITLE STRING(256) NOT NULL,"
                 + "  AUTHOR STRING(256) NOT NULL,"
+                + "  SYNOPSIS STRING(MAX),"
+                + "  EDITIONS ARRAY<STRING(MAX)>,"
                 + "  FICTION BOOL NOT NULL,"
                 + "  PUBLISHED DATE NOT NULL,"
                 + "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,"
                 + "  CATEGORY INT64 NOT NULL"
                 + ") PRIMARY KEY (UUID)"),
         null).get();
+  }
+
+  @Test
+  public void testLargeReadWrite() {
+    // string size must be below 10 MB
+    int maxStringLength = 1000000;
+
+    int numberOfBooks = 20;
+
+    List<Book> books = new ArrayList<>();
+
+    for (int i = 0; i < numberOfBooks; i++) {
+      String iString = String.valueOf(i);
+      int copies = maxStringLength / iString.length();
+      String[] editions = new String[copies];
+      Arrays.fill(editions, iString);
+      books.add(
+          new Book("id" + i, "title" + i, "author" + i, Strings.repeat(iString, copies), editions,
+              i % 3 == 0, LocalDate.now(), i + 0.1, i));
+    }
+
+    Mono.from(this.connectionFactory.create())
+        .delayUntil(c -> c.beginTransaction())
+        .delayUntil(c ->
+            Flux.fromIterable(books)
+                .concatMapDelayError(book ->
+                    Flux.from(c.createStatement(
+                        "INSERT BOOKS (UUID, TITLE, AUTHOR, SYNOPSIS, EDITIONS, "
+                            + "CATEGORY, FICTION, PUBLISHED, WORDS_PER_SENTENCE)"
+                            + " VALUES (@uuid, @title, @author, @synopsis, @editions, "
+                            + "@category, @fiction, @published, @wps);")
+                        .bind("uuid", book.getId())
+                        .bind("author", book.getAuthor())
+                        .bind("category", book.getCategory())
+                        .bind("synopsis", book.getSynopsis())
+                        .bind("editions", book.getEditions())
+                        .bind("title", book.getTitle())
+                        .bind("fiction", book.getFiction())
+                        .bind("published", book.getPublished())
+                        .bind("wps", book.getWordsPerSentence())
+                        .execute())
+                        .doOnNext(r -> logger.info("Inserting book: " + book.getId()))
+                ).flatMap(r -> Mono.from(r.getRowsUpdated()))
+        )
+        .delayUntil(c -> c.commitTransaction())
+        .block();
+
+    List<Book> result = Mono.from(this.connectionFactory.create())
+        .map(connection -> connection
+            .createStatement("SELECT * FROM books ORDER BY uuid")
+        )
+        .flatMapMany(statement -> statement.execute())
+        .flatMap(spannerResult -> spannerResult.map((r, meta) -> new Book(
+            r.get("UUID", String.class),
+            r.get("TITLE", String.class),
+            r.get("AUTHOR", String.class),
+            r.get("SYNOPSIS", String.class),
+            r.get("EDITIONS", String[].class),
+            r.get("FICTION", Boolean.class),
+            r.get("PUBLISHED", LocalDate.class),
+            r.get("WORDS_PER_SENTENCE", Double.class),
+            r.get("CATEGORY", Integer.class)
+        )))
+        .collectList()
+        .block();
+
+    assertThat(books).isEqualTo(result);
   }
 
   @Test
