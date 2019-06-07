@@ -191,10 +191,10 @@ public class SpannerIT {
 
     List<Book> result = Mono.from(this.connectionFactory.create())
         .map(connection -> connection
-            .createStatement("SELECT * FROM books ORDER BY uuid")
+            .createStatement("SELECT * FROM books ORDER BY category")
         )
         .flatMapMany(statement -> statement.execute())
-        .flatMap(spannerResult -> spannerResult.map((r, meta) -> new Book(
+        .flatMapSequential(spannerResult -> spannerResult.map((r, meta) -> new Book(
             r.get("UUID", String.class),
             r.get("TITLE", String.class),
             r.get("AUTHOR", String.class),
@@ -208,7 +208,7 @@ public class SpannerIT {
         .collectList()
         .block();
 
-    assertThat(books).isEqualTo(result);
+    assertThat(result).isEqualTo(books);
   }
 
   @Test
