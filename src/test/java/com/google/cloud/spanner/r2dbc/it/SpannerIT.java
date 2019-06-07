@@ -56,6 +56,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -154,9 +155,14 @@ public class SpannerIT {
     assertThat(activeSessions).doesNotContain(activeSessionName);
   }
 
+  @BeforeEach
+  public void cleanTable(){
+    executeDmlQuery("DELETE FROM books WHERE true");
+  }
+
   @Test
   public void testQuerying() {
-    executeDmlQuery("DELETE FROM books WHERE true");
+    cleanTable();
 
     long count = executeReadQuery(
         "Select count(1) as count FROM books",
