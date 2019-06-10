@@ -28,6 +28,7 @@ import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
+import java.util.Collections;
 import javax.annotation.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -108,9 +109,16 @@ public class SpannerStatement implements Statement {
 
   @Override
   public Publisher<? extends Result> execute() {
-    Flux<Struct> structFlux = Flux.fromIterable(this.statementBindings.getBindings());
     StatementType statementType = StatementParser.getStatementType(this.sql);
+    if (statementType == StatementType.DDL) {
+      return this.client
+          .executeDdl(
+              this.config.getFullyQualifiedDatabaseName(),
+              Collections.singletonList(this.sql))
+          .map(operation -> new SpannerResult(Flux.empty(), Mono.just(0)));
+    }
 
+    Flux<Struct> structFlux = Flux.fromIterable(this.statementBindings.getBindings());
     if (statementType == StatementType.SELECT) {
       return structFlux.flatMap(struct -> runSingleStatement(struct, statementType));
     }
@@ -118,7 +126,7 @@ public class SpannerStatement implements Statement {
     return structFlux.concatMapDelayError(struct -> runSingleStatement(struct, statementType));
   }
 
-  private Mono<? extends Result> runSingleStatement(Struct params, StatementType statementType) {
+  private Mono<SpannerResult> runSingleStatement(Struct params, StatementType statementType) {
     PartialResultRowExtractor partialResultRowExtractor = new PartialResultRowExtractor();
 
     Flux<PartialResultSet> resultSetFlux =

@@ -18,6 +18,8 @@ package com.google.cloud.spanner.r2dbc.it;
 
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
+import static com.google.cloud.spanner.r2dbc.it.SpannerQueryUtil.executeDmlQuery;
+import static com.google.cloud.spanner.r2dbc.it.SpannerQueryUtil.executeReadQuery;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,14 +45,11 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
-import io.r2dbc.spi.Row;
-import io.r2dbc.spi.RowMetadata;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
@@ -156,9 +155,10 @@ public class SpannerIT {
 
   @Test
   public void testQuerying() {
-    executeDmlQuery("DELETE FROM books WHERE true");
+    executeDmlQuery(connectionFactory, "DELETE FROM books WHERE true");
 
     long count = executeReadQuery(
+        connectionFactory,
         "Select count(1) as count FROM books",
         (row, rowMetadata) -> row.get("count", Long.class)).get(0);
     assertThat(count).isEqualTo(0);
@@ -188,6 +188,7 @@ public class SpannerIT {
         .block();
 
     List<String> authorStrings = executeReadQuery(
+        connectionFactory,
         "SELECT title, author FROM books",
         (r, meta) -> r.get(0, String.class) + " by " + r.get(1, String.class));
 
@@ -228,7 +229,7 @@ public class SpannerIT {
         "JavaScript: The Good Parts by Douglas Crockford",
         "Effective Java by Joshua Bloch");
 
-    int rowsUpdated = executeDmlQuery("DELETE FROM books WHERE true");
+    int rowsUpdated = executeDmlQuery(connectionFactory, "DELETE FROM books WHERE true");
     assertThat(rowsUpdated).isEqualTo(2);
   }
 
@@ -253,40 +254,11 @@ public class SpannerIT {
   @Test
   public void testEmptySelect() {
     List<String> results = executeReadQuery(
+        connectionFactory,
         "SELECT title, author FROM books where author = 'Nobody P. Smith'",
         (r, meta) -> r.get(0, String.class));
 
     assertThat(results).isEmpty();
-  }
-
-  /**
-   * Executes a DML query and returns the rows updated.
-   */
-  private int executeDmlQuery(String sql) {
-    Connection connection = Mono.from(connectionFactory.create()).block();
-
-    Mono.from(connection.beginTransaction()).block();
-    int rowsUpdated = Mono.from(connection.createStatement(sql).execute())
-        .flatMap(result -> Mono.from(result.getRowsUpdated()))
-        .block();
-    Mono.from(connection.commitTransaction()).block();
-
-    return rowsUpdated;
-  }
-
-  /**
-   * Executes a read query and runs the provided {@code mappingFunction} on the elements returned.
-   */
-  private <T> List<T> executeReadQuery(
-      String sql,
-      BiFunction<Row, RowMetadata, T> mappingFunction) {
-
-    return Mono.from(connectionFactory.create())
-        .map(connection -> connection.createStatement(sql))
-        .flatMapMany(statement -> statement.execute())
-        .flatMap(spannerResult -> spannerResult.map(mappingFunction))
-        .collectList()
-        .block();
   }
 
   private List<String> getSessionNames() {

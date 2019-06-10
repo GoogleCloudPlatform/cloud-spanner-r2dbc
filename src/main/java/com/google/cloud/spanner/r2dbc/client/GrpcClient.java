@@ -49,6 +49,7 @@ import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
+import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -218,22 +219,29 @@ public class GrpcClient implements Client {
             .addAllStatements(ddlStatements)
             .build();
 
-    Mono<Operation> ddlOperation =
+    Mono<Operation> ddlResponse =
         ObservableReactiveUtil.unaryCall(
             obs -> this.databaseAdmin.updateDatabaseDdl(ddlRequest, obs));
 
-    return ddlOperation.flatMap(operation -> {
+    return ddlResponse.flatMap(ddlOperation -> {
       GetOperationRequest getRequest =
           GetOperationRequest.newBuilder()
-              .setName(operation.getName())
+              .setName(ddlOperation.getName())
               .build();
 
       return ObservableReactiveUtil
           .<Operation>unaryCall(obs -> this.operations.getOperation(getRequest, obs))
-          .repeatWhen(completed -> Mono.delay(DDL_POLL_INTERVAL))
+          .repeatWhen(completed -> completed.delayElements(DDL_POLL_INTERVAL))
           .takeUntil(Operation::getDone)
           .last()
-          .timeout(DDL_OPERATION_TIMEOUT);
+          .timeout(DDL_OPERATION_TIMEOUT)
+          .handle((operation, sink) -> {
+            if (operation.hasError()) {
+              sink.error(new R2dbcNonTransientResourceException(operation.getError().getMessage()));
+            } else {
+              sink.next(operation);
+            }
+          });
     });
   }
 

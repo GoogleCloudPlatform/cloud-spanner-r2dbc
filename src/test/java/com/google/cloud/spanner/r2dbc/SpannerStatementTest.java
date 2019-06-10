@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.longrunning.Operation;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.PartialResultSet;
@@ -40,6 +41,7 @@ import io.r2dbc.spi.Result;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -60,8 +62,6 @@ public class SpannerStatementTest {
           .setDatabaseName("db")
           .build();
 
-  private final Client mockClient = mock(Client.class);
-
   private final Value a1 = Value.newBuilder().setBoolValue(false).build();
   private final Value a2 = Value.newBuilder().setStringValue("abc").build();
 
@@ -74,10 +74,15 @@ public class SpannerStatementTest {
           .build()
   ).build();
 
+  private Client mockClient;
+
+  @Before
+  public void setupMocks() {
+    this.mockClient = mock(Client.class);
+  }
+
   @Test
   public void executeDummyImplementation() {
-
-    Client mockClient = mock(Client.class);
     String sql = "select book from library";
     PartialResultSet partialResultSet = PartialResultSet.newBuilder()
         .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
@@ -86,11 +91,11 @@ public class SpannerStatementTest {
                     .setType(Type.newBuilder().setCode(TypeCode.STRING)))))
         .addValues(Value.newBuilder().setStringValue("Odyssey"))
         .build();
-    when(mockClient.executeStreamingSql(eq(TEST_SESSION), isNull(), eq(sql), any(), any()))
+    when(this.mockClient.executeStreamingSql(eq(TEST_SESSION), isNull(), eq(sql), any(), any()))
         .thenReturn(Flux.just(partialResultSet));
 
     SpannerStatement statement =
-        new SpannerStatement(mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
+        new SpannerStatement(this.mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>) statement.execute();
 
@@ -101,13 +106,11 @@ public class SpannerStatementTest {
             .expectNext("Odyssey")
             .verifyComplete();
 
-    verify(mockClient).executeStreamingSql(eq(TEST_SESSION), isNull(), eq(sql), any(), any());
+    verify(this.mockClient).executeStreamingSql(eq(TEST_SESSION), isNull(), eq(sql), any(), any());
   }
 
   @Test
   public void executeDummyImplementationBind() {
-
-    Client mockClient = mock(Client.class);
     //set up mock results
     PartialResultSet partialResultSet1 = PartialResultSet.newBuilder()
         .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
@@ -132,19 +135,19 @@ public class SpannerStatementTest {
     types.put("id", Type.newBuilder().setCode(TypeCode.STRING).build());
     Struct idBinding1 = Struct.newBuilder()
         .putFields("id", Value.newBuilder().setStringValue("b1").build()).build();
-    when(mockClient.executeStreamingSql(TEST_SESSION, null, sql,
+    when(this.mockClient.executeStreamingSql(TEST_SESSION, null, sql,
         idBinding1, types))
         .thenReturn(Flux.just(partialResultSet1));
 
     Struct idBinding2 = Struct.newBuilder().putFields("id", Value.newBuilder()
         .setStringValue("b2").build()).build();
-    when(mockClient.executeStreamingSql(TEST_SESSION, null, sql,
+    when(this.mockClient.executeStreamingSql(TEST_SESSION, null, sql,
         idBinding2, types))
         .thenReturn(Flux.just(partialResultSet2));
 
     //execute query
     SpannerStatement statement =
-        new SpannerStatement(mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
+        new SpannerStatement(this.mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>)statement
         .bind("id", "b1").add()
@@ -157,9 +160,9 @@ public class SpannerStatementTest {
         .expectNext("Fables")
         .verifyComplete();
 
-    verify(mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
+    verify(this.mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
         idBinding1, types);
-    verify(mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
+    verify(this.mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
         idBinding2, types);
   }
 
@@ -236,19 +239,37 @@ public class SpannerStatementTest {
   }
 
   @Test
+  public void runDdlQueryTest() {
+    when(this.mockClient.executeDdl(any(), any()))
+        .thenReturn(Mono.just(Operation.getDefaultInstance()));
+
+    String sql = "drop TABLE BOOKS";
+    SpannerStatement statement =
+        new SpannerStatement(this.mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
+
+    StepVerifier.create(Flux.from(statement.execute()).flatMap(result -> result.getRowsUpdated()))
+        .expectNext(0)
+        .verifyComplete();
+
+    verify(this.mockClient, times(1))
+        .executeDdl(
+            "projects/project/instances/test-instance/databases/db",
+            Collections.singletonList(sql));
+  }
+
+  @Test
   public void noopMapOnUpdateQueriesWhenNoRowsAffected() {
-    Client mockClient = mock(Client.class);
     String sql = "delete from Books where true";
     PartialResultSet partialResultSet = PartialResultSet.newBuilder()
         .setMetadata(ResultSetMetadata.getDefaultInstance())
         .setStats(ResultSetStats.getDefaultInstance())
         .build();
-    when(mockClient.executeStreamingSql(TEST_SESSION, null, sql,
+    when(this.mockClient.executeStreamingSql(TEST_SESSION, null, sql,
         Struct.newBuilder().build(), Collections.EMPTY_MAP))
         .thenReturn(Flux.just(partialResultSet));
 
     SpannerStatement statement =
-        new SpannerStatement(mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
+        new SpannerStatement(this.mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>) statement.execute();
 
@@ -262,7 +283,7 @@ public class SpannerStatementTest {
         .expectNext(0)
         .verifyComplete();
 
-    verify(mockClient, times(2)).executeStreamingSql(TEST_SESSION, null, sql,
+    verify(this.mockClient, times(2)).executeStreamingSql(TEST_SESSION, null, sql,
         Struct.newBuilder().build(), Collections.EMPTY_MAP);
   }
 }
