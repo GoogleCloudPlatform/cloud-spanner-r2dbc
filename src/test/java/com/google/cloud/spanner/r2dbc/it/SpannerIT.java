@@ -56,6 +56,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -143,7 +144,7 @@ public class SpannerIT {
     assertThat(this.connectionFactory).isInstanceOf(SpannerConnectionFactory.class);
 
     Mono<Connection> connection = (Mono<Connection>) this.connectionFactory.create();
-    SpannerConnection spannerConnection = (SpannerConnection)connection.block();
+    SpannerConnection spannerConnection = (SpannerConnection) connection.block();
     String activeSessionName = spannerConnection.getSession().getName();
 
     List<String> activeSessions = getSessionNames();
@@ -155,9 +156,14 @@ public class SpannerIT {
     assertThat(activeSessions).doesNotContain(activeSessionName);
   }
 
+  @BeforeEach
+  public void cleanTable() {
+    executeDmlQuery("DELETE FROM books WHERE true");
+  }
+
   @Test
   public void testQuerying() {
-    executeDmlQuery("DELETE FROM books WHERE true");
+    cleanTable();
 
     long count = executeReadQuery(
         "Select count(1) as count FROM books",
@@ -189,7 +195,7 @@ public class SpannerIT {
                     .bind("published", LocalDate.of(2018, 1, 6))
                     .bind("wps", 15.1)
                     .execute())
-                    .flatMap(r -> Mono.from(r.getRowsUpdated())))
+                    .flatMapSequential(r -> Mono.from(r.getRowsUpdated())))
                     .expectNext(1).expectNext(1).verifyComplete())
         )
         .delayUntil(c -> c.commitTransaction())
