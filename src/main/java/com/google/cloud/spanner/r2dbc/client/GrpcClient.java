@@ -24,8 +24,6 @@ import com.google.longrunning.GetOperationRequest;
 import com.google.longrunning.Operation;
 import com.google.longrunning.OperationsGrpc;
 import com.google.longrunning.OperationsGrpc.OperationsStub;
-import com.google.longrunning.WaitOperationRequest;
-import com.google.protobuf.Duration;
 import com.google.protobuf.Empty;
 import com.google.protobuf.Struct;
 import com.google.spanner.admin.database.v1.DatabaseAdminGrpc;
@@ -51,6 +49,7 @@ import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -61,6 +60,10 @@ import reactor.core.publisher.Mono;
  * gRPC-based {@link Client} implementation.
  */
 public class GrpcClient implements Client {
+
+  private static final Duration DDL_POLL_INTERVAL = Duration.ofSeconds(5);
+
+  private static final Duration DDL_OPERATION_TIMEOUT = Duration.ofSeconds(300);
 
   public static final String HOST = "spanner.googleapis.com";
 
@@ -223,11 +226,14 @@ public class GrpcClient implements Client {
       GetOperationRequest getRequest =
           GetOperationRequest.newBuilder()
               .setName(operation.getName())
-              .build()
+              .build();
 
       return ObservableReactiveUtil
-          .unaryCall(obs -> this.operations.getOperation(getRequest, obs))
-          .repeatWhen(completed -> )
+          .<Operation>unaryCall(obs -> this.operations.getOperation(getRequest, obs))
+          .repeatWhen(completed -> Mono.delay(DDL_POLL_INTERVAL))
+          .takeUntil(Operation::getDone)
+          .last()
+          .timeout(DDL_OPERATION_TIMEOUT);
     });
   }
 

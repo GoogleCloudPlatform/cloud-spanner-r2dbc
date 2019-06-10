@@ -24,12 +24,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
+import com.google.cloud.spanner.DatabaseAdminClient;
+import com.google.cloud.spanner.DatabaseId;
+import com.google.cloud.spanner.Spanner;
+import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
-import com.google.longrunning.Operation;
-import com.google.spanner.admin.database.v1.UpdateDatabaseDdlRequest;
 import com.google.spanner.v1.DatabaseName;
 import com.google.spanner.v1.ListSessionsRequest;
 import com.google.spanner.v1.ListSessionsResponse;
@@ -45,14 +47,12 @@ import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -79,52 +79,63 @@ public class SpannerIT {
           .option(DATABASE, TEST_DATABASE)
           .build());
 
+  private SpannerStub spanner;
+
+  private GrpcClient grpcClient;
+
   private static final Logger logger = LoggerFactory.getLogger(SpannerIT.class);
 
-  private static GrpcClient grpcClient;
+  /**
+   * Setup the Spanner stub for testing.
+   */
+  @Before
+  public void setupStubs() throws IOException {
+    this.grpcClient = new GrpcClient(GoogleCredentials.getApplicationDefault());
+    this.spanner = this.grpcClient.getSpanner();
+  }
 
-  private static SpannerStub spanner;
-
+  @After
+  public void shutdown() {
+    this.grpcClient.close().block();
+  }
 
   /**
    * Setup the Spanner table for testing.
    */
   @BeforeClass
-  public static void setupSpannerTables()
-      throws InterruptedException, ExecutionException, IOException {
-    grpcClient = new GrpcClient(GoogleCredentials.getApplicationDefault());
-    spanner = grpcClient.getSpanner();
+  public static void setupSpannerTable() throws InterruptedException, ExecutionException {
+    SpannerOptions options = SpannerOptions.newBuilder().build();
+    Spanner spanner = options.getService();
 
-    String databaseId =
-        String.format(
-            "projects/%s/instances/%s/databases/%s",
-            ServiceOptions.getDefaultProjectId(),
-            TEST_INSTANCE,
-            TEST_DATABASE);
+    DatabaseId id = DatabaseId.of(options.getProjectId(), TEST_INSTANCE, TEST_DATABASE);
 
+    DatabaseAdminClient dbAdminClient = spanner.getDatabaseAdminClient();
 
-    ArrayList<String> ddlStatements = new ArrayList<>();
-    ddlStatements.add("DROP TABLE BOOKS");
-    ddlStatements.add(
-        "CREATE TABLE BOOKS ("
-            + "  UUID STRING(36) NOT NULL,"
-            + "  TITLE STRING(256) NOT NULL,"
-            + "  AUTHOR STRING(256) NOT NULL,"
-            + "  FICTION BOOL NOT NULL,"
-            + "  PUBLISHED DATE NOT NULL,"
-            + "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,"
-            + "  CATEGORY INT64 NOT NULL"
-            + ") PRIMARY KEY (UUID)");
+    try {
+      dbAdminClient.updateDatabaseDdl(
+          id.getInstanceId().getInstance(),
+          id.getDatabase(),
+          Collections.singletonList("DROP TABLE BOOKS"),
+          null).get();
+    } catch (Exception e) {
+      logger.info("The BOOKS table doesn't exist", e);
+    }
 
-    Operation op = grpcClient.executeDdl(databaseId, ddlStatements).block();
-    System.out.println(op);
+    dbAdminClient.updateDatabaseDdl(
+        id.getInstanceId().getInstance(),
+        id.getDatabase(),
+        Collections.singletonList(
+            "CREATE TABLE BOOKS ("
+                + "  UUID STRING(36) NOT NULL,"
+                + "  TITLE STRING(256) NOT NULL,"
+                + "  AUTHOR STRING(256) NOT NULL,"
+                + "  FICTION BOOL NOT NULL,"
+                + "  PUBLISHED DATE NOT NULL,"
+                + "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,"
+                + "  CATEGORY INT64 NOT NULL"
+                + ") PRIMARY KEY (UUID)"),
+        null).get();
   }
-
-  @AfterClass
-  public static void shutdown() {
-    grpcClient.close().block();
-  }
-
 
   @Test
   public void testSessionManagement() {
@@ -289,7 +300,7 @@ public class SpannerIT {
 
     ListSessionsResponse listSessionsResponse =
         ObservableReactiveUtil.<ListSessionsResponse>unaryCall(
-            obs -> spanner.listSessions(listSessionsRequest, obs))
+            obs -> this.spanner.listSessions(listSessionsRequest, obs))
             .block();
 
     return listSessionsResponse.getSessionsList()
