@@ -163,7 +163,7 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Flux<ExecuteBatchDmlResponse> executeBatchDml(Session session,
+  public Mono<ExecuteBatchDmlResponse> executeBatchDml(Session session,
       @Nullable SpannerTransactionContext transactionContext, String sql,
       List<Struct> params, Map<String, Type> types) {
 
@@ -184,7 +184,7 @@ public class GrpcClient implements Client {
     }
 
     return ObservableReactiveUtil
-        .streamingCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
+        .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
   }
 
   @Override

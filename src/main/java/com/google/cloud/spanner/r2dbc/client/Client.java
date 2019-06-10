@@ -88,7 +88,7 @@ public interface Client {
   /**
    * Execute DML batch.
    */
-  Flux<ExecuteBatchDmlResponse> executeBatchDml(Session session,
+  Mono<ExecuteBatchDmlResponse> executeBatchDml(Session session,
       @Nullable SpannerTransactionContext transactionContext, String sql,
       List<Struct> params, Map<String, Type> types);
 

@@ -258,8 +258,8 @@ public class SpannerIT {
         "JavaScript: The Good Parts by Douglas Crockford",
         "Effective Java by Joshua Bloch");
 
-    List<Integer> rowsUpdated = executeDmlQuery("DELETE FROM books WHERE true");
-    assertThat(rowsUpdated).containsExactly(2);
+    int rowsUpdated = executeDmlQuery("DELETE FROM books WHERE true");
+    assertThat(rowsUpdated).isEqualTo(2);
   }
 
   @Test
@@ -292,17 +292,17 @@ public class SpannerIT {
   /**
    * Executes a DML query and returns the rows updated.
    */
-  private List<Integer> executeDmlQuery(String sql) {
+  private int executeDmlQuery(String sql) {
     Connection connection = Mono.from(connectionFactory.create()).block();
 
     Mono.from(connection.beginTransaction()).block();
-    List<Integer> rowsUpdated = Flux.from(connection.createStatement(sql).execute())
+    List<Integer> rowsUpdatedPerStatement = Flux.from(connection.createStatement(sql).execute())
         .flatMap(result -> Mono.from(result.getRowsUpdated()))
         .collectList()
         .block();
     Mono.from(connection.commitTransaction()).block();
 
-    return rowsUpdated;
+    return rowsUpdatedPerStatement.get(0);
   }
 
   /**
