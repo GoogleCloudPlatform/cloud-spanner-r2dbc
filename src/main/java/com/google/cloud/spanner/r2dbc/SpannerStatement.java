@@ -25,6 +25,7 @@ import com.google.cloud.spanner.r2dbc.statement.StatementParser;
 import com.google.cloud.spanner.r2dbc.statement.StatementType;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import com.google.protobuf.Struct;
+import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Type;
@@ -66,6 +67,8 @@ public class SpannerStatement implements Statement {
 
   private Map<String, Codec> resolvedCodecs = new HashMap<>();
 
+  private StatementType statementType;
+
   /**
    * Creates a Spanner statement for a given SQL statement.
    *
@@ -86,6 +89,7 @@ public class SpannerStatement implements Statement {
     this.session = session;
     this.transaction = transaction;
     this.sql = Assert.requireNonNull(sql, "SQL string can not be null");
+    this.statementType = StatementParser.getStatementType(this.sql);
   }
 
   @Override
@@ -154,23 +158,26 @@ public class SpannerStatement implements Statement {
     }
 
     Flux<Struct> structFlux = Flux.fromIterable(this.bindingsStucts);
-    StatementType statementType = StatementParser.getStatementType(this.sql);
 
-    if (statementType == StatementType.SELECT) {
-      return structFlux.flatMap(struct -> runSingleStatement(struct, statementType));
+    if (this.statementType == StatementType.DML) {
+      return this.client
+          .executeBatchDml(this.session, this.transaction, this.sql, this.bindingsStucts,
+              this.types)
+          .flatMapIterable(ExecuteBatchDmlResponse::getResultSetsList)
+          .map(resultSet -> new SpannerResult(Flux.empty(),
+              Mono.just(Math.toIntExact(resultSet.getStats().getRowCountExact()))));
     }
-    // DML statements have to be executed sequentially because they need seqNo to be in order
-    return structFlux.concatMapDelayError(struct -> runSingleStatement(struct, statementType));
+    return structFlux.flatMap(this::runSingleStatement);
   }
 
-  private Mono<? extends Result> runSingleStatement(Struct params, StatementType statementType) {
+  private Mono<? extends Result> runSingleStatement(Struct params) {
     PartialResultRowExtractor partialResultRowExtractor = new PartialResultRowExtractor();
 
     Flux<PartialResultSet> resultSetFlux =
         this.client.executeStreamingSql(
             this.session, this.transaction, this.sql, params, this.types);
 
-    if (statementType == StatementType.SELECT) {
+    if (this.statementType == StatementType.SELECT) {
       return resultSetFlux
           .flatMapIterable(partialResultRowExtractor, getPartialResultSetFetchSize())
           .transform(result -> Mono.just(new SpannerResult(result, Mono.just(0))))
