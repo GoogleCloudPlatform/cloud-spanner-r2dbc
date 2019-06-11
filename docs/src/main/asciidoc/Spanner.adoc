@@ -1,4 +1,4 @@
-= Hibernate for Google Cloud Spanner
+= Reactive R2DBC Driver for Google Cloud Spanner
 
 This is a https://github.com/r2dbc/r2dbc-spi[R2DBC driver] for https://cloud.google.com/spanner/docs/[Cloud Spanner].
 
