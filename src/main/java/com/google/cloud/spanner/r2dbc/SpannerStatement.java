@@ -133,7 +133,13 @@ public class SpannerStatement implements Statement {
     } else {
       return resultSetFlux
           .last()
-          .map(partialResultSet -> Math.toIntExact(partialResultSet.getStats().getRowCountExact()))
+          .map(partialResultSet -> {
+            long rowsUpdated =
+                Math.max(
+                    partialResultSet.getStats().getRowCountExact(),
+                    partialResultSet.getStats().getRowCountLowerBound());
+            return Math.toIntExact(rowsUpdated);
+          })
           .map(rowCount -> new SpannerResult(Flux.empty(), Mono.just(rowCount)));
     }
   }

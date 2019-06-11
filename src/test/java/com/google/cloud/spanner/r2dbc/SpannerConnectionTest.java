@@ -33,6 +33,8 @@ import com.google.spanner.v1.Session;
 import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Statement;
@@ -53,6 +55,11 @@ public class SpannerConnectionTest {
   private static final Session TEST_SESSION =
       Session.newBuilder().setName("project/session/1234").build();
 
+  private static final TransactionOptions READ_WRITE_TRANSACTION =
+      TransactionOptions.newBuilder()
+          .setReadWrite(ReadWrite.getDefaultInstance())
+          .build();
+
   private Client mockClient;
 
   /**
@@ -61,7 +68,7 @@ public class SpannerConnectionTest {
   @Before
   public void setupMocks() {
     this.mockClient = Mockito.mock(Client.class);
-    when(this.mockClient.beginTransaction(any()))
+    when(this.mockClient.beginTransaction(any(), any()))
         .thenReturn(Mono.just(Transaction.getDefaultInstance()));
     when(this.mockClient.commitTransaction(any(), any()))
         .thenReturn(Mono.just(CommitResponse.getDefaultInstance()));
@@ -122,7 +129,7 @@ public class SpannerConnectionTest {
     PublisherProbe<CommitResponse> commitTransactionProbe = PublisherProbe.of(
         Mono.just(CommitResponse.getDefaultInstance()));
 
-    when(this.mockClient.beginTransaction(TEST_SESSION))
+    when(this.mockClient.beginTransaction(TEST_SESSION, READ_WRITE_TRANSACTION))
         .thenReturn(beginTransactionProbe.mono());
     when(this.mockClient.commitTransaction(TEST_SESSION,  Transaction.getDefaultInstance()))
         .thenReturn(commitTransactionProbe.mono());
@@ -131,7 +138,7 @@ public class SpannerConnectionTest {
             .then(Mono.from(connection.commitTransaction()))
             .subscribe();
     verify(this.mockClient, times(1))
-        .beginTransaction(TEST_SESSION);
+        .beginTransaction(TEST_SESSION, READ_WRITE_TRANSACTION);
     verify(this.mockClient, times(1))
         .commitTransaction(TEST_SESSION, Transaction.getDefaultInstance());
 
@@ -147,7 +154,7 @@ public class SpannerConnectionTest {
         Mono.just(Transaction.getDefaultInstance()));
     PublisherProbe<Void> rollbackProbe = PublisherProbe.empty();
 
-    when(this.mockClient.beginTransaction(TEST_SESSION))
+    when(this.mockClient.beginTransaction(TEST_SESSION, READ_WRITE_TRANSACTION))
         .thenReturn(beginTransactionProbe.mono());
     when(this.mockClient.rollbackTransaction(TEST_SESSION, Transaction.getDefaultInstance()))
         .thenReturn(rollbackProbe.mono());
@@ -158,7 +165,7 @@ public class SpannerConnectionTest {
     Mono.from(connection.beginTransaction()).block();
     Mono.from(connection.rollbackTransaction()).block();
     verify(this.mockClient, times(1))
-        .beginTransaction(TEST_SESSION);
+        .beginTransaction(TEST_SESSION, READ_WRITE_TRANSACTION);
     verify(this.mockClient, times(1))
         .rollbackTransaction(TEST_SESSION, Transaction.getDefaultInstance());
 

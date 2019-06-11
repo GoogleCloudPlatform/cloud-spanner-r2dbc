@@ -35,7 +35,6 @@ import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.TransactionSelector;
 import com.google.spanner.v1.Type;
 import io.grpc.CallCredentials;
@@ -89,15 +88,14 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<Transaction> beginTransaction(Session session) {
+  public Mono<Transaction> beginTransaction(
+      Session session, TransactionOptions transactionOptions) {
+
     return Mono.defer(() -> {
       BeginTransactionRequest beginTransactionRequest =
           BeginTransactionRequest.newBuilder()
               .setSession(session.getName())
-              .setOptions(
-                  TransactionOptions
-                      .newBuilder()
-                      .setReadWrite(ReadWrite.getDefaultInstance()))
+              .setOptions(transactionOptions)
               .build();
 
       return ObservableReactiveUtil.unaryCall(
