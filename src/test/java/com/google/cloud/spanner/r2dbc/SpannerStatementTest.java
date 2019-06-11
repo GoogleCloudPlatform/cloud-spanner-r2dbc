@@ -40,8 +40,8 @@ import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Result;
-import java.util.Arrays;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -107,8 +107,8 @@ public class SpannerStatementTest {
 
     StepVerifier.create(result.flatMap(
         spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0))))
-            .expectNext("Odyssey")
-            .verifyComplete();
+        .expectNext("Odyssey")
+        .verifyComplete();
 
     verify(this.mockClient).executeStreamingSql(eq(TEST_SESSION), isNull(), eq(sql), any(), any());
   }
@@ -153,7 +153,7 @@ public class SpannerStatementTest {
     SpannerStatement statement =
         new SpannerStatement(this.mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
 
-    Flux<SpannerResult> result = (Flux<SpannerResult>)statement
+    Flux<SpannerResult> result = (Flux<SpannerResult>) statement
         .bind("id", "b1").add()
         .bind("id", "b2")
         .execute();
@@ -217,7 +217,7 @@ public class SpannerStatementTest {
     StepVerifier
         .create(Flux.from(
             new SpannerStatement(this.mockClient, null, null, "SELECT", TEST_CONFIG).execute())
-        .flatMap(r -> Mono.from(r.getRowsUpdated())))
+            .flatMap(r -> Mono.from(r.getRowsUpdated())))
         .expectNext(0)
         .verifyComplete();
   }
@@ -238,7 +238,7 @@ public class SpannerStatementTest {
     StepVerifier.create(
         Flux.from(new SpannerStatement(
             this.mockClient, null, null, "Insert into books", TEST_CONFIG).execute())
-        .flatMap(r -> Mono.from(r.getRowsUpdated())))
+            .flatMap(r -> Mono.from(r.getRowsUpdated())))
         .expectNext(555)
         .verifyComplete();
   }
@@ -277,7 +277,7 @@ public class SpannerStatementTest {
         .addResultSets(resultSet)
         .build();
 
-    when(mockClient.executeBatchDml(TEST_SESSION, null, sql,
+    when(this.mockClient.executeBatchDml(TEST_SESSION, null, sql,
         Arrays.asList(Struct.newBuilder().build()), Collections.EMPTY_MAP))
         .thenReturn(Mono.just(executeBatchDmlResponse));
 
@@ -296,7 +296,12 @@ public class SpannerStatementTest {
         .expectNext(0)
         .verifyComplete();
 
-    verify(mockClient, times(1)).executeBatchDml(TEST_SESSION, null, sql,
-        Arrays.asList(Struct.newBuilder().build()), Collections.EMPTY_MAP);
+    verify(this.mockClient, times(1))
+        .executeBatchDml(
+            TEST_SESSION,
+            null,
+            sql,
+            Arrays.asList(Struct.newBuilder().build()),
+            Collections.EMPTY_MAP);
   }
 }

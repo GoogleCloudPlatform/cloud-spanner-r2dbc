@@ -54,7 +54,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -92,6 +91,8 @@ public class SpannerIT {
   public void setupStubs() throws IOException {
     this.grpcClient = new GrpcClient(GoogleCredentials.getApplicationDefault());
     this.spanner = this.grpcClient.getSpanner();
+
+    executeDmlQuery(connectionFactory, "DELETE FROM books WHERE true");
   }
 
   @After
@@ -222,15 +223,8 @@ public class SpannerIT {
     assertThat(activeSessions).doesNotContain(activeSessionName);
   }
 
-  @BeforeEach
-  public void cleanTable() {
-    executeDmlQuery(this.connectionFactory, "DELETE FROM books WHERE true");
-  }
-
   @Test
   public void testQuerying() {
-    cleanTable();
-
     long count = executeReadQuery(
         connectionFactory,
         "Select count(1) as count FROM books",
