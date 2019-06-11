@@ -24,6 +24,7 @@ import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.Type;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -88,7 +89,11 @@ public interface Client {
   /**
    * Executes a DDL query.
    */
-  Mono<Operation> executeDdl(String fullyQualifiedDatabaseName, List<String> ddlStatement);
+  Mono<Operation> executeDdl(
+      String fullyQualifiedDatabaseName,
+      List<String> ddlStatement,
+      Duration ddlOperationTimeout,
+      Duration ddlPollInterval);
 
   /**
    * Release any resources held by the {@link Client}.

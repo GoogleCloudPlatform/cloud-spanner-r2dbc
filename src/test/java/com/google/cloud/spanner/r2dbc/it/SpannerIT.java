@@ -26,10 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
-import com.google.cloud.spanner.DatabaseAdminClient;
-import com.google.cloud.spanner.DatabaseId;
-import com.google.cloud.spanner.Spanner;
-import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
@@ -47,7 +43,6 @@ import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -104,37 +99,28 @@ public class SpannerIT {
    */
   @BeforeClass
   public static void setupSpannerTable() throws InterruptedException, ExecutionException {
-    SpannerOptions options = SpannerOptions.newBuilder().build();
-    Spanner spanner = options.getService();
-
-    DatabaseId id = DatabaseId.of(options.getProjectId(), TEST_INSTANCE, TEST_DATABASE);
-
-    DatabaseAdminClient dbAdminClient = spanner.getDatabaseAdminClient();
+    SpannerConnection con =
+        Mono.from(connectionFactory.create())
+            .cast(SpannerConnection.class)
+            .block();
 
     try {
-      dbAdminClient.updateDatabaseDdl(
-          id.getInstanceId().getInstance(),
-          id.getDatabase(),
-          Collections.singletonList("DROP TABLE BOOKS"),
-          null).get();
+      Mono.from(con.createStatement("DROP TABLE BOOKS").execute()).block();
     } catch (Exception e) {
       logger.info("The BOOKS table doesn't exist", e);
     }
 
-    dbAdminClient.updateDatabaseDdl(
-        id.getInstanceId().getInstance(),
-        id.getDatabase(),
-        Collections.singletonList(
-            "CREATE TABLE BOOKS ("
-                + "  UUID STRING(36) NOT NULL,"
-                + "  TITLE STRING(256) NOT NULL,"
-                + "  AUTHOR STRING(256) NOT NULL,"
-                + "  FICTION BOOL NOT NULL,"
-                + "  PUBLISHED DATE NOT NULL,"
-                + "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,"
-                + "  CATEGORY INT64 NOT NULL"
-                + ") PRIMARY KEY (UUID)"),
-        null).get();
+    Mono.from(con.createStatement(
+        "CREATE TABLE BOOKS ("
+            + "  UUID STRING(36) NOT NULL,"
+            + "  TITLE STRING(256) NOT NULL,"
+            + "  AUTHOR STRING(256) NOT NULL,"
+            + "  FICTION BOOL NOT NULL,"
+            + "  PUBLISHED DATE NOT NULL,"
+            + "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,"
+            + "  CATEGORY INT64 NOT NULL"
+            + ") PRIMARY KEY (UUID)").execute())
+        .block();
   }
 
   @Test

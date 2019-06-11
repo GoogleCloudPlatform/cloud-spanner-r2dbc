@@ -38,6 +38,7 @@ import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Result;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -240,7 +241,7 @@ public class SpannerStatementTest {
 
   @Test
   public void runDdlQueryTest() {
-    when(this.mockClient.executeDdl(any(), any()))
+    when(this.mockClient.executeDdl(any(), any(), any(), any()))
         .thenReturn(Mono.just(Operation.getDefaultInstance()));
 
     String sql = "drop TABLE BOOKS";
@@ -254,7 +255,9 @@ public class SpannerStatementTest {
     verify(this.mockClient, times(1))
         .executeDdl(
             "projects/project/instances/test-instance/databases/db",
-            Collections.singletonList(sql));
+            Collections.singletonList(sql),
+            Duration.ofSeconds(600),
+            Duration.ofSeconds(5));
   }
 
   @Test

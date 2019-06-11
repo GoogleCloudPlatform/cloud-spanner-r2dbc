@@ -20,6 +20,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import java.io.IOException;
+import java.time.Duration;
 
 /**
  * Configurable properties for Cloud Spanner.
@@ -34,6 +35,10 @@ public class SpannerConnectionConfiguration {
   private final GoogleCredentials credentials;
 
   private int partialResultSetFetchSize;
+
+  private Duration ddlOperationTimeout;
+
+  private Duration ddlOperationPollInterval;
 
   /**
    * Basic property initializing constructor.
@@ -74,6 +79,14 @@ public class SpannerConnectionConfiguration {
     return this.partialResultSetFetchSize;
   }
 
+  public Duration getDdlOperationTimeout() {
+    return this.ddlOperationTimeout;
+  }
+
+  public Duration getDdlOperationPollInterval() {
+    return this.ddlOperationPollInterval;
+  }
+
   public static class Builder {
 
     private String projectId;
@@ -85,6 +98,10 @@ public class SpannerConnectionConfiguration {
     private GoogleCredentials credentials;
 
     private int partialResultSetFetchSize = 1;
+
+    private Duration ddlOperationTimeout = Duration.ofSeconds(600);
+
+    private Duration ddlOperationPollInterval = Duration.ofSeconds(5);
 
     public Builder setProjectId(String projectId) {
       this.projectId = projectId;
@@ -131,6 +148,8 @@ public class SpannerConnectionConfiguration {
           this.credentials);
 
       configuration.partialResultSetFetchSize = this.partialResultSetFetchSize;
+      configuration.ddlOperationTimeout = this.ddlOperationTimeout;
+      configuration.ddlOperationPollInterval = this.ddlOperationPollInterval;
 
       return configuration;
     }

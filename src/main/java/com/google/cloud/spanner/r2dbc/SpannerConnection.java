@@ -54,7 +54,7 @@ public class SpannerConnection implements Connection {
   }
 
   @Override
-  public Publisher<Void> beginTransaction() {
+  public Mono<Void> beginTransaction() {
     return this.client.beginTransaction(this.session)
         .doOnNext(
             transaction -> this.transactionContext = SpannerTransactionContext.from(transaction))
@@ -82,7 +82,7 @@ public class SpannerConnection implements Connection {
   }
 
   @Override
-  public Publisher<Void> rollbackTransaction() {
+  public Mono<Void> rollbackTransaction() {
     return Mono.defer(() -> {
       if (this.transactionContext == null) {
         this.logger.warn("rollbackTransaction() is a no-op; called with no transaction active.");
@@ -95,7 +95,7 @@ public class SpannerConnection implements Connection {
   }
 
   @Override
-  public Publisher<Void> close() {
+  public Mono<Void> close() {
     return commitTransaction(false).then(this.client.deleteSession(this.session));
   }
 

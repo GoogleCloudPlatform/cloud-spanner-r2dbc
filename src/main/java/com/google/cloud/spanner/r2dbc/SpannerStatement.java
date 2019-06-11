@@ -114,7 +114,9 @@ public class SpannerStatement implements Statement {
       return this.client
           .executeDdl(
               this.config.getFullyQualifiedDatabaseName(),
-              Collections.singletonList(this.sql))
+              Collections.singletonList(this.sql),
+              this.config.getDdlOperationTimeout(),
+              this.config.getDdlOperationPollInterval())
           .map(operation -> new SpannerResult(Flux.empty(), Mono.just(0)));
     }
 

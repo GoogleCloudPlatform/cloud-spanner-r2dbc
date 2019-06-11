@@ -62,10 +62,6 @@ import reactor.core.publisher.Mono;
  */
 public class GrpcClient implements Client {
 
-  private static final Duration DDL_POLL_INTERVAL = Duration.ofSeconds(5);
-
-  private static final Duration DDL_OPERATION_TIMEOUT = Duration.ofSeconds(300);
-
   public static final String HOST = "spanner.googleapis.com";
 
   public static final String PACKAGE_VERSION = GrpcClient.class.getPackage()
@@ -105,10 +101,10 @@ public class GrpcClient implements Client {
   }
 
   @VisibleForTesting
-  GrpcClient(SpannerStub spanner) {
+  GrpcClient(SpannerStub spanner, DatabaseAdminStub databaseAdmin, OperationsStub operations) {
     this.spanner = spanner;
-    this.databaseAdmin = null;
-    this.operations = null;
+    this.databaseAdmin = databaseAdmin;
+    this.operations = operations;
     this.channel = null;
   }
 
@@ -212,7 +208,12 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<Operation> executeDdl(String fullyQualifiedDatabaseName, List<String> ddlStatements) {
+  public Mono<Operation> executeDdl(
+      String fullyQualifiedDatabaseName,
+      List<String> ddlStatements,
+      Duration ddlOperationTimeout,
+      Duration ddlPollInterval) {
+
     UpdateDatabaseDdlRequest ddlRequest =
         UpdateDatabaseDdlRequest.newBuilder()
             .setDatabase(fullyQualifiedDatabaseName)
@@ -231,10 +232,10 @@ public class GrpcClient implements Client {
 
       return ObservableReactiveUtil
           .<Operation>unaryCall(obs -> this.operations.getOperation(getRequest, obs))
-          .repeatWhen(completed -> completed.delayElements(DDL_POLL_INTERVAL))
+          .repeatWhen(completed -> completed.delayElements(ddlPollInterval))
           .takeUntil(Operation::getDone)
           .last()
-          .timeout(DDL_OPERATION_TIMEOUT)
+          .timeout(ddlOperationTimeout)
           .handle((operation, sink) -> {
             if (operation.hasError()) {
               sink.error(new R2dbcNonTransientResourceException(operation.getError().getMessage()));
