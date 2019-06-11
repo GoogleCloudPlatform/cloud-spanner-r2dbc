@@ -1,0 +1,17 @@
+= Hibernate for Google Cloud Spanner
+
+This is a https://github.com/r2dbc/r2dbc-spi[R2DBC driver] for https://cloud.google.com/spanner/docs/[Cloud Spanner].
+
+
+=== Quick Set-Up
+
+Maven coordinates for the driver:
+
+[source,xml]
+----
+<dependency>
+  <groupId>com.google.cloud</groupId>
+  <artifactId>cloud-spanner-r2dbc</artifactId>
+  <version> TBD </version>
+</dependency>
+----
