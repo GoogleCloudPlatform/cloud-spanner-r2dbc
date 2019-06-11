@@ -24,12 +24,14 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
+import com.google.common.base.Strings;
 import com.google.spanner.v1.DatabaseName;
 import com.google.spanner.v1.ListSessionsRequest;
 import com.google.spanner.v1.ListSessionsResponse;
@@ -43,6 +45,8 @@ import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -55,6 +59,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 /**
  * Integration test for connecting to a real Spanner instance.
@@ -99,6 +104,12 @@ public class SpannerIT {
    */
   @BeforeClass
   public static void setupSpannerTable() throws InterruptedException, ExecutionException {
+    // prevent printing out the contents of the actual Book rows being inserted
+    ch.qos.logback.classic.Logger root =
+        (ch.qos.logback.classic.Logger)
+            LoggerFactory.getLogger("io.grpc.netty.shaded.io.grpc.netty.NettyClientHandler");
+    root.setLevel(Level.INFO);
+
     SpannerConnection con =
         Mono.from(connectionFactory.create())
             .cast(SpannerConnection.class)
@@ -115,12 +126,83 @@ public class SpannerIT {
             + "  UUID STRING(36) NOT NULL,"
             + "  TITLE STRING(256) NOT NULL,"
             + "  AUTHOR STRING(256) NOT NULL,"
+            + "  SYNOPSIS STRING(MAX),"
+            + "  EDITIONS ARRAY<STRING(MAX)>,"
             + "  FICTION BOOL NOT NULL,"
             + "  PUBLISHED DATE NOT NULL,"
             + "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,"
             + "  CATEGORY INT64 NOT NULL"
             + ") PRIMARY KEY (UUID)").execute())
         .block();
+  }
+
+  @Test
+  public void testLargeReadWrite() {
+    // string size must be below 10 MB
+    int maxStringLength = 1000000;
+
+    int numberOfBooks = 20;
+
+    List<Book> books = new ArrayList<>();
+
+    for (int i = 0; i < numberOfBooks; i++) {
+      String bookString = String.valueOf(i);
+      int copies = maxStringLength / bookString.length();
+      String[] editions = new String[copies];
+      Arrays.fill(editions, bookString);
+      books.add(
+          new Book("id" + i, "title" + i, "author" + i,
+              Strings.repeat(bookString, copies), editions,
+              i % 3 == 0, LocalDate.now(), i + 0.1, i));
+    }
+
+    Mono.from(this.connectionFactory.create())
+        .delayUntil(c -> c.beginTransaction())
+        .delayUntil(c ->
+            Flux.fromIterable(books)
+                .concatMapDelayError(book ->
+                    Flux.from(c.createStatement(
+                        "INSERT BOOKS (UUID, TITLE, AUTHOR, SYNOPSIS, EDITIONS, "
+                            + "CATEGORY, FICTION, PUBLISHED, WORDS_PER_SENTENCE)"
+                            + " VALUES (@uuid, @title, @author, @synopsis, @editions, "
+                            + "@category, @fiction, @published, @wps);")
+                        .bind("uuid", book.getId())
+                        .bind("author", book.getAuthor())
+                        .bind("category", book.getCategory())
+                        .bind("synopsis", book.getSynopsis())
+                        .bind("editions", book.getEditions())
+                        .bind("title", book.getTitle())
+                        .bind("fiction", book.getFiction())
+                        .bind("published", book.getPublished())
+                        .bind("wps", book.getWordsPerSentence())
+                        .execute())
+                        .doOnNext(r -> logger.info("Inserting book: " + book.getId()))
+                ).flatMap(r -> Mono.from(r.getRowsUpdated()))
+        )
+        .delayUntil(c -> c.commitTransaction())
+        .delayUntil(c -> c.close())
+        .block();
+
+    List<Book> result = Mono.from(this.connectionFactory.create())
+        .map(connection -> connection
+            .createStatement("SELECT * FROM books ORDER BY category")
+        )
+        .flatMapMany(statement -> statement.execute())
+        .flatMapSequential(spannerResult -> spannerResult.map((r, meta) -> new Book(
+            r.get("UUID", String.class),
+            r.get("TITLE", String.class),
+            r.get("AUTHOR", String.class),
+            r.get("SYNOPSIS", String.class),
+            r.get("EDITIONS", String[].class),
+            r.get("FICTION", Boolean.class),
+            r.get("PUBLISHED", LocalDate.class),
+            r.get("WORDS_PER_SENTENCE", Double.class),
+            r.get("CATEGORY", Integer.class)
+        )))
+        .collectList()
+        .block();
+
+    assertThat(result).isEqualTo(books);
   }
 
   @Test
@@ -157,25 +239,48 @@ public class SpannerIT {
 
     Mono.from(this.connectionFactory.create())
         .delayUntil(c -> c.beginTransaction())
-        .delayUntil(c -> Flux.from(c.createStatement(
-            "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, PUBLISHED, WORDS_PER_SENTENCE)"
-                + " VALUES (@uuid, @title, @author, @category, @fiction, @published, @wps);")
-            .bind("uuid", "2b2cbd78-ecd8-430e-b685-fa7910f8a4c7")
-            .bind("author", "Douglas Crockford")
-            .bind("category", 100L)
-            .bind("title", "JavaScript: The Good Parts")
-            .bind("fiction", true)
-            .bind("published", LocalDate.of(2008, 5, 1))
-            .bind("wps", 20.8)
-            .add()
-            .bind("uuid", "df0e3d06-2743-4691-8e51-6d33d90c5cb9")
-            .bind("author", "Joshua Bloch")
-            .bind("category", 100L)
-            .bind("title", "Effective Java")
-            .bind("fiction", false)
-            .bind("published", LocalDate.of(2018, 1, 6))
-            .bind("wps", 15.1)
-            .execute()).flatMapSequential(r -> Mono.from(r.getRowsUpdated())))
+        .delayUntil(c ->
+            Mono.fromRunnable(() ->
+                StepVerifier.create(Flux.from(c.createStatement(
+                    "INSERT BOOKS "
+                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, PUBLISHED, WORDS_PER_SENTENCE)"
+                        + " VALUES "
+                        + "(@uuid, @title, @author, @category, @fiction, @published, @wps);")
+                    .bind("uuid", "2b2cbd78-ecd8-430e-b685-fa7910f8a4c7")
+                    .bind("author", "Douglas Crockford")
+                    .bind("category", 100L)
+                    .bind("title", "JavaScript: The Good Parts")
+                    .bind("fiction", true)
+                    .bind("published", LocalDate.of(2008, 5, 1))
+                    .bind("wps", 20.8)
+                    .add()
+                    .bind("uuid", "df0e3d06-2743-4691-8e51-6d33d90c5cb9")
+                    .bind("author", "Joshua Bloch")
+                    .bind("category", 100L)
+                    .bind("title", "Effective Java")
+                    .bind("fiction", false)
+                    .bind("published", LocalDate.of(2018, 1, 6))
+                    .bind("wps", 15.1)
+                    .execute())
+                    .flatMapSequential(r -> Mono.from(r.getRowsUpdated())))
+                    .expectNext(1).expectNext(1).verifyComplete())
+        )
+        .delayUntil(c -> c.commitTransaction())
+        .block();
+
+    Mono.from(this.connectionFactory.create())
+        .delayUntil(c -> c.beginTransaction())
+        .delayUntil(c ->
+            Mono.fromRunnable(() ->
+                StepVerifier
+                    .create(Flux.from(c.createStatement(
+                        "UPDATE BOOKS SET CATEGORY = @new_cat WHERE CATEGORY = @old_cat")
+                        .bind("new_cat", 101L)
+                        .bind("old_cat", 100L)
+                        .execute())
+                        .flatMap(r -> Mono.from(r.getRowsUpdated())))
+                    .expectNext(2).verifyComplete())
+        )
         .delayUntil(c -> c.commitTransaction())
         .block();
 

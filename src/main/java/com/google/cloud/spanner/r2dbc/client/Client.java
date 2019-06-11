@@ -20,6 +20,7 @@ import com.google.cloud.spanner.r2dbc.SpannerTransactionContext;
 import com.google.longrunning.Operation;
 import com.google.protobuf.Struct;
 import com.google.spanner.v1.CommitResponse;
+import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
@@ -85,6 +86,13 @@ public interface Client {
       Session session, @Nullable SpannerTransactionContext transaction, String sql) {
     return executeStreamingSql(session, transaction, sql, null, null);
   }
+
+  /**
+   * Execute DML batch.
+   */
+  Mono<ExecuteBatchDmlResponse> executeBatchDml(Session session,
+      @Nullable SpannerTransactionContext transactionContext, String sql,
+      List<Struct> params, Map<String, Type> types);
 
   /**
    * Executes a DDL query.

@@ -34,6 +34,8 @@ import com.google.spanner.v1.CommitRequest;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.CreateSessionRequest;
 import com.google.spanner.v1.DeleteSessionRequest;
+import com.google.spanner.v1.ExecuteBatchDmlRequest;
+import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.RollbackRequest;
@@ -177,6 +179,31 @@ public class GrpcClient implements Client {
           (observer) -> this.spanner.deleteSession(deleteSessionRequest, observer))
           .then();
     });
+  }
+
+  @Override
+  public Mono<ExecuteBatchDmlResponse> executeBatchDml(Session session,
+      @Nullable SpannerTransactionContext transactionContext, String sql,
+      List<Struct> params, Map<String, Type> types) {
+
+    ExecuteBatchDmlRequest.Builder request = ExecuteBatchDmlRequest.newBuilder()
+        .setSession(session.getName());
+    if (transactionContext != null && transactionContext.getTransaction() != null) {
+      request.setTransaction(
+          TransactionSelector.newBuilder().setId(transactionContext.getTransaction().getId())
+              .build())
+          .setSeqno(transactionContext.nextSeqNum());
+
+    }
+    for (Struct paramsStruct : params) {
+      ExecuteBatchDmlRequest.Statement statement = ExecuteBatchDmlRequest.Statement.newBuilder()
+          .setSql(sql).setParams(paramsStruct).putAllParamTypes(types)
+          .build();
+      request.addStatements(statement);
+    }
+
+    return ObservableReactiveUtil
+        .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
   }
 
   @Override
