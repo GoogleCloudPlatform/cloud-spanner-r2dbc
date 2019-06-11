@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
@@ -42,7 +43,6 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
@@ -62,7 +62,9 @@ public class SpannerConnectionFactoryProviderTest {
 
   SpannerConnectionFactoryProvider spannerConnectionFactoryProvider;
 
-  Client mockClient = Mockito.mock(Client.class);
+  Client mockClient = mock(Client.class);
+
+  ExecutionContext mockContext = mock(ExecutionContext.class);
 
   /**
    * Initializes unit under test with a mock {@link Client}.
@@ -125,7 +127,7 @@ public class SpannerConnectionFactoryProviderTest {
         = (SpannerConnectionFactory)this.spannerConnectionFactoryProvider.create(options);
 
     TestPublisher<PartialResultSet> partialResultSetPublisher = TestPublisher.create();
-    when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any()))
+    when(this.mockClient.executeStreamingSql(any(ExecutionContext.class), any(), any(), any()))
         .thenReturn(partialResultSetPublisher.flux());
     Session session = Session.newBuilder().setName("session-name").build();
     when(this.mockClient.createSession(any()))

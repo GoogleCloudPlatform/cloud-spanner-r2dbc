@@ -16,7 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc.client;
 
-import com.google.cloud.spanner.r2dbc.SpannerTransactionContext;
+import com.google.cloud.spanner.r2dbc.ExecutionContext;
 import com.google.protobuf.Struct;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.ExecuteBatchDmlResponse;
@@ -26,7 +26,6 @@ import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.Type;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -44,52 +43,48 @@ public interface Client {
 
   /**
    * Deletes a Spanner session that is used to call Spanner APIs.
-   * @param session The session you wish to close.
+   * @param ctx Execution context containing the current session.
    * @return {@link Mono} indicating completion closing the session.
    */
-  Mono<Void> deleteSession(Session session);
+  Mono<Void> deleteSession(ExecutionContext ctx);
 
   /**
    * Begins a new Spanner {@link Transaction} within the provided {@link Session}.
-   * @param session The {@link Session} object with which requests are made to the Spanner API.
+   * @param ctx Execution context containing the current session.
    * @returns {@link Mono} of the transaction that was started.
    */
-  Mono<Transaction> beginTransaction(Session session);
+  Mono<Transaction> beginTransaction(ExecutionContext ctx);
 
   /**
    * Commits a Spanner {@link Transaction} within the provided {@link Session}.
-   * @param session The session object with which requests are made to the Spanner API.
-   * @param transaction The transaction that you want to commit.
+   * @param ctx Execution context containing the current session and transaction.
    * @returns {@link CommitResponse} describing the timestamp at which the transaction committed.
    */
-  Mono<CommitResponse> commitTransaction(Session session, Transaction transaction);
+  Mono<CommitResponse> commitTransaction(ExecutionContext ctx);
 
 
   /**
    * Performs a rollback on a Spanner {@link Transaction} within the provided {@link Session}.
-   * @param session The session object with which requests are made to the Spanner API.
-   * @param transaction The transaction that you want to rollback.
+   * @param ctx Execution context containing the current session and transaction.
    * @return {@link Mono} indicating completion of the rollback.
    */
-  Mono<Void> rollbackTransaction(Session session, Transaction transaction);
+  Mono<Void> rollbackTransaction(ExecutionContext ctx);
 
   /**
    * Execute a streaming query and get partial results.
+   * @param ctx Execution context containing the current session and optional transaction.
    */
-  Flux<PartialResultSet> executeStreamingSql(
-      Session session, @Nullable SpannerTransactionContext transaction, String sql, Struct params,
+  Flux<PartialResultSet> executeStreamingSql(ExecutionContext ctx, String sql, Struct params,
       Map<String, Type> types);
 
-  default Flux<PartialResultSet> executeStreamingSql(
-      Session session, @Nullable SpannerTransactionContext transaction, String sql) {
-    return  executeStreamingSql(session, transaction, sql, null, null);
+  default Flux<PartialResultSet> executeStreamingSql(ExecutionContext context, String sql) {
+    return  executeStreamingSql(context, sql, null, null);
   }
 
   /**
    * Execute DML batch.
    */
-  Mono<ExecuteBatchDmlResponse> executeBatchDml(Session session,
-      @Nullable SpannerTransactionContext transactionContext, String sql,
+  Mono<ExecuteBatchDmlResponse> executeBatchDml(ExecutionContext ctx, String sql,
       List<Struct> params, Map<String, Type> types);
 
   /**

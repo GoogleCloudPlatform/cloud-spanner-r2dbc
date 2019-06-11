@@ -154,7 +154,7 @@ public class SpannerIT {
   @Test
   public void testLargeReadWrite() {
     // string size must be below 10 MB
-    int maxStringLength = 1000000;
+    int maxStringLength = 100000;
 
     int numberOfBooks = 20;
 
@@ -226,7 +226,7 @@ public class SpannerIT {
 
     Mono<Connection> connection = (Mono<Connection>) this.connectionFactory.create();
     SpannerConnection spannerConnection = (SpannerConnection) connection.block();
-    String activeSessionName = spannerConnection.getSession().getName();
+    String activeSessionName = spannerConnection.getExecutionContext().getSessionName();
 
     List<String> activeSessions = getSessionNames();
     assertThat(activeSessions).contains(activeSessionName);

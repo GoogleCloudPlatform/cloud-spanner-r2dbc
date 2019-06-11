@@ -17,7 +17,8 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.spanner.r2dbc.SpannerTransactionContext;
+import com.google.cloud.spanner.r2dbc.ExecutionContext;
+import com.google.cloud.spanner.r2dbc.util.Assert;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.Empty;
@@ -46,7 +47,6 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -92,11 +92,12 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<Transaction> beginTransaction(Session session) {
+  public Mono<Transaction> beginTransaction(ExecutionContext ctx) {
     return Mono.defer(() -> {
+      Assert.requireNonNull(ctx.getSessionName(), "Session name must not be null");
       BeginTransactionRequest beginTransactionRequest =
           BeginTransactionRequest.newBuilder()
-              .setSession(session.getName())
+              .setSession(ctx.getSessionName())
               .setOptions(
                   TransactionOptions
                       .newBuilder()
@@ -109,12 +110,15 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<CommitResponse> commitTransaction(Session session, Transaction transaction) {
+  public Mono<CommitResponse> commitTransaction(ExecutionContext ctx) {
     return Mono.defer(() -> {
+      Assert.requireNonNull(ctx.getSessionName(), "Session name must not be null");
+      Assert.requireNonEmpty(ctx.getTransactionId(), "Transaction ID must not be empty");
+
       CommitRequest commitRequest =
           CommitRequest.newBuilder()
-              .setSession(session.getName())
-              .setTransactionId(transaction.getId())
+              .setSession(ctx.getSessionName())
+              .setTransactionId(ctx.getTransactionId())
               .build();
 
       return ObservableReactiveUtil.unaryCall(
@@ -123,12 +127,15 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<Void> rollbackTransaction(Session session, Transaction transaction) {
+  public Mono<Void> rollbackTransaction(ExecutionContext ctx) {
     return Mono.defer(() -> {
+      Assert.requireNonNull(ctx.getSessionName(), "Session name must not be null");
+      Assert.requireNonEmpty(ctx.getTransactionId(), "Transaction ID must not be empty");
+
       RollbackRequest rollbackRequest =
           RollbackRequest.newBuilder()
-              .setSession(session.getName())
-              .setTransactionId(transaction.getId())
+              .setSession(ctx.getSessionName())
+              .setTransactionId(ctx.getTransactionId())
               .build();
 
       return ObservableReactiveUtil.<Empty>unaryCall(
@@ -140,6 +147,8 @@ public class GrpcClient implements Client {
   @Override
   public Mono<Session> createSession(String databaseName) {
     return Mono.defer(() -> {
+      Assert.requireNonEmpty(databaseName, "Database name must not be empty");
+
       CreateSessionRequest request = CreateSessionRequest.newBuilder()
           .setDatabase(databaseName)
           .build();
@@ -149,11 +158,13 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<Void> deleteSession(Session session) {
+  public Mono<Void> deleteSession(ExecutionContext ctx) {
     return Mono.defer(() -> {
+      Assert.requireNonNull(ctx.getSessionName(), "Session name must not be null");
+
       DeleteSessionRequest deleteSessionRequest =
           DeleteSessionRequest.newBuilder()
-              .setName(session.getName())
+              .setName(ctx.getSessionName())
               .build();
 
       return ObservableReactiveUtil.<Empty>unaryCall(
@@ -163,51 +174,52 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<ExecuteBatchDmlResponse> executeBatchDml(Session session,
-      @Nullable SpannerTransactionContext transactionContext, String sql,
+  public Mono<ExecuteBatchDmlResponse> executeBatchDml(ExecutionContext ctx, String sql,
       List<Struct> params, Map<String, Type> types) {
+    return Mono.defer(() -> {
+      ExecuteBatchDmlRequest.Builder request = ExecuteBatchDmlRequest.newBuilder()
+          .setSession(ctx.getSessionName());
+      if (ctx.getTransactionId() != null) {
+        request.setTransaction(
+            TransactionSelector.newBuilder().setId(ctx.getTransactionId())
+                .build())
+            .setSeqno(ctx.nextSeqNum());
 
-    ExecuteBatchDmlRequest.Builder request = ExecuteBatchDmlRequest.newBuilder()
-        .setSession(session.getName());
-    if (transactionContext != null && transactionContext.getTransaction() != null) {
-      request.setTransaction(
-          TransactionSelector.newBuilder().setId(transactionContext.getTransaction().getId())
-              .build())
-          .setSeqno(transactionContext.nextSeqNum());
+      }
+      for (Struct paramsStruct : params) {
+        ExecuteBatchDmlRequest.Statement statement = ExecuteBatchDmlRequest.Statement.newBuilder()
+            .setSql(sql).setParams(paramsStruct).putAllParamTypes(types)
+            .build();
+        request.addStatements(statement);
+      }
 
-    }
-    for (Struct paramsStruct : params) {
-      ExecuteBatchDmlRequest.Statement statement = ExecuteBatchDmlRequest.Statement.newBuilder()
-          .setSql(sql).setParams(paramsStruct).putAllParamTypes(types)
-          .build();
-      request.addStatements(statement);
-    }
-
-    return ObservableReactiveUtil
-        .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
+      return ObservableReactiveUtil
+          .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
+    });
   }
 
   @Override
-  public Flux<PartialResultSet> executeStreamingSql(
-      Session session, @Nullable SpannerTransactionContext transactionContext, String sql,
+  public Flux<PartialResultSet> executeStreamingSql(ExecutionContext ctx, String sql,
       Struct params, Map<String, Type> types) {
 
     return Flux.defer(() -> {
+      Assert.requireNonNull(ctx.getSessionName(), "Session name must not be null");
+
       ExecuteSqlRequest.Builder executeSqlRequest =
           ExecuteSqlRequest.newBuilder()
               .setSql(sql)
-              .setSession(session.getName());
+              .setSession(ctx.getSessionName());
       if (params != null) {
         executeSqlRequest
             .setParams(params)
             .putAllParamTypes(types);
       }
 
-      if (transactionContext != null && transactionContext.getTransaction() != null) {
+      if (ctx.getTransactionId() != null) {
         executeSqlRequest.setTransaction(
-            TransactionSelector.newBuilder().setId(transactionContext.getTransaction().getId())
+            TransactionSelector.newBuilder().setId(ctx.getTransactionId())
                 .build());
-        executeSqlRequest.setSeqno(transactionContext.nextSeqNum());
+        executeSqlRequest.setSeqno(ctx.nextSeqNum());
       }
 
       return ObservableReactiveUtil.streamingCall(
