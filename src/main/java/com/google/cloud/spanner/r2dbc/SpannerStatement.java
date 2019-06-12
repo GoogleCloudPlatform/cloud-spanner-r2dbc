@@ -24,10 +24,12 @@ import com.google.cloud.spanner.r2dbc.statement.StatementType;
 import com.google.cloud.spanner.r2dbc.statement.TypedNull;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import com.google.protobuf.Struct;
+import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
+import java.util.Collections;
 import javax.annotation.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -38,10 +40,6 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerStatement implements Statement {
 
-  private static final int DEFAULT_PARTIAL_FETCH_SIZE = 1;
-
-  private Integer partialResultSetFetchSize;
-
   private Client client;
 
   private Session session;
@@ -50,7 +48,11 @@ public class SpannerStatement implements Statement {
 
   private String sql;
 
+  private SpannerConnectionConfiguration config;
+
   private StatementBindings statementBindings;
+
+  private StatementType statementType;
 
   /**
    * Creates a Spanner statement for a given SQL statement.
@@ -66,13 +68,16 @@ public class SpannerStatement implements Statement {
       Client client,
       Session session,
       @Nullable SpannerTransactionContext transaction,
-      String sql) {
+      String sql,
+      SpannerConnectionConfiguration config) {
 
     this.client = client;
     this.session = session;
     this.transaction = transaction;
     this.sql = Assert.requireNonNull(sql, "SQL string can not be null");
+    this.config = config;
     this.statementBindings = new StatementBindings();
+    this.statementType = StatementParser.getStatementType(this.sql);
   }
 
   @Override
@@ -108,52 +113,47 @@ public class SpannerStatement implements Statement {
 
   @Override
   public Publisher<? extends Result> execute() {
-    Flux<Struct> structFlux = Flux.fromIterable(this.statementBindings.getBindings());
-    StatementType statementType = StatementParser.getStatementType(this.sql);
-
-    if (statementType == StatementType.SELECT) {
-      return structFlux.flatMap(struct -> runSingleStatement(struct, statementType));
+    switch (this.statementType) {
+      case DDL:
+        return this.client
+            .executeDdl(
+                this.config.getFullyQualifiedDatabaseName(),
+                Collections.singletonList(this.sql),
+                this.config.getDdlOperationTimeout(),
+                this.config.getDdlOperationPollInterval())
+            .map(operation -> new SpannerResult(Flux.empty(), Mono.just(0)));
+      case DML:
+        return this.client
+            .executeBatchDml(this.session, this.transaction, this.sql,
+                this.statementBindings.getBindings(),
+                this.statementBindings.getTypes())
+            .flatMapIterable(ExecuteBatchDmlResponse::getResultSetsList)
+            .map(partialResultSet -> {
+              long rowsUpdated =
+                  Math.max(
+                      partialResultSet.getStats().getRowCountExact(),
+                      partialResultSet.getStats().getRowCountLowerBound());
+              return Math.toIntExact(rowsUpdated);
+            })
+            .map(rowCount -> new SpannerResult(Flux.empty(), Mono.just(rowCount)));
+      case SELECT:
+        Flux<Struct> structFlux = Flux.fromIterable(this.statementBindings.getBindings());
+        return structFlux.flatMap(this::runSelectStatement);
+      default:
+        throw new UnsupportedOperationException("Unsupported statement type " + this.statementType);
     }
-    // DML statements have to be executed sequentially because they need seqNo to be in order
-    return structFlux.concatMapDelayError(struct -> runSingleStatement(struct, statementType));
   }
 
-  private Mono<? extends Result> runSingleStatement(Struct params, StatementType statementType) {
+  private Mono<SpannerResult> runSelectStatement(Struct params) {
     PartialResultRowExtractor partialResultRowExtractor = new PartialResultRowExtractor();
 
     Flux<PartialResultSet> resultSetFlux =
         this.client.executeStreamingSql(
             this.session, this.transaction, this.sql, params, this.statementBindings.getTypes());
 
-    if (statementType == StatementType.SELECT) {
-      return resultSetFlux
-          .flatMapIterable(partialResultRowExtractor, getPartialResultSetFetchSize())
-          .transform(result -> Mono.just(new SpannerResult(result, Mono.just(0))))
-          .next();
-    } else {
-      return resultSetFlux
-          .last()
-          .map(partialResultSet -> {
-            long rowsUpdated =
-                Math.max(
-                    partialResultSet.getStats().getRowCountExact(),
-                    partialResultSet.getStats().getRowCountLowerBound());
-            return Math.toIntExact(rowsUpdated);
-          })
-          .map(rowCount -> new SpannerResult(Flux.empty(), Mono.just(rowCount)));
-    }
-  }
-
-  /**
-   * Allows customizing the number of {@link PartialResultSet} objects to request at a time.
-   * @param fetchSize prefetch size to request from Cloud Spanner
-   */
-  public void setPartialResultSetFetchSize(Integer fetchSize) {
-    this.partialResultSetFetchSize = fetchSize;
-  }
-
-  public int getPartialResultSetFetchSize() {
-    return this.partialResultSetFetchSize != null
-        ? this.partialResultSetFetchSize : DEFAULT_PARTIAL_FETCH_SIZE;
+    return resultSetFlux
+        .flatMapIterable(partialResultRowExtractor, this.config.getPartialResultSetFetchSize())
+        .transform(result -> Mono.just(new SpannerResult(result, Mono.just(0))))
+        .next();
   }
 }
