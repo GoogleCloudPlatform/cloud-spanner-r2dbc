@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
-import com.google.cloud.spanner.r2dbc.client.TransactionType;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.CommitResponse;
@@ -34,6 +33,10 @@ import com.google.spanner.v1.Session;
 import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.PartitionedDml;
+import com.google.spanner.v1.TransactionOptions.ReadOnly;
+import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Statement;
@@ -61,8 +64,20 @@ public class SpannerConnectionTest {
           .setDatabaseName("db")
           .build();
 
-  private static final TransactionType READ_WRITE_TRANSACTION =
-      TransactionType.readWriteTransaction();
+  private static final TransactionOptions READ_WRITE_TRANSACTION =
+      TransactionOptions.newBuilder()
+          .setReadWrite(ReadWrite.getDefaultInstance())
+          .build();
+
+  private static final TransactionOptions PARTITIONED_DML_TRANSACTION =
+      TransactionOptions.newBuilder()
+          .setPartitionedDml(PartitionedDml.getDefaultInstance())
+          .build();
+
+  private static final TransactionOptions READ_ONLY_TRANSACTION =
+      TransactionOptions.newBuilder()
+          .setReadOnly(ReadOnly.getDefaultInstance())
+          .build();
 
   private Client mockClient;
 
@@ -180,41 +195,15 @@ public class SpannerConnectionTest {
   }
 
   @Test
-  public void testPartitionedDmlTransaction() {
+  public void testCustomTransactionType() {
     SpannerConnection connection = new SpannerConnection(
         this.mockClient, TEST_SESSION, TEST_CONFIG);
 
     StepVerifier
-        .create(connection.beginTransaction(TransactionType.partitionedDmlTransaction()))
+        .create(connection.beginTransaction(PARTITIONED_DML_TRANSACTION))
         .verifyComplete();
     verify(this.mockClient, times(1))
-        .beginTransaction(TEST_SESSION, TransactionType.partitionedDmlTransaction());
-
-    // Partitioned DML transactions should not be committed.
-    StepVerifier
-        .create(connection.commitTransaction())
-        .verifyComplete();
-    verify(this.mockClient, times(0))
-        .commitTransaction(any(), any());
-  }
-
-  @Test
-  public void testReadOnlyTransaction() {
-    SpannerConnection connection = new SpannerConnection(
-        this.mockClient, TEST_SESSION, TEST_CONFIG);
-
-    StepVerifier
-        .create(connection.beginTransaction(
-            TransactionType.readOnlyTransactionBuilder()
-                .setStrongRead(true)
-                .build()))
-        .verifyComplete();
-    verify(this.mockClient, times(1))
-        .beginTransaction(
-            TEST_SESSION,
-            TransactionType.readOnlyTransactionBuilder()
-                .setStrongRead(true)
-                .build());
+        .beginTransaction(TEST_SESSION, PARTITIONED_DML_TRANSACTION);
 
     // Partitioned DML transactions should not be committed.
     StepVerifier

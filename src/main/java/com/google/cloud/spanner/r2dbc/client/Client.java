@@ -24,6 +24,7 @@ import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.TransactionOptions;
 import com.google.spanner.v1.Type;
 import java.time.Duration;
 import java.util.List;
@@ -60,7 +61,7 @@ public interface Client {
    * @param session The {@link Session} object with which requests are made to the Spanner API.
    * @returns {@link Mono} of the transaction that was started.
    */
-  Mono<Transaction> beginTransaction(Session session, TransactionType transactionType);
+  Mono<Transaction> beginTransaction(Session session, TransactionOptions transactionOptions);
 
   /**
    * Commits a Spanner {@link Transaction} within the provided {@link Session}.

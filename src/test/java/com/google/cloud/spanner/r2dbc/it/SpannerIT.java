@@ -30,7 +30,6 @@ import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
-import com.google.cloud.spanner.r2dbc.client.TransactionType;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.common.base.Strings;
 import com.google.spanner.v1.DatabaseName;
@@ -38,6 +37,10 @@ import com.google.spanner.v1.ListSessionsRequest;
 import com.google.spanner.v1.ListSessionsResponse;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
+import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.PartitionedDml;
+import com.google.spanner.v1.TransactionOptions.ReadOnly;
+import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -386,7 +389,11 @@ public class SpannerIT {
             .cast(SpannerConnection.class)
             .block();
 
-    connection.beginTransaction(TransactionType.partitionedDmlTransaction()).block();
+    connection.beginTransaction(
+        TransactionOptions.newBuilder()
+            .setPartitionedDml(PartitionedDml.getDefaultInstance())
+            .build())
+        .block();
     int rowsUpdated = Mono.from(
         connection.createStatement("UPDATE BOOKS SET TITLE = 'bad-book' WHERE true")
             .execute())
@@ -395,7 +402,11 @@ public class SpannerIT {
     connection.commitTransaction().block();
     assertThat(rowsUpdated).isEqualTo(2);
 
-    connection.beginTransaction(TransactionType.readOnlyTransactionBuilder().build()).block();
+    connection.beginTransaction(
+        TransactionOptions.newBuilder()
+            .setReadOnly(ReadOnly.getDefaultInstance())
+            .build())
+        .block();
     List<String> titles =
         Mono.from(connection.createStatement("SELECT title FROM BOOKS").execute())
             .flatMapMany(result -> result.map((row, rowMetadata) -> row.get(0, String.class)))
@@ -403,7 +414,11 @@ public class SpannerIT {
             .block();
     assertThat(titles).containsExactlyInAnyOrder("bad-book", "bad-book");
 
-    connection.beginTransaction(TransactionType.readWriteTransaction()).block();
+    connection.beginTransaction(
+        TransactionOptions.newBuilder()
+            .setReadWrite(ReadWrite.getDefaultInstance())
+            .build())
+        .block();
     Mono.from(connection.createStatement("DELETE FROM BOOKS WHERE true").execute()).block();
     connection.commitTransaction().block();
     titles =
