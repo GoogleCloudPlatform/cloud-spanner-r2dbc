@@ -24,7 +24,11 @@ It then opens a transaction and saves a `BOOKS` rows and reads them from the dat
 The application output will show the sequence of operations:
 
 ----
-
-
+ Table creation completed.
+ ...
+ Insert books transaction committed.
+ ...
+ Retrieved book: book1 Book One
+ Retrieved book: book2 Book Two
 ----
 
