@@ -20,4 +20,4 @@ Cloud Spanner R2DBC Driver supports the following types:
 |Timestamp     |java.sql.Timestamp |
 |Array         |Array-Variant of the corresponding Java type (e.g. Long[] for ARRAY\<INT64\>)|
 
-See Cloud Spanner documentation [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-types) to learn more about Spanner types.
+See [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-types) to learn more about Spanner types.
