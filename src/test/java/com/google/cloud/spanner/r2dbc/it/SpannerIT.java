@@ -31,16 +31,13 @@ import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactory;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
+import com.google.cloud.spanner.r2dbc.client.TransactionType;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.spanner.v1.DatabaseName;
 import com.google.spanner.v1.ListSessionsRequest;
 import com.google.spanner.v1.ListSessionsResponse;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
-import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.PartitionedDml;
-import com.google.spanner.v1.TransactionOptions.ReadOnly;
-import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -83,21 +80,6 @@ public class SpannerIT {
           .option(DATABASE, TEST_DATABASE)
           .build());
 
-  private static final TransactionOptions READ_WRITE_TRANSACTION =
-      TransactionOptions.newBuilder()
-          .setReadWrite(ReadWrite.getDefaultInstance())
-          .build();
-
-  private static final TransactionOptions PARTITIONED_DML =
-      TransactionOptions.newBuilder()
-          .setPartitionedDml(PartitionedDml.getDefaultInstance())
-          .build();
-
-  private static final TransactionOptions READ_ONLY =
-      TransactionOptions.newBuilder()
-          .setReadOnly(ReadOnly.getDefaultInstance())
-          .build();
-
   private SpannerStub spanner;
 
   private GrpcClient grpcClient;
@@ -112,7 +94,7 @@ public class SpannerIT {
     this.grpcClient = new GrpcClient(GoogleCredentials.getApplicationDefault());
     this.spanner = this.grpcClient.getSpanner();
 
-    executeDmlQuery("DELETE FROM books WHERE true", READ_WRITE_TRANSACTION);
+    executeDmlQuery("DELETE FROM books WHERE true", TransactionType.readWriteTransaction());
   }
 
   @After
@@ -247,7 +229,8 @@ public class SpannerIT {
         "JavaScript: The Good Parts by Douglas Crockford",
         "Effective Java by Joshua Bloch");
 
-    int rowsUpdated = executeDmlQuery("DELETE FROM books WHERE true", READ_WRITE_TRANSACTION);
+    int rowsUpdated = executeDmlQuery(
+        "DELETE FROM books WHERE true", TransactionType.readWriteTransaction());
     assertThat(rowsUpdated).isEqualTo(2);
   }
 
@@ -309,7 +292,7 @@ public class SpannerIT {
             .cast(SpannerConnection.class)
             .block();
 
-    connection.beginTransaction(PARTITIONED_DML).block();
+    connection.beginTransaction(TransactionType.partitionedDmlTransaction()).block();
     int rowsUpdated = Mono.from(
         connection.createStatement("UPDATE BOOKS SET TITLE = 'bad-book' WHERE true")
             .execute())
@@ -318,7 +301,7 @@ public class SpannerIT {
     connection.commitTransaction().block();
     assertThat(rowsUpdated).isEqualTo(2);
 
-    connection.beginTransaction(READ_ONLY).block();
+    connection.beginTransaction(TransactionType.readOnlyTransactionBuilder().build()).block();
     List<String> titles =
         Mono.from(connection.createStatement("SELECT title FROM BOOKS").execute())
             .flatMapMany(result -> result.map((row, rowMetadata) -> row.get(0, String.class)))
@@ -326,7 +309,7 @@ public class SpannerIT {
             .block();
     assertThat(titles).containsExactlyInAnyOrder("bad-book", "bad-book");
 
-    connection.beginTransaction(READ_WRITE_TRANSACTION).block();
+    connection.beginTransaction(TransactionType.readWriteTransaction()).block();
     Mono.from(connection.createStatement("DELETE FROM BOOKS WHERE true").execute()).block();
     connection.commitTransaction().block();
     titles =
@@ -341,12 +324,12 @@ public class SpannerIT {
   /**
    * Executes a DML query and returns the rows updated.
    */
-  private int executeDmlQuery(String sql, TransactionOptions transactionOptions) {
+  private int executeDmlQuery(String sql, TransactionType transactionType) {
     SpannerConnection connection =
         Mono.from(connectionFactory.create())
             .cast(SpannerConnection.class)
             .block();
-    Mono.from(connection.beginTransaction(transactionOptions)).block();
+    Mono.from(connection.beginTransaction(transactionType)).block();
 
     int rowsUpdated = Mono.from(connection.createStatement(sql).execute())
         .flatMap(result -> Mono.from(result.getRowsUpdated()))

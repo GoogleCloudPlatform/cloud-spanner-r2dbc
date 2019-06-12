@@ -16,8 +16,8 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import com.google.cloud.spanner.r2dbc.client.TransactionType;
 import com.google.spanner.v1.Transaction;
-import com.google.spanner.v1.TransactionOptions;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nullable;
 
@@ -30,13 +30,13 @@ public class SpannerTransactionContext {
 
   private final Transaction transaction;
 
-  private final TransactionOptions transactionOptions;
+  private final TransactionType transactionType;
 
   private SpannerTransactionContext(
-      Transaction transaction, TransactionOptions transactionOptions) {
+      Transaction transaction, TransactionType transactionType) {
 
     this.transaction = transaction;
-    this.transactionOptions = transactionOptions;
+    this.transactionType = transactionType;
   }
 
   public Transaction getTransaction() {
@@ -48,7 +48,7 @@ public class SpannerTransactionContext {
   }
 
   public boolean isReadWrite() {
-    return this.transactionOptions.hasReadWrite();
+    return this.transactionType.getTransactionOptions().hasReadWrite();
   }
 
   /**
@@ -57,10 +57,11 @@ public class SpannerTransactionContext {
    * @return spanner transaction context
    */
   public static @Nullable SpannerTransactionContext from(
-      Transaction transaction, TransactionOptions transactionOptions) {
+      Transaction transaction, TransactionType transactionType) {
+
     if (transaction == null) {
       return null;
     }
-    return new SpannerTransactionContext(transaction, transactionOptions);
+    return new SpannerTransactionContext(transaction, transactionType);
   }
 }

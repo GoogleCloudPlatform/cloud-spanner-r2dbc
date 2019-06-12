@@ -17,9 +17,8 @@
 package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.client.TransactionType;
 import com.google.spanner.v1.Session;
-import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
@@ -33,10 +32,8 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerConnection implements Connection {
 
-  private static final TransactionOptions READ_WRITE_TRANSACTION =
-      TransactionOptions.newBuilder()
-          .setReadWrite(ReadWrite.getDefaultInstance())
-          .build();
+  private static final TransactionType READ_WRITE_TRANSACTION =
+      TransactionType.readWriteTransaction();
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -50,6 +47,7 @@ public class SpannerConnection implements Connection {
 
   /**
    * Instantiates a Spanner session with given configuration.
+   *
    * @param client client controlling low-level Spanner operations
    * @param session Spanner session to use for all interactions on this connection.
    */
@@ -65,13 +63,13 @@ public class SpannerConnection implements Connection {
   }
 
   /**
-   * Begins a new transaction with the specified {@link TransactionOptions}.
+   * Begins a new transaction with the specified {@link TransactionType}.
    */
-  public Mono<Void> beginTransaction(TransactionOptions transactionOptions) {
-    return this.client.beginTransaction(this.session, transactionOptions)
+  public Mono<Void> beginTransaction(TransactionType transactionType) {
+    return this.client.beginTransaction(this.session, transactionType)
         .doOnNext(transaction ->
             this.transactionContext = SpannerTransactionContext.from(
-                transaction, transactionOptions))
+                transaction, transactionType))
         .then();
   }
 
@@ -86,7 +84,7 @@ public class SpannerConnection implements Connection {
 
       if (this.transactionContext == null) {
         this.logger.debug("commitTransaction() is a no-op; called with no transaction active.");
-      } else if (this.transactionContext.isReadWrite()) {
+      } else if (!this.transactionContext.isReadWrite()) {
         this.logger.debug("commitTransaction() is a no-op; "
             + "called outside of a read-write transaction.");
       }
@@ -149,6 +147,7 @@ public class SpannerConnection implements Connection {
 
   /**
    * Returns the Spanner session associated with the current {@link Connection}.
+   *
    * @return spanner session proto
    */
   public Session getSession() {

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.client.TransactionType;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.CommitResponse;
@@ -33,8 +34,6 @@ import com.google.spanner.v1.Session;
 import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Transaction;
-import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Statement;
@@ -55,10 +54,8 @@ public class SpannerConnectionTest {
   private static final Session TEST_SESSION =
       Session.newBuilder().setName("project/session/1234").build();
 
-  private static final TransactionOptions READ_WRITE_TRANSACTION =
-      TransactionOptions.newBuilder()
-          .setReadWrite(ReadWrite.getDefaultInstance())
-          .build();
+  private static final TransactionType READ_WRITE_TRANSACTION =
+      TransactionType.readWriteTransaction();
 
   private Client mockClient;
 
@@ -101,7 +98,7 @@ public class SpannerConnectionTest {
     assertThat(statement).isInstanceOf(SpannerStatement.class);
 
     StepVerifier.create(
-        ((Flux<SpannerResult>)statement.execute())
+        ((Flux<SpannerResult>) statement.execute())
             .flatMap(res -> res.map((r, m) -> (String) r.get(0))))
         .expectNext("Odyssey")
         .expectComplete()
@@ -131,12 +128,12 @@ public class SpannerConnectionTest {
 
     when(this.mockClient.beginTransaction(TEST_SESSION, READ_WRITE_TRANSACTION))
         .thenReturn(beginTransactionProbe.mono());
-    when(this.mockClient.commitTransaction(TEST_SESSION,  Transaction.getDefaultInstance()))
+    when(this.mockClient.commitTransaction(TEST_SESSION, Transaction.getDefaultInstance()))
         .thenReturn(commitTransactionProbe.mono());
 
     Mono.from(connection.beginTransaction())
-            .then(Mono.from(connection.commitTransaction()))
-            .subscribe();
+        .then(Mono.from(connection.commitTransaction()))
+        .subscribe();
     verify(this.mockClient, times(1))
         .beginTransaction(TEST_SESSION, READ_WRITE_TRANSACTION);
     verify(this.mockClient, times(1))
@@ -186,5 +183,48 @@ public class SpannerConnectionTest {
     SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
     SpannerStatement statement = connection.createStatement("SELECT 1");
     assertThat(statement.getPartialResultSetFetchSize()).isEqualTo(1);
+  }
+
+  @Test
+  public void testPartitionedDmlTransaction() {
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+
+    StepVerifier
+        .create(connection.beginTransaction(TransactionType.partitionedDmlTransaction()))
+        .verifyComplete();
+    verify(this.mockClient, times(1))
+        .beginTransaction(TEST_SESSION, TransactionType.partitionedDmlTransaction());
+
+    // Partitioned DML transactions should not be committed.
+    StepVerifier
+        .create(connection.commitTransaction())
+        .verifyComplete();
+    verify(this.mockClient, times(0))
+        .commitTransaction(any(), any());
+  }
+
+  @Test
+  public void testReadOnlyTransaction() {
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+
+    StepVerifier
+        .create(connection.beginTransaction(
+            TransactionType.readOnlyTransactionBuilder()
+                .setStrongRead(true)
+                .build()))
+        .verifyComplete();
+    verify(this.mockClient, times(1))
+        .beginTransaction(
+            TEST_SESSION,
+            TransactionType.readOnlyTransactionBuilder()
+                .setStrongRead(true)
+                .build());
+
+    // Partitioned DML transactions should not be committed.
+    StepVerifier
+        .create(connection.commitTransaction())
+        .verifyComplete();
+    verify(this.mockClient, times(0))
+        .commitTransaction(any(), any());
   }
 }
