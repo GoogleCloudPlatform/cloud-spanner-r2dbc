@@ -10,14 +10,16 @@ Cloud Spanner R2DBC Driver supports the following types:
 
 | Spanner Type | Java type         |
 |--------------|-------------------|
-|Bool          |java.lang.Bolean   |
-|Bytes         |byte[]             |
-|Date          |java.time.LocalDate|
-|Float64       |java.lang.Double   |
-|Int64         |java.lang.Long     |
-|Int64         |java.lang.Integer  |
-|String        |java.lang.String   |
-|Timestamp     |java.sql.Timestamp |
-|Array         |Array-Variant of the corresponding Java type (e.g. Long[] for ARRAY\<INT64\>)|
+|BOOL          |java.lang.Bolean   |
+|BYTES         |byte[]             |
+|DATE          |java.time.LocalDate|
+|FLOAT64       |java.lang.Double   |
+|INT64         |java.lang.Long     |
+|INT64         |java.lang.Integer  |
+|STRING        |java.lang.String   |
+|TIMESTAMP     |java.sql.Timestamp |
+|ARRAY         |Array-Variant of the corresponding Java type (e.g. Long[] for ARRAY\<INT64\>)|
+
+Null values mapping is supported in both directions.
 
 See [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-types) to learn more about Spanner types.
