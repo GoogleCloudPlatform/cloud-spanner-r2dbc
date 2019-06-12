@@ -181,7 +181,8 @@ public class SpannerConnectionTest {
 
   @Test
   public void testPartitionedDmlTransaction() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(
+        this.mockClient, TEST_SESSION, TEST_CONFIG);
 
     StepVerifier
         .create(connection.beginTransaction(TransactionType.partitionedDmlTransaction()))
@@ -199,7 +200,8 @@ public class SpannerConnectionTest {
 
   @Test
   public void testReadOnlyTransaction() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(
+        this.mockClient, TEST_SESSION, TEST_CONFIG);
 
     StepVerifier
         .create(connection.beginTransaction(
