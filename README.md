@@ -7,17 +7,24 @@ An implementation of the [R2DBC](https://r2dbc.io/) driver for [Cloud Spanner](h
 ## Setup Instructions
 
 This section describes how to setup and begin using the Cloud Spanner R2DBC driver.
+Below are the dependencies to add to your build configuration.
 
-### Maven
-
-Below is the Maven coordinates for this driver:
+### Maven Coordinates
 
 ```
 <dependency>
   <groupId>com.google.cloud</groupId>
   <artifactId>cloud-spanner-r2dbc</artifactId>
-  <version> TBD </version>
+  <version>0.1.0-SNAPSHOT</version>
 </dependency>
+```
+
+### Gradle Coordinates
+
+```
+dependencies {
+  compile group: 'com.google.cloud', name: 'cloud-spanner-r2dbc', version: '0.1.0-SNAPSHOT'
+}
 ```
 
 ### Usage
