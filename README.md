@@ -7,17 +7,24 @@ An implementation of the [R2DBC](https://r2dbc.io/) driver for [Cloud Spanner](h
 ## Setup Instructions
 
 This section describes how to setup and begin using the Cloud Spanner R2DBC driver.
+Below are the dependencies to add to your build configuration.
 
-### Maven
-
-Below is the Maven coordinates for this driver:
+### Maven Coordinates
 
 ```
 <dependency>
   <groupId>com.google.cloud</groupId>
   <artifactId>cloud-spanner-r2dbc</artifactId>
-  <version> TBD </version>
+  <version>0.1.0-SNAPSHOT</version>
 </dependency>
+```
+
+### Gradle Coordinates
+
+```
+dependencies {
+  compile group: 'com.google.cloud', name: 'cloud-spanner-r2dbc', version: '0.1.0-SNAPSHOT'
+}
 ```
 
 ### Usage
@@ -48,9 +55,11 @@ The following options are available to be configured for the connection factory:
 | `PROJECT`   | Your GCP Project ID        | True     |               |
 | `INSTANCE`  | Your Spanner Instance name | True     |               |
 | `DATABASE`  | Your Spanner Database name | True     |               |
+| `GOOGLE_CREDENTIALS` | Optional [Google credentials](https://cloud.google.com/docs/authentication/production) to specify for your Google Cloud account. | False | If not provided, credentials will be [inferred from your runtime environment](https://cloud.google.com/docs/authentication/production#finding_credentials_automatically).
 | `PARTIAL_RESULT_SET_FETCH_SIZE` | Number of intermediate result sets that are buffered in transit for a read query. | False | 1 |
 | `DDL_OPERATION_TIMEOUT` | Duration to wait for a DDL operation to complete before timing out | False | 600 seconds |
 | `DDL_OPERATION_POLL_INTERVAL` | Duration to wait between each polling request for the completion of a DDL operation | False | 5 seconds |
+
 
 ## Mapping of Data Types
 
