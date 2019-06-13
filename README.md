@@ -49,6 +49,8 @@ The following options are available to be configured for the connection factory:
 | `INSTANCE`  | Your Spanner Instance name | True     |               |
 | `DATABASE`  | Your Spanner Database name | True     |               |
 | `PARTIAL_RESULT_SET_FETCH_SIZE` | Number of intermediate result sets that are buffered in transit for a read query. | False | 1 |
+| `DDL_OPERATION_TIMEOUT` | Duration to wait for a DDL operation to complete before timing out | False | 600 seconds |
+| `DDL_OPERATION_POLL_INTERVAL` | Duration to wait between each polling request for the completion of a DDL operation | False | 5 seconds |
 
 ## Mapping of Data Types
 
