@@ -1,4 +1,6 @@
 #!/bin/bash
 
-./mvnw verify -B -V -DskipITs
 
+pushd ..
+./mvnw verify -B -V -DskipITs
+popd
