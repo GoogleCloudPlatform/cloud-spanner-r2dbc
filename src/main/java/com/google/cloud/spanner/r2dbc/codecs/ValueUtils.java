@@ -126,7 +126,7 @@ class ValueUtils {
     if (value.getKindCase() == KindCase.NULL_VALUE || value.getStringValue() == null) {
       return null;
     }
-    return ByteBuffer.wrap(value.getStringValue().getBytes());
+    return ByteBuffer.wrap(value.getStringValueBytes().toByteArray());
   }
 
   private static java.sql.Timestamp parseTimestamp(Value proto) {
