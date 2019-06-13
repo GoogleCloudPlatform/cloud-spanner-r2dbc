@@ -9,6 +9,64 @@
   <version>0.1.0-SNAPSHOT</version>
 
   <name>Google Cloud Spanner R2DBC</name>
+  <description>Reactive R2DBC driver implementation for Cloud Spanner.</description>
+  <url>https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc</url>
+
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>ChengyuanZhao</id>
+      <name>Chengyuan Zhao</name>
+      <email>cccz@google.com</email>
+      <organization>Google</organization>
+      <organizationUrl>http://www.google.com</organizationUrl>
+    </developer>
+    <developer>
+      <id>dmitry-s</id>
+      <name>Dmitry Solomakha</name>
+      <email>dsolomakha@google.com</email>
+      <organization>Google</organization>
+      <organizationUrl>http://www.google.com</organizationUrl>
+    </developer>
+    <developer>
+      <id>dzou</id>
+      <name>Daniel Zou</name>
+      <email>dzou@google.com</email>
+      <organization>Google</organization>
+      <organizationUrl>http://www.google.com</organizationUrl>
+    </developer>
+    <developer>
+      <id>elefeint</id>
+      <name>Elena Felder</name>
+      <email>elfel@google.com</email>
+      <organization>Google</organization>
+      <organizationUrl>http://www.google.com</organizationUrl>
+    </developer>
+    <developer>
+      <id>meltsufin</id>
+      <name>Mike Eltsufin</name>
+      <email>meltsufin@google.com</email>
+      <organization>Google</organization>
+      <organizationUrl>http://www.google.com</organizationUrl>
+    </developer>
+  </developers>
+
+  <organization>
+    <name>Google LLC</name>
+  </organization>
+
+  <scm>
+    <connection>scm:git:git@github.com:GoogleCloudPlatform/cloud-spanner-r2dbc.git</connection>
+    <developerConnection>scm:git:git@github.com:GoogleCloudPlatform/cloud-spanner-r2dbc.git</developerConnection>
+    <url>https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc</url>
+    <tag>HEAD</tag>
+  </scm>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
