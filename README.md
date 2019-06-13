@@ -24,6 +24,28 @@ Null values mapping is supported in both directions.
 
 See [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-types) to learn more about Spanner types.
 
+## Binding Query Parameters
+
+The Cloud Spanner R2DBC driver supports named parameter binding using Cloud Spanner's [parameter syntax](https://cloud.google.com/spanner/docs/sql-best-practices).
+
+SQL and DML statements can be constructed with parameters:
+```java
+mySpannerConnection.createStatement(
+  "INSERT BOOKS (ID, TITLE) VALUES (@id, @title)")
+  .bind("id", "book-id-1")
+  .bind("title", "Book One")
+  .add()
+  .bind("id", "book-id-2")
+  .bind("title", "Book Two")
+  .execute();
+``` 
+
+The parameter identifiers must be `String`. 
+Positional parameters are not supported.
+
+The example above binds two sets of parameters to a single DML template. 
+It will produce a `Flux` containing two `SpannerResult` objects for the two instances of the statement that are executed. 
+
 ## Back Pressure
 
 Table rows are transmitted from Cloud Spanner in fragments called `PartialResultset`.
