@@ -26,7 +26,6 @@ See [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-typ
 
 ## Back Pressure
 
-Cloud Spanner does not support true back pressure. 
 Table rows are transmitted from Cloud Spanner in fragments called `PartialResultset`.
 The number of fragments for each row cannot be determined beforehand. 
 While you can decide the number of rows you request from `SpannerResult`, the Cloud Spanner R2DBC driver will always request a fixed number of fragments from Cloud Spanner to fulfill your request and will do so repeatedly if necessary.
