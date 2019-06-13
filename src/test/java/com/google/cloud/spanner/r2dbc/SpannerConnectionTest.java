@@ -37,6 +37,10 @@ import com.google.spanner.v1.Session;
 import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.PartitionedDml;
+import com.google.spanner.v1.TransactionOptions.ReadOnly;
+import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Statement;
@@ -44,6 +48,7 @@ import java.util.Collections;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -54,10 +59,33 @@ import reactor.test.publisher.PublisherProbe;
  */
 public class SpannerConnectionTest {
 
-  private static final Session TEST_SESSION =
-      Session.newBuilder().setName("project/session/1234").build();
+  static final String TEST_SESSION_NAME = "project/session/1234";
+  static final Session TEST_SESSION =
+      Session.newBuilder().setName(TEST_SESSION_NAME).build();
   static final Struct EMPTY_STRUCT = Struct.newBuilder().build();
   static final Map<String, Type> EMPTY_TYPE_MAP = Collections.emptyMap();
+
+  private static final SpannerConnectionConfiguration TEST_CONFIG =
+      new SpannerConnectionConfiguration.Builder()
+          .setInstanceName("test-instance")
+          .setProjectId("project")
+          .setDatabaseName("db")
+          .build();
+
+  private static final TransactionOptions READ_WRITE_TRANSACTION =
+      TransactionOptions.newBuilder()
+          .setReadWrite(ReadWrite.getDefaultInstance())
+          .build();
+
+  private static final TransactionOptions PARTITIONED_DML_TRANSACTION =
+      TransactionOptions.newBuilder()
+          .setPartitionedDml(PartitionedDml.getDefaultInstance())
+          .build();
+
+  private static final TransactionOptions READ_ONLY_TRANSACTION =
+      TransactionOptions.newBuilder()
+          .setReadOnly(ReadOnly.getDefaultInstance())
+          .build();
 
   private Client mockClient;
 
@@ -68,21 +96,29 @@ public class SpannerConnectionTest {
   public void setupMocks() {
     this.mockClient = mock(Client.class);
 
-    when(this.mockClient.beginTransaction(any(ExecutionContext.class)))
+    when(this.mockClient.beginTransaction(any(), any()))
         .thenReturn(Mono.just(Transaction.getDefaultInstance()));
-    when(this.mockClient.commitTransaction(any(ExecutionContext.class)))
+    when(this.mockClient.commitTransaction(any(), any()))
         .thenReturn(Mono.just(CommitResponse.getDefaultInstance()));
-    when(this.mockClient.rollbackTransaction(any(ExecutionContext.class)))
+    when(this.mockClient.rollbackTransaction(any(), any()))
         .thenReturn(Mono.empty());
   }
 
   @Test
   public void executeStatementReturnsWorkingStatementWithCorrectQuery() {
+    SpannerConnectionConfiguration mockConfiguration
+        = Mockito.mock(SpannerConnectionConfiguration.class);
 
     SpannerConnection connection
-        = new SpannerConnection(this.mockClient, TEST_SESSION);
-    connection.setPartialResultSetFetchSize(1);
+        = new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
     String sql = "select book from library";
+    PartialResultSet partialResultSet = PartialResultSet.newBuilder()
+        .setMetadata(ResultSetMetadata.newBuilder().setRowType(StructType.newBuilder()
+            .addFields(
+                Field.newBuilder().setName("book")
+                    .setType(Type.newBuilder().setCode(TypeCode.STRING)))))
+        .addValues(Value.newBuilder().setStringValue("Odyssey"))
+        .build();
 
     when(this.mockClient.executeStreamingSql(
           any(ExecutionContext.class), eq(sql), eq(EMPTY_STRUCT), eq(EMPTY_TYPE_MAP)))
@@ -92,7 +128,7 @@ public class SpannerConnectionTest {
     assertThat(statement).isInstanceOf(SpannerStatement.class);
 
     StepVerifier.create(
-        ((Flux<SpannerResult>)statement.execute())
+        ((Flux<SpannerResult>) statement.execute())
             .flatMap(res -> res.map((r, m) -> (String) r.get(0))))
         .expectNext("Odyssey")
         .expectComplete()
@@ -104,34 +140,36 @@ public class SpannerConnectionTest {
 
   @Test
   public void noopCommitTransactionWhenTransactionNotStarted() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection =
+        new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
 
     // No-op commit when connection is not started.
     Mono.from(connection.commitTransaction()).block();
-    verify(this.mockClient, never()).commitTransaction(any(ExecutionContext.class));
+    verify(this.mockClient, never()).commitTransaction(any(), any());
   }
 
   @Test
   public void beginAndCommitTransactions() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection =
+        new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
 
     PublisherProbe<Transaction> beginTransactionProbe = PublisherProbe.of(
         Mono.just(Transaction.getDefaultInstance()));
     PublisherProbe<CommitResponse> commitTransactionProbe = PublisherProbe.of(
         Mono.just(CommitResponse.getDefaultInstance()));
 
-    when(this.mockClient.beginTransaction(any(ExecutionContext.class)))
+    when(this.mockClient.beginTransaction(TEST_SESSION_NAME, READ_WRITE_TRANSACTION))
         .thenReturn(beginTransactionProbe.mono());
-    when(this.mockClient.commitTransaction(any(ExecutionContext.class)))
+    when(this.mockClient.commitTransaction(TEST_SESSION_NAME, Transaction.getDefaultInstance()))
         .thenReturn(commitTransactionProbe.mono());
 
     Mono.from(connection.beginTransaction())
-            .then(Mono.from(connection.commitTransaction()))
-            .subscribe();
+        .then(Mono.from(connection.commitTransaction()))
+        .subscribe();
     verify(this.mockClient, times(1))
-        .beginTransaction(any(ExecutionContext.class));
+        .beginTransaction(TEST_SESSION_NAME, READ_WRITE_TRANSACTION);
     verify(this.mockClient, times(1))
-        .commitTransaction(any(ExecutionContext.class));
+        .commitTransaction(TEST_SESSION_NAME, Transaction.getDefaultInstance());
 
     beginTransactionProbe.assertWasSubscribed();
     commitTransactionProbe.assertWasSubscribed();
@@ -139,65 +177,72 @@ public class SpannerConnectionTest {
 
   @Test
   public void rollbackTransactions() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection =
+        new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
 
     PublisherProbe<Transaction> beginTransactionProbe = PublisherProbe.of(
         Mono.just(Transaction.getDefaultInstance()));
     PublisherProbe<Void> rollbackProbe = PublisherProbe.empty();
 
-    when(this.mockClient.beginTransaction(any(ExecutionContext.class)))
+    when(this.mockClient.beginTransaction(TEST_SESSION_NAME, READ_WRITE_TRANSACTION))
         .thenReturn(beginTransactionProbe.mono());
-    when(this.mockClient.rollbackTransaction(any(ExecutionContext.class)))
+    when(this.mockClient.rollbackTransaction(TEST_SESSION_NAME, Transaction.getDefaultInstance()))
         .thenReturn(rollbackProbe.mono());
 
     Mono.from(connection.rollbackTransaction()).block();
-    verify(this.mockClient, never()).rollbackTransaction(any(ExecutionContext.class));
+    verify(this.mockClient, never()).rollbackTransaction(any(), any());
 
     Mono.from(connection.beginTransaction()).block();
     Mono.from(connection.rollbackTransaction()).block();
-    verify(this.mockClient, times(1)).beginTransaction(any(ExecutionContext.class));
-    verify(this.mockClient, times(1)).rollbackTransaction(any(ExecutionContext.class));
+    verify(this.mockClient, times(1))
+        .beginTransaction(TEST_SESSION_NAME, READ_WRITE_TRANSACTION);
+    verify(this.mockClient, times(1))
+        .rollbackTransaction(TEST_SESSION_NAME, Transaction.getDefaultInstance());
 
     beginTransactionProbe.assertWasSubscribed();
     rollbackProbe.assertWasSubscribed();
   }
 
   @Test
-  public void setPartialResultSetFetchSizePropagatesToStatement() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
-    connection.setPartialResultSetFetchSize(42);
-    SpannerStatement statement = connection.createStatement("SELECT 1");
-    assertThat(statement.getPartialResultSetFetchSize()).isEqualTo(42);
-  }
+  public void testCustomTransactionType() {
+    SpannerConnection connection = new SpannerConnection(
+        this.mockClient, TEST_SESSION, TEST_CONFIG);
 
-  @Test
-  public void nullPartialResultSetFetchSizeLeavesStatementDefault() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
-    SpannerStatement statement = connection.createStatement("SELECT 1");
-    assertThat(statement.getPartialResultSetFetchSize()).isEqualTo(1);
+    StepVerifier
+        .create(connection.beginTransaction(PARTITIONED_DML_TRANSACTION))
+        .verifyComplete();
+    verify(this.mockClient, times(1))
+        .beginTransaction(TEST_SESSION_NAME, PARTITIONED_DML_TRANSACTION);
+
+    // Partitioned DML transactions should not be committed.
+    StepVerifier
+        .create(connection.commitTransaction())
+        .verifyComplete();
+    verify(this.mockClient, times(0))
+        .commitTransaction(any(), any());
   }
 
   @Test
   public void executionContextHasCorrectSessionName() {
     SpannerConnection connection = new SpannerConnection(
-        this.mockClient, Session.newBuilder().setName("session-name").build());
+        this.mockClient, Session.newBuilder().setName("session-name").build(), null);
     assertThat(connection.getExecutionContext().getSessionName()).isEqualTo("session-name");
   }
 
   @Test
   public void executionContextDoesNotHaveTransactionWhenInitialized() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
     assertThat(connection.getExecutionContext().getTransactionId()).isNull();
   }
 
   @Test
   public void executionContextHasCorrectTransactionIdWhenTransactionSet() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
     ByteString transactionId = ByteString.copyFrom("transaction-id".getBytes());
 
-    when(this.mockClient.beginTransaction(any(ExecutionContext.class)))
+    when(this.mockClient.beginTransaction(eq(TEST_SESSION_NAME), any()))
         .thenReturn(Mono.just(Transaction.newBuilder().setId(transactionId).build()));
-    when(this.mockClient.rollbackTransaction(any(ExecutionContext.class)))
+    when(this.mockClient.rollbackTransaction(eq(TEST_SESSION_NAME), any()))
         .thenReturn(Mono.empty());
 
     StepVerifier.create(connection.beginTransaction()).verifyComplete();
@@ -209,7 +254,7 @@ public class SpannerConnectionTest {
 
   @Test
   public void nextSeqNumIsSequential() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION);
+    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
     long prevNum = connection.getExecutionContext().nextSeqNum();
 
     for (int i = 0; i < 9; i++) {

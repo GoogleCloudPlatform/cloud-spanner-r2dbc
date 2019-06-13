@@ -17,12 +17,19 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.spanner.r2dbc.ExecutionContext;
+import com.google.cloud.spanner.r2dbc.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.longrunning.GetOperationRequest;
+import com.google.longrunning.Operation;
+import com.google.longrunning.OperationsGrpc;
+import com.google.longrunning.OperationsGrpc.OperationsStub;
 import com.google.protobuf.Empty;
 import com.google.protobuf.Struct;
+import com.google.spanner.admin.database.v1.DatabaseAdminGrpc;
+import com.google.spanner.admin.database.v1.DatabaseAdminGrpc.DatabaseAdminStub;
+import com.google.spanner.admin.database.v1.UpdateDatabaseDdlRequest;
 import com.google.spanner.v1.BeginTransactionRequest;
 import com.google.spanner.v1.CommitRequest;
 import com.google.spanner.v1.CommitResponse;
@@ -38,13 +45,14 @@ import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.TransactionSelector;
 import com.google.spanner.v1.Type;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.auth.MoreCallCredentials;
+import io.r2dbc.spi.R2dbcNonTransientResourceException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import reactor.core.publisher.Flux;
@@ -66,6 +74,8 @@ public class GrpcClient implements Client {
 
   private final ManagedChannel channel;
   private final SpannerStub spanner;
+  private final DatabaseAdminStub databaseAdmin;
+  private final OperationsStub operations;
 
   /**
    * Initializes the Cloud Spanner gRPC async stub.
@@ -80,28 +90,35 @@ public class GrpcClient implements Client {
         .userAgent(USER_AGENT_LIBRARY_NAME + "/" + PACKAGE_VERSION)
         .build();
 
-    // Create the asynchronous stub for Cloud Spanner
+    // Async stub for general Spanner SQL queries
     this.spanner = SpannerGrpc.newStub(this.channel)
         .withCallCredentials(callCredentials);
+
+    // Async stub for DDL queries
+    this.databaseAdmin = DatabaseAdminGrpc.newStub(this.channel)
+        .withCallCredentials(callCredentials);
+
+    this.operations = OperationsGrpc.newStub(this.channel).withCallCredentials(callCredentials);
   }
 
   @VisibleForTesting
-  GrpcClient(SpannerStub spanner) {
+  GrpcClient(SpannerStub spanner, DatabaseAdminStub databaseAdmin, OperationsStub operations) {
     this.spanner = spanner;
+    this.databaseAdmin = databaseAdmin;
+    this.operations = operations;
     this.channel = null;
   }
 
   @Override
-  public Mono<Transaction> beginTransaction(ExecutionContext ctx) {
+  public Mono<Transaction> beginTransaction(
+      String sessionName, TransactionOptions transactionOptions) {
+
     return Mono.defer(() -> {
-      Assert.requireNonNull(ctx.getSessionName(), "Session name must not be null");
+      Assert.requireNonNull(sessionName, "Session name must not be null");
       BeginTransactionRequest beginTransactionRequest =
           BeginTransactionRequest.newBuilder()
-              .setSession(ctx.getSessionName())
-              .setOptions(
-                  TransactionOptions
-                      .newBuilder()
-                      .setReadWrite(ReadWrite.getDefaultInstance()))
+              .setSession(sessionName)
+              .setOptions(transactionOptions)
               .build();
 
       return ObservableReactiveUtil.unaryCall(
@@ -110,15 +127,15 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<CommitResponse> commitTransaction(ExecutionContext ctx) {
+  public Mono<CommitResponse> commitTransaction(String sessionName, Transaction transaction) {
     return Mono.defer(() -> {
-      Assert.requireNonNull(ctx.getSessionName(), "Session name must not be null");
-      Assert.requireNonEmpty(ctx.getTransactionId(), "Transaction ID must not be empty");
+      Assert.requireNonNull(sessionName, "Session name must not be null");
+      Assert.requireNonEmpty(transaction.getId(), "Transaction ID must not be empty");
 
       CommitRequest commitRequest =
           CommitRequest.newBuilder()
-              .setSession(ctx.getSessionName())
-              .setTransactionId(ctx.getTransactionId())
+              .setSession(sessionName)
+              .setTransactionId(transaction.getId())
               .build();
 
       return ObservableReactiveUtil.unaryCall(
@@ -127,15 +144,15 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<Void> rollbackTransaction(ExecutionContext ctx) {
+  public Mono<Void> rollbackTransaction(String sessionName, Transaction transaction) {
     return Mono.defer(() -> {
-      Assert.requireNonNull(ctx.getSessionName(), "Session name must not be null");
-      Assert.requireNonEmpty(ctx.getTransactionId(), "Transaction ID must not be empty");
+      Assert.requireNonNull(sessionName, "Session name must not be null");
+      Assert.requireNonEmpty(transaction.getId(), "Transaction ID must not be empty");
 
       RollbackRequest rollbackRequest =
           RollbackRequest.newBuilder()
-              .setSession(ctx.getSessionName())
-              .setTransactionId(ctx.getTransactionId())
+              .setSession(sessionName)
+              .setTransactionId(transaction.getId())
               .build();
 
       return ObservableReactiveUtil.<Empty>unaryCall(
@@ -158,13 +175,13 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<Void> deleteSession(ExecutionContext ctx) {
+  public Mono<Void> deleteSession(String sessionName) {
     return Mono.defer(() -> {
-      Assert.requireNonNull(ctx.getSessionName(), "Session name must not be null");
+      Assert.requireNonNull(sessionName, "Session name must not be null");
 
       DeleteSessionRequest deleteSessionRequest =
           DeleteSessionRequest.newBuilder()
-              .setName(ctx.getSessionName())
+              .setName(sessionName)
               .build();
 
       return ObservableReactiveUtil.<Empty>unaryCall(
@@ -174,7 +191,7 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<ExecuteBatchDmlResponse> executeBatchDml(ExecutionContext ctx, String sql,
+  public Mono<ExecuteBatchDmlResponse> executeBatchDml(SpannerConnection.Context ctx, String sql,
       List<Struct> params, Map<String, Type> types) {
     return Mono.defer(() -> {
       ExecuteBatchDmlRequest.Builder request = ExecuteBatchDmlRequest.newBuilder()
@@ -199,7 +216,7 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Flux<PartialResultSet> executeStreamingSql(ExecutionContext ctx, String sql,
+  public Flux<PartialResultSet> executeStreamingSql(SpannerConnection.Context ctx, String sql,
       Struct params, Map<String, Type> types) {
 
     return Flux.defer(() -> {
@@ -224,6 +241,45 @@ public class GrpcClient implements Client {
 
       return ObservableReactiveUtil.streamingCall(
           obs -> this.spanner.executeStreamingSql(executeSqlRequest.build(), obs));
+    });
+  }
+
+  @Override
+  public Mono<Operation> executeDdl(
+      String fullyQualifiedDatabaseName,
+      List<String> ddlStatements,
+      Duration ddlOperationTimeout,
+      Duration ddlPollInterval) {
+
+    UpdateDatabaseDdlRequest ddlRequest =
+        UpdateDatabaseDdlRequest.newBuilder()
+            .setDatabase(fullyQualifiedDatabaseName)
+            .addAllStatements(ddlStatements)
+            .build();
+
+    Mono<Operation> ddlResponse =
+        ObservableReactiveUtil.unaryCall(
+            obs -> this.databaseAdmin.updateDatabaseDdl(ddlRequest, obs));
+
+    return ddlResponse.flatMap(ddlOperation -> {
+      GetOperationRequest getRequest =
+          GetOperationRequest.newBuilder()
+              .setName(ddlOperation.getName())
+              .build();
+
+      return ObservableReactiveUtil
+          .<Operation>unaryCall(obs -> this.operations.getOperation(getRequest, obs))
+          .repeatWhen(completed -> completed.delayElements(ddlPollInterval))
+          .takeUntil(Operation::getDone)
+          .last()
+          .timeout(ddlOperationTimeout)
+          .handle((operation, sink) -> {
+            if (operation.hasError()) {
+              sink.error(new R2dbcNonTransientResourceException(operation.getError().getMessage()));
+            } else {
+              sink.next(operation);
+            }
+          });
     });
   }
 

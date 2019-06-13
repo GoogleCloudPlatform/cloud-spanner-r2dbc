@@ -20,6 +20,8 @@ import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.protobuf.ByteString;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
@@ -35,28 +37,42 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerConnection implements Connection {
 
+  private static final TransactionOptions READ_WRITE_TRANSACTION =
+      TransactionOptions.newBuilder()
+          .setReadWrite(ReadWrite.getDefaultInstance())
+          .build();
+
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
   private final Client client;
 
-  private volatile SpannerExecutionContext ctx;
+  private final SpannerConnectionConfiguration config;
 
-  private Integer partialResultSetFetchSize;
+  private volatile Context ctx;
 
   /**
    * Instantiates a Spanner session with given configuration.
    * @param client client controlling low-level Spanner operations
    * @param session Spanner session to use for all interactions on this connection.
    */
-  public SpannerConnection(Client client, Session session) {
+  public SpannerConnection(Client client, Session session, SpannerConnectionConfiguration config) {
     this.client = client;
-    this.ctx = new SpannerExecutionContext(session);
+    this.ctx = new Context(session);
+    this.config = config;
   }
 
   @Override
   public Publisher<Void> beginTransaction() {
-    return this.client.beginTransaction(this.ctx)
-        .doOnNext(transaction -> this.ctx.setTransaction(transaction))
+    return this.beginTransaction(READ_WRITE_TRANSACTION);
+  }
+
+  /**
+   * Begins a new transaction with the specified {@link TransactionOptions}.
+   */
+  public Mono<Void> beginTransaction(TransactionOptions transactionOptions) {
+    return this.client.beginTransaction(this.ctx.getSessionName(), transactionOptions)
+        .doOnNext(
+            transaction -> this.ctx.setTransaction(transaction, transactionOptions))
         .then();
   }
 
@@ -65,37 +81,43 @@ public class SpannerConnection implements Connection {
     return commitTransaction(true);
   }
 
-  private Mono<Void> commitTransaction(boolean logWarning) {
+  private Mono<Void> commitTransaction(boolean logMessage) {
     return Mono.defer(() -> {
-      if (this.ctx.getTransactionId() == null) {
-        if (logWarning) {
-          this.logger.warn("commitTransaction() is a no-op; called with no transaction active.");
-        }
-        return Mono.empty();
+      if (this.ctx.getTransactionId() != null && this.ctx.isReadWrite()) {
+        return this.client.commitTransaction(
+            this.ctx.getSessionName(), this.ctx.getTransaction())
+            .doOnNext(response -> this.ctx.setTransaction(null, null))
+            .then();
       }
 
-      return this.client.commitTransaction(this.ctx)
-          .doOnNext(response -> this.ctx.setTransaction(null))
-          .then();
+      if (logMessage) {
+        if (this.ctx.getTransactionId() == null) {
+          this.logger.debug("commitTransaction() is a no-op; called with no transaction active.");
+        } else if (!this.ctx.isReadWrite()) {
+          this.logger.debug("commitTransaction() is a no-op; "
+              + "called outside of a read-write transaction.");
+        }
+      }
+      return Mono.empty();
     });
   }
 
   @Override
-  public Publisher<Void> rollbackTransaction() {
+  public Mono<Void> rollbackTransaction() {
     return Mono.defer(() -> {
       if (this.ctx.getTransactionId() == null) {
         this.logger.warn("rollbackTransaction() is a no-op; called with no transaction active.");
         return Mono.empty();
       }
 
-      return this.client.rollbackTransaction(this.ctx)
-          .doOnSuccess(response -> this.ctx.setTransaction(null));
+      return this.client
+            .rollbackTransaction(this.ctx.getSessionName(), this.ctx.getTransaction());
     });
   }
 
   @Override
-  public Publisher<Void> close() {
-    return commitTransaction(false).then(this.client.deleteSession(this.ctx));
+  public Mono<Void> close() {
+    return commitTransaction(false).then(this.client.deleteSession(this.ctx.getSessionName()));
   }
 
   @Override
@@ -110,9 +132,8 @@ public class SpannerConnection implements Connection {
 
   @Override
   public SpannerStatement createStatement(String sql) {
-    SpannerStatement statement = new SpannerStatement(this.client, this.ctx, sql);
-
-    statement.setPartialResultSetFetchSize(this.partialResultSetFetchSize);
+    SpannerStatement statement
+        = new SpannerStatement(this.client, this.ctx, sql, this.config);
 
     return statement;
   }
@@ -133,17 +154,13 @@ public class SpannerConnection implements Connection {
   }
 
   /**
-   * Returns the {@link ExecutionContext} associated with the current {@link Connection}.
+   * Returns the {@link Context} associated with the current {@link Connection}.
    * The context is aware of the current session and optional transaction. It also provides
    * monotonically increasing {@codde seqNo} used for multiple DML statements within a transaction.
    * @return execution context
    */
-  public ExecutionContext getExecutionContext() {
+  public Context getExecutionContext() {
     return this.ctx;
-  }
-
-  public void setPartialResultSetFetchSize(Integer fetchSize) {
-    this.partialResultSetFetchSize = fetchSize;
   }
 
 
@@ -151,11 +168,13 @@ public class SpannerConnection implements Connection {
    * A class to hold session and transaction-related data that needs to be communicated from
    * {@link SpannerConnection} to {@link SpannerStatement}.
    */
-  private static class SpannerExecutionContext implements ExecutionContext {
+  public static class Context {
 
     private Session session;
 
     private Transaction transaction;
+
+    private TransactionOptions transactionOptions;
 
     private AtomicLong seqNum = new AtomicLong(0);
 
@@ -164,7 +183,7 @@ public class SpannerConnection implements Connection {
      * Sessions are immutable in the execution context.
      * @param session the session under which the current context is used.
      */
-    private SpannerExecutionContext(Session session) {
+    private Context(Session session) {
       this.session = session;
     }
 
@@ -173,12 +192,17 @@ public class SpannerConnection implements Connection {
      * Transactions are mutable in the execution context.
      * @param transaction the newly opened transaction
      */
-    private void setTransaction(@Nullable Transaction transaction) {
+    private void setTransaction(@Nullable Transaction transaction, TransactionOptions options) {
       this.transaction = transaction;
+      this.transactionOptions = transactionOptions;
     }
 
     public ByteString getTransactionId() {
       return this.transaction == null ? null : this.transaction.getId();
+    }
+
+    public Transaction getTransaction() {
+      return this.transaction;
     }
 
     public String getSessionName() {
@@ -187,6 +211,14 @@ public class SpannerConnection implements Connection {
 
     public long nextSeqNum() {
       return this.seqNum.getAndIncrement();
+    }
+
+    public boolean isReadWrite() {
+      return this.transactionOptions.hasReadWrite();
+    }
+
+    public boolean isPartitionedDml() {
+      return this.transactionOptions.hasPartitionedDml();
     }
 
   }

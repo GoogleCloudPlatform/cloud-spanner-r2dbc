@@ -16,14 +16,17 @@
 
 package com.google.cloud.spanner.r2dbc.client;
 
-import com.google.cloud.spanner.r2dbc.ExecutionContext;
+import com.google.cloud.spanner.r2dbc.SpannerConnection;
+import com.google.longrunning.Operation;
 import com.google.protobuf.Struct;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
+import com.google.spanner.v1.TransactionOptions;
 import com.google.spanner.v1.Type;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import reactor.core.publisher.Flux;
@@ -33,59 +36,79 @@ import reactor.core.publisher.Mono;
  * An abstraction that wraps interaction with the Cloud Spanner Database APIs.
  */
 public interface Client {
+
   /**
    * Create a Spanner session to be used in subsequent interactions with the database.
-   * @param databaseName Fully qualified Spanner database name in the format
-   * {@code projects/[PROJECT_ID]/instances/[INSTANCE]/databases/[DATABASE]}
+   *
+   * @param databaseName Fully qualified Spanner database name in the format {@code
+   * projects/[PROJECT_ID]/instances/[INSTANCE]/databases/[DATABASE]}
    * @returns {@link Mono} of the generated session.
    */
   Mono<Session> createSession(String databaseName);
 
   /**
    * Deletes a Spanner session that is used to call Spanner APIs.
-   * @param ctx Execution context containing the current session.
+   *
+   * @param sessionName name of existing Cloud Spanner session to be closed.
    * @return {@link Mono} indicating completion closing the session.
    */
-  Mono<Void> deleteSession(ExecutionContext ctx);
+  Mono<Void> deleteSession(String sessionName);
 
   /**
    * Begins a new Spanner {@link Transaction} within the provided {@link Session}.
-   * @param ctx Execution context containing the current session.
+   *
+   * @param sessionName name of existing Cloud Spanner session.
+   * @param transactionOptions properties determining the type of transaction to create
    * @returns {@link Mono} of the transaction that was started.
    */
-  Mono<Transaction> beginTransaction(ExecutionContext ctx);
+  Mono<Transaction> beginTransaction(String sessionName, TransactionOptions transactionOptions);
 
   /**
    * Commits a Spanner {@link Transaction} within the provided {@link Session}.
-   * @param ctx Execution context containing the current session and transaction.
+   *
+   * @param sessionName name of existing Cloud Spanner session
+   * @param transaction The transaction that you want to commit.
    * @returns {@link CommitResponse} describing the timestamp at which the transaction committed.
    */
-  Mono<CommitResponse> commitTransaction(ExecutionContext ctx);
+  Mono<CommitResponse> commitTransaction(String sessionName, Transaction transaction);
 
 
   /**
    * Performs a rollback on a Spanner {@link Transaction} within the provided {@link Session}.
-   * @param ctx Execution context containing the current session and transaction.
+   *
+   * @param sessionName name of existing Cloud Spanner session.
+   * @param transaction The transaction that you want to rollback.
    * @return {@link Mono} indicating completion of the rollback.
    */
-  Mono<Void> rollbackTransaction(ExecutionContext ctx);
+  Mono<Void> rollbackTransaction(String sessionName, Transaction transaction);
 
   /**
    * Execute a streaming query and get partial results.
-   * @param ctx Execution context containing the current session and optional transaction.
    */
-  Flux<PartialResultSet> executeStreamingSql(ExecutionContext ctx, String sql, Struct params,
+  Flux<PartialResultSet> executeStreamingSql(
+      SpannerConnection.Context ctx,
+      String sql,
+      Struct params,
       Map<String, Type> types);
 
-  default Flux<PartialResultSet> executeStreamingSql(ExecutionContext context, String sql) {
-    return  executeStreamingSql(context, sql, null, null);
+  default Flux<PartialResultSet> executeStreamingSql(SpannerConnection.Context ctx, String sql) {
+    return executeStreamingSql(ctx, sql, null, null);
   }
 
   /**
    * Execute DML batch.
    */
-  Mono<ExecuteBatchDmlResponse> executeBatchDml(ExecutionContext ctx, String sql,
+  Mono<ExecuteBatchDmlResponse> executeBatchDml(SpannerConnection.Context ctx, String sql,
       List<Struct> params, Map<String, Type> types);
+
+  /**
+   * Executes a DDL query.
+   */
+  Mono<Operation> executeDdl(
+      String fullyQualifiedDatabaseName,
+      List<String> ddlStatement,
+      Duration ddlOperationTimeout,
+      Duration ddlPollInterval);
 
   /**
    * Release any resources held by the {@link Client}.
