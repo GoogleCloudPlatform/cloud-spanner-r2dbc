@@ -37,7 +37,8 @@ mySpannerConnection.createStatement(
     .add()
     .bind("id", "book-id-2")
     .bind("title", "Book Two")
-    .execute();
+    .execute()
+    .flatMap(r -> r.getRowsUpdated());
 ``` 
 
 The parameter identifiers must be `String`. 
