@@ -75,8 +75,6 @@ public class SpannerConnection implements Connection {
         .then();
   }
 
-
-
   @Override
   public Mono<Void> commitTransaction() {
     return commitTransaction(true);
@@ -133,7 +131,9 @@ public class SpannerConnection implements Connection {
   @Override
   public SpannerStatement createStatement(String sql) {
     SpannerStatement statement
-        = new SpannerStatement(
+        = this.transactionContext == null
+        ? new IndependentSpannerStatement(this.client, this.session, this, sql, this.config)
+        : new SpannerStatement(
             this.client,
             this.session,
             this.transactionContext,

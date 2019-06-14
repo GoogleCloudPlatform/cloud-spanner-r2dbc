@@ -63,6 +63,7 @@ public class SpannerStatement implements Statement {
    * @param session current cloud spanner session
    * @param transaction current cloud spanner transaction, or empty if no transaction is started
    * @param sql the query to execute
+   * @param config config about the database and instance to use
    */
   public SpannerStatement(
       Client client,

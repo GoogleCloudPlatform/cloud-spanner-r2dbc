@@ -238,7 +238,7 @@ public class SpannerIT {
     assertThat(count).isEqualTo(0);
 
     Mono.from(this.connectionFactory.create())
-        .delayUntil(c -> c.beginTransaction())
+        //.delayUntil(c -> c.beginTransaction())
         .delayUntil(c ->
             Mono.fromRunnable(() ->
                 StepVerifier.create(Flux.from(c.createStatement(
@@ -265,7 +265,7 @@ public class SpannerIT {
                     .flatMapSequential(r -> Mono.from(r.getRowsUpdated())))
                     .expectNext(1).expectNext(1).verifyComplete())
         )
-        .delayUntil(c -> c.commitTransaction())
+        //.delayUntil(c -> c.commitTransaction())
         .block();
 
     Mono.from(this.connectionFactory.create())
