@@ -53,7 +53,7 @@ This is the recommended way of setting up authentication during local developmen
 If you are using the SDK, the driver can automatically infer your account credentials from your
 SDK configuration.
 
-**Steps:**
+Instructions:
 
 1. Install the [Google Cloud SDK](https://cloud.google.com/sdk/) for command line and
     follow the [Cloud SDK quickstart](https://cloud.google.com/sdk/docs/quickstarts)
