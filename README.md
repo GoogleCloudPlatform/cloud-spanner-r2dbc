@@ -8,14 +8,20 @@ An implementation of the [R2DBC](https://r2dbc.io/) driver for [Cloud Spanner](h
 
 The sections below describe how to setup and begin using the Cloud Spanner R2DBC driver.
 
-An overview of the steps are as follows:
+An overview of the setup is as follows:
 
 1. Add the Cloud Spanner R2DBC driver dependency to your build configuration.
 2. Configure the driver credentials/authentication for your Google Cloud Platform project to access
     Cloud Spanner.
 3. Instantiate the R2DBC `ConnectionFactory` in Java code to build Connections and run queries.
 
-### Maven Coordinates
+Details about each step is provided below.
+
+### Project Dependency Setup
+
+The easiest way to start using the driver is to add the driver dependency through Maven or Gradle.
+
+**Maven Coordinates**
 
 ```
 <dependency>
@@ -25,7 +31,7 @@ An overview of the steps are as follows:
 </dependency>
 ```
 
-### Gradle Coordinates
+**Gradle Coordinates**
 
 ```
 dependencies {
