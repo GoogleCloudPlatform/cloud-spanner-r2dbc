@@ -74,8 +74,8 @@ and be authorized to access your Google Cloud resources.
 Each service account has an account key JSON file that you can use to provide credentials to your
 application. This is the recommended method of authentication for production use.
 
-You can learn how to create a service account and authenticate your application using
-it by following [these instructions](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually).
+You can learn how to create a service account and authenticate your application by following
+[these instructions](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually).
 
 If you are unsatisfied with credentials inference methods, you may override this behavior
 by manually specifying a service account key JSON file using the `google_credentials`
