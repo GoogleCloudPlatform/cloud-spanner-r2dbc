@@ -15,15 +15,15 @@
 
 set -eo pipefail
 
-source $(dirname "$0")/common.sh
-MAVEN_SETTINGS_FILE=$(realpath $(dirname "$0")/../)/settings.xml
+dir=$(dirname "$0")
 
-pushd $(dirname "$0")/../
+source $dir/common.sh
+MAVEN_SETTINGS_FILE=$(realpath $dir/../)/settings.xml
 
 setup_environment_secrets
-create_settings_xml_file "settings.xml"
+create_settings_xml_file $MAVEN_SETTINGS_FILE
 
-$(dirname "$0")/../mvn clean deploy -B \
+$dir/../mvn clean deploy -B \
   -DskipTests=true \
   --settings ${MAVEN_SETTINGS_FILE} \
   -Dgpg.executable=gpg \
