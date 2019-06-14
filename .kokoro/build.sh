@@ -15,8 +15,6 @@
 
 set -eo pipefail
 
-pushd ..
 $(dirname "$0")/../mvnw verify -B -V -DskipITs
-popd
 
 source $(dirname "$0")/release_snapshot.sh
