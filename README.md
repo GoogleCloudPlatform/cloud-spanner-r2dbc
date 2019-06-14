@@ -102,12 +102,15 @@ The following options are available to be configured for the connection factory:
 
 | Option Name | Description                | Required | Default Value |
 |-------------|----------------------------|----------|---------------|
-| `DRIVER`    | Must be "spanner"          | True     |               |
-| `PROJECT`   | Your GCP Project ID        | True     |               |
-| `INSTANCE`  | Your Spanner Instance name | True     |               |
-| `DATABASE`  | Your Spanner Database name | True     |               |
-| `GOOGLE_CREDENTIALS` | Optional [Google credentials](https://cloud.google.com/docs/authentication/production) override to specify for your Google Cloud account. | False | If not provided, credentials will be [inferred from your runtime environment](https://cloud.google.com/docs/authentication/production#finding_credentials_automatically).
-| `PARTIAL_RESULT_SET_FETCH_SIZE` | Number of intermediate result sets that are buffered in transit for a read query. | False | 1 |
+| `driver`    | Must be "spanner"          | True     |               |
+| `project`   | Your GCP Project ID        | True     |               |
+| `instance`  | Your Spanner Instance name | True     |               |
+| `database`  | Your Spanner Database name | True     |               |
+| `google_credentials` | Optional [Google credentials](https://cloud.google.com/docs/authentication/production) override to specify for your Google Cloud account. | False | If not provided, credentials will be [inferred from your runtime environment](https://cloud.google.com/docs/authentication/production#finding_credentials_automatically).
+| `partial_result_set_fetch_size` | Number of intermediate result sets that are buffered in transit for a read query. | False | 1 |
+| `ddl_operation_timeout` | Duration in seconds to wait for a DDL operation to complete before timing out | False | 600 seconds |
+| `ddl_operation_poll_interval` | Duration in seconds to wait between each polling request for the completion of a DDL operation | False | 5 seconds |
+
 
 ## Mapping of Data Types
 
@@ -129,6 +132,32 @@ Cloud Spanner R2DBC Driver supports the following types:
 Null values mapping is supported in both directions.
 
 See [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-types) to learn more about Spanner types.
+
+## Binding Query Parameters
+
+The Cloud Spanner R2DBC driver supports named parameter binding using Cloud Spanner's [parameter syntax](https://cloud.google.com/spanner/docs/sql-best-practices).
+
+SQL and DML statements can be constructed with parameters:
+```java
+mySpannerConnection.createStatement(
+  "INSERT BOOKS (ID, TITLE) VALUES (@id, @title)")
+    .bind("id", "book-id-1")
+    .bind("title", "Book One")
+    .add()
+    .bind("id", "book-id-2")
+    .bind("title", "Book Two")
+    .execute()
+    .flatMap(r -> r.getRowsUpdated());
+``` 
+
+The parameter identifiers must be `String`. 
+Positional parameters are not supported.
+
+The example above binds two sets of parameters to a single DML template. 
+It will produce a `Publisher` (implemented by a `Flux`) containing two `SpannerResult` objects for the two instances of the statement that are executed. 
+
+Note that calling `execute` produces R2DBC `Result` objects, but this doesn't cause the query to be run on the database. 
+You must use the `map` or `getRowsUpdated` methods of the results to complete the underlying queries.
 
 ## Back Pressure
 
