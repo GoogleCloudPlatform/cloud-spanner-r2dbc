@@ -82,7 +82,7 @@ by manually specifying a service account key JSON file using the `google_credent
 option to the `ConnectionFactory` builder.
 
 Example:
-```
+```java
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.GOOGLE_CREDENTIALS;
 
 String pathToCredentialsKeyFile = ...;
