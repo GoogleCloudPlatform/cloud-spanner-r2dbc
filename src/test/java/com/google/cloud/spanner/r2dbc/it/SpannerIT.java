@@ -230,6 +230,59 @@ public class SpannerIT {
   }
 
   @Test
+  public void testSingleUseDml() {
+    long count = executeReadQuery(
+        connectionFactory,
+        "Select count(1) as count FROM books",
+        (row, rowMetadata) -> row.get("count", Long.class)).get(0);
+    assertThat(count).isEqualTo(0);
+
+    // Note that there is NO call to beginTransaction or commitTransaction.
+    Mono.from(this.connectionFactory.create())
+        .delayUntil(c ->
+            Mono.fromRunnable(() ->
+                StepVerifier.create(Flux.from(c.createStatement(
+                    "INSERT BOOKS "
+                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, PUBLISHED, WORDS_PER_SENTENCE)"
+                        + " VALUES "
+                        + "(@uuid, @title, @author, @category, @fiction, @published, @wps);")
+                    .bind("uuid", "1")
+                    .bind("author", "a")
+                    .bind("category", 100L)
+                    .bind("title", "b1")
+                    .bind("fiction", true)
+                    .bind("published", LocalDate.of(2008, 5, 1))
+                    .bind("wps", 20.8)
+                    .add()
+                    .bind("uuid", "2")
+                    .bind("author", "b")
+                    .bind("category", 100L)
+                    .bind("title", "b2")
+                    .bind("fiction", false)
+                    .bind("published", LocalDate.of(2018, 1, 6))
+                    .bind("wps", 15.1)
+                    .add()
+                    .bind("uuid", "3")
+                    .bind("author", "c")
+                    .bind("category", 100L)
+                    .bind("title", "b3")
+                    .bind("fiction", false)
+                    .bind("published", LocalDate.of(2016, 1, 6))
+                    .bind("wps", 15.22)
+                    .execute())
+                    .flatMapSequential(r -> Mono.from(r.getRowsUpdated())))
+                    .expectNext(1).expectNext(1).expectNext(1).verifyComplete())
+        )
+        .block();
+
+    count = executeReadQuery(
+        connectionFactory,
+        "Select count(1) as count FROM books",
+        (row, rowMetadata) -> row.get("count", Long.class)).get(0);
+    assertThat(count).isEqualTo(3);
+  }
+
+  @Test
   public void testQuerying() {
     long count = executeReadQuery(
         connectionFactory,
@@ -238,7 +291,7 @@ public class SpannerIT {
     assertThat(count).isEqualTo(0);
 
     Mono.from(this.connectionFactory.create())
-        //.delayUntil(c -> c.beginTransaction())
+        .delayUntil(c -> c.beginTransaction())
         .delayUntil(c ->
             Mono.fromRunnable(() ->
                 StepVerifier.create(Flux.from(c.createStatement(
@@ -265,7 +318,7 @@ public class SpannerIT {
                     .flatMapSequential(r -> Mono.from(r.getRowsUpdated())))
                     .expectNext(1).expectNext(1).verifyComplete())
         )
-        //.delayUntil(c -> c.commitTransaction())
+        .delayUntil(c -> c.commitTransaction())
         .block();
 
     Mono.from(this.connectionFactory.create())

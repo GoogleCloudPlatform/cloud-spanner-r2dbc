@@ -18,7 +18,6 @@ package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.util.Assert;
-import com.google.spanner.v1.Session;
 import io.r2dbc.spi.Result;
 import org.reactivestreams.Publisher;
 
@@ -30,21 +29,22 @@ public class IndependentSpannerStatement extends SpannerStatement {
   private final SpannerConnection spannerConnection;
 
   /**
-   * Constructor.
+   * Creates a Spanner statement for a given SQL statement.
+   *
+   * <p>Session and transaction may not be present at the time this statement is created, therefore
+   * they will only be accessed lazily when statement begins execution.
+   *
+   * <p>If no transaction is present, a temporary strongly consistent readonly transaction will be
+   * used.
    *
    * @param client cloud spanner client to use for performing the query operation
-   * @param session current cloud spanner session
-   * @param spannerConnection the connection used to execute this single-use statement
    * @param sql the query to execute
    * @param config config about the database and instance to use
+   * @param spannerConnection the connection used for this single-use statement.
    */
-  public IndependentSpannerStatement(
-      Client client,
-      Session session,
-      SpannerConnection spannerConnection,
-      String sql,
-      SpannerConnectionConfiguration config) {
-    super(client, session, null, sql, config);
+  public IndependentSpannerStatement(Client client, String sql,
+      SpannerConnectionConfiguration config, SpannerConnection spannerConnection) {
+    super(client, spannerConnection, sql, config);
     this.spannerConnection = Assert
         .requireNonNull(spannerConnection, "A non-null SpannerConnection is required.");
   }

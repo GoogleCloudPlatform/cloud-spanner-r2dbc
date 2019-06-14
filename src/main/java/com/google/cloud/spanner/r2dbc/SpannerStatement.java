@@ -40,7 +40,7 @@ public class SpannerStatement implements Statement {
 
   private Client client;
 
-  private StatementExecutionContext ctx;
+  protected StatementExecutionContext ctx;
 
   private String sql;
 

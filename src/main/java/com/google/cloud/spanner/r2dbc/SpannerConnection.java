@@ -68,7 +68,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
   }
 
   @Override
-  public Publisher<Void> beginTransaction() {
+  public Mono<Void> beginTransaction() {
     return this.beginTransaction(READ_WRITE_TRANSACTION);
   }
 
@@ -138,10 +138,9 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
 
   @Override
   public SpannerStatement createStatement(String sql) {
-    SpannerStatement statement
-        = new SpannerStatement(this.client, this, sql, this.config);
-
-    return statement;
+    return getTransactionId() == null
+        ? new IndependentSpannerStatement(this.client, sql, this.config, this)
+        : new SpannerStatement(this.client, this, sql, this.config);
   }
 
   @Override
