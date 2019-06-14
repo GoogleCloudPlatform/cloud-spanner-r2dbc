@@ -48,7 +48,7 @@ public class SpannerConnection implements Connection {
 
   private final SpannerConnectionConfiguration config;
 
-  private volatile SpannerStatementExecutionContext ctx;
+  private final SpannerStatementExecutionContext ctx;
 
   /**
    * Instantiates a Spanner session with given configuration.
@@ -217,11 +217,11 @@ public class SpannerConnection implements Connection {
     }
 
     public boolean isTransactionReadWrite() {
-      return this.transactionOptions.hasReadWrite();
+      return this.transactionOptions == null ? false : this.transactionOptions.hasReadWrite();
     }
 
     public boolean isTransactionPartitionedDml() {
-      return this.transactionOptions.hasPartitionedDml();
+      return this.transactionOptions == null ? false : this.transactionOptions.hasPartitionedDml();
     }
 
   }

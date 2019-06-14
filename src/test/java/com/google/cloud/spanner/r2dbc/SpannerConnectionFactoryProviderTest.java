@@ -17,6 +17,7 @@
 package com.google.cloud.spanner.r2dbc;
 
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.GOOGLE_CREDENTIALS;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PARTIAL_RESULT_SET_FETCH_SIZE;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PROJECT;
@@ -30,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.PartialResultSet;
@@ -58,21 +60,19 @@ public class SpannerConnectionFactoryProviderTest {
           .option(PROJECT, "project-id")
           .option(INSTANCE, "an-instance")
           .option(DATABASE, "db")
+          .option(GOOGLE_CREDENTIALS, mock(GoogleCredentials.class))
           .build();
 
   SpannerConnectionFactoryProvider spannerConnectionFactoryProvider;
 
   Client mockClient;
 
-  StatementExecutionContext mockContext;
-
   /**
    * Initializes unit under test with a mock {@link Client}.
    */
   @Before
   public void setUp() {
-    this.mockClient = mock(Client.class);
-    this.mockContext = mock(StatementExecutionContext.class);
+    this.mockClient =  mock(Client.class);
     this.spannerConnectionFactoryProvider = new SpannerConnectionFactoryProvider();
     this.spannerConnectionFactoryProvider.setClient(this.mockClient);
   }
@@ -123,6 +123,7 @@ public class SpannerConnectionFactoryProviderTest {
             .option(PROJECT, "project-id")
             .option(INSTANCE, "an-instance")
             .option(DATABASE, "db")
+            .option(GOOGLE_CREDENTIALS, mock(GoogleCredentials.class))
             .build();
 
     SpannerConnectionFactory connectionFactory
