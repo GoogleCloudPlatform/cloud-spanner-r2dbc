@@ -117,7 +117,7 @@ public class SpannerStatement implements Statement {
               this.config.getDdlOperationTimeout(),
               this.config.getDdlOperationPollInterval())
           .map(operation -> new SpannerResult(Flux.empty(), Mono.just(0)));
-    } else if (this.statementType == StatementType.DML && !this.ctx.isPartitionedDml()) {
+    } else if (this.statementType == StatementType.DML && !this.ctx.isTransactionPartitionedDml()) {
       return this.client
           .executeBatchDml(this.ctx, this.sql,
               this.statementBindings.getBindings(),

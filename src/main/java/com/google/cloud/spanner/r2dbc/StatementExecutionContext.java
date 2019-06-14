@@ -19,7 +19,7 @@ package com.google.cloud.spanner.r2dbc;
 import com.google.protobuf.ByteString;
 
 /**
- * Contract for objects encapsulating Spanner state relevant to a specific connection.
+ * Contract for objects encapsulating Spanner state associated with a specific connection.
  * <ul>
  *   <li>Session is created per-connection and cannot be changed.
  *   <li>Transaction is initially {@code null}, and can change as connection begins and ends
@@ -36,7 +36,7 @@ public interface StatementExecutionContext {
 
   public ByteString getTransactionId();
 
-  public boolean isReadWrite();
+  public boolean isTransactionReadWrite();
 
-  public boolean isPartitionedDml();
+  public boolean isTransactionPartitionedDml();
 }

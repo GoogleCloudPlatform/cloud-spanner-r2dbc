@@ -159,7 +159,7 @@ public class SpannerStatementTest {
     SpannerStatement statement
         = new SpannerStatement(this.mockClient, this.mockContext, sql, TEST_CONFIG);
 
-    Flux<SpannerResult> result = (Flux<SpannerResult>)statement
+    Flux<SpannerResult> result = (Flux<SpannerResult>) statement
         .bind("id", "b1").add()
         .bind("id", "b2")
         .execute();

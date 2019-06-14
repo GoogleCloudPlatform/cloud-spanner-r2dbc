@@ -84,6 +84,12 @@ public interface Client {
 
   /**
    * Execute a streaming query and get partial results.
+   *
+   * @param ctx connection-specific state.
+   * @param sql select or DML query to execute
+   * @param params parameter values
+   * @param types parameter types
+   * @return
    */
   Flux<PartialResultSet> executeStreamingSql(
       StatementExecutionContext ctx,
@@ -91,18 +97,39 @@ public interface Client {
       Struct params,
       Map<String, Type> types);
 
+  /**
+   * Execute a streaming query without any parameters.
+   *
+   * @param ctx connection-specific state.
+   * @param sql select or DML query to execute
+   * @return
+   */
   default Flux<PartialResultSet> executeStreamingSql(StatementExecutionContext ctx, String sql) {
     return executeStreamingSql(ctx, sql, null, null);
   }
 
   /**
    * Execute DML batch.
+   *
+   * @param ctx connection-specific state.
+   * @param sql select or DML query to execute
+   * @param params parameter values
+   * @param types parameter types
+   * @return
    */
   Mono<ExecuteBatchDmlResponse> executeBatchDml(StatementExecutionContext ctx, String sql,
       List<Struct> params, Map<String, Type> types);
 
   /**
-   * Executes a DDL query.
+   * Execute a DDL query.
+   *
+   * The underlying API is a long-running operation that has to be polled for status.
+   *
+   * @param fullyQualifiedDatabaseName database name, including project ID and instance name.
+   * @param ddlStatement statement to execute (CREATE/DROP etc.).
+   * @param ddlOperationTimeout how long to poll for the operation results until giving up.
+   * @param ddlPollInterval how frequently to poll for the operation results.
+   * @return
    */
   Mono<Operation> executeDdl(
       String fullyQualifiedDatabaseName,

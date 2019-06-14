@@ -83,7 +83,7 @@ public class SpannerConnection implements Connection {
 
   private Mono<Void> commitTransaction(boolean logMessage) {
     return Mono.defer(() -> {
-      if (this.ctx.getTransactionId() != null && this.ctx.isReadWrite()) {
+      if (this.ctx.getTransactionId() != null && this.ctx.isTransactionReadWrite()) {
         return this.client.commitTransaction(
             this.ctx.getSessionName(), this.ctx.getTransaction())
             .doOnNext(response -> this.ctx.setTransaction(null, null))
@@ -93,7 +93,7 @@ public class SpannerConnection implements Connection {
       if (logMessage) {
         if (this.ctx.getTransactionId() == null) {
           this.logger.debug("commitTransaction() is a no-op; called with no transaction active.");
-        } else if (!this.ctx.isReadWrite()) {
+        } else if (!this.ctx.isTransactionReadWrite()) {
           this.logger.debug("commitTransaction() is a no-op; "
               + "called outside of a read-write transaction.");
         }
@@ -216,11 +216,11 @@ public class SpannerConnection implements Connection {
       return this.seqNum.getAndIncrement();
     }
 
-    public boolean isReadWrite() {
+    public boolean isTransactionReadWrite() {
       return this.transactionOptions.hasReadWrite();
     }
 
-    public boolean isPartitionedDml() {
+    public boolean isTransactionPartitionedDml() {
       return this.transactionOptions.hasPartitionedDml();
     }
 
