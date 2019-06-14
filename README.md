@@ -6,8 +6,14 @@ An implementation of the [R2DBC](https://r2dbc.io/) driver for [Cloud Spanner](h
 
 ## Setup Instructions
 
-This section describes how to setup and begin using the Cloud Spanner R2DBC driver.
-Below are the dependencies to add to your build configuration.
+The sections below describe how to setup and begin using the Cloud Spanner R2DBC driver.
+
+An overview of the steps are as follows:
+
+1. Add the Cloud Spanner R2DBC driver dependency to your build configuration.
+2. Configure the driver credentials/authentication for your Google Cloud Platform project to access
+    Cloud Spanner.
+3. Instantiate the R2DBC `ConnectionFactory` in Java code to build Connections and run queries.
 
 ### Maven Coordinates
 
@@ -27,7 +33,52 @@ dependencies {
 }
 ```
 
+### Authentication
+
+By default, the R2DBC driver will attempt to infer your account credentials from the environment
+in which the application is run. There are a number of different ways to conveniently provide
+account credentials to the driver.
+
+#### Google Cloud SDK
+
+Google Cloud SDK is a command line interface for Google Cloud Platform products and services.
+This is the recommended way of setting up authentication during local development.
+
+If you are using the SDK, the driver can automatically infer your account credentials from your
+SDK configuration.
+
+**Steps:**
+
+1. Install the [Google Cloud SDK](https://cloud.google.com/sdk/) for command line and
+    follow the [Cloud SDK quickstart](https://cloud.google.com/sdk/docs/quickstarts)
+    for your operating system.
+    
+2. Once setup, run `gcloud auth application-default login` and login with your Google account
+    credentials. 
+
+After completing the SDK configuration, the Spanner R2DBC driver will automatically pick up your
+credentials allowing you to access your Spanner database. 
+
+#### Service Account
+
+A [Google Service Account](https://cloud.google.com/iam/docs/understanding-service-accounts) is a
+special type of Google Account intended to represent a non-human user that needs to authenticate
+and be authorized to access your Google Cloud resources. Each service account has an account key
+JSON file that is used as the credentials to accessing the resources of your account.
+This is the recommended method of authentication for production use.
+
+Setting up credentials for your service account can be done by following [these instructions](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
+
+#### Google Cloud Platform Environment
+
+If your application is running on Google Cloud Platform infrastructure including: Compute Engine,
+Kubernetes Engine, the App Engine flexible environment, or Cloud Functions, the credentials will
+be automatically inferred from the runtime environment in the Cloud. For more information, see
+the [Google Cloud Platform Authentication documentation](https://cloud.google.com/docs/authentication/production#obtaining_credentials_on_compute_engine_kubernetes_engine_app_engine_flexible_environment_and_cloud_functions).
+
 ### Usage
+
+After setting up the dependency and authentication, one can begin directly using the driver.
 
 The entry point to using the R2DBC driver is to first configure the R2DBC connection factory.
 
@@ -55,7 +106,7 @@ The following options are available to be configured for the connection factory:
 | `PROJECT`   | Your GCP Project ID        | True     |               |
 | `INSTANCE`  | Your Spanner Instance name | True     |               |
 | `DATABASE`  | Your Spanner Database name | True     |               |
-| `GOOGLE_CREDENTIALS` | Optional [Google credentials](https://cloud.google.com/docs/authentication/production) to specify for your Google Cloud account. | False | If not provided, credentials will be [inferred from your runtime environment](https://cloud.google.com/docs/authentication/production#finding_credentials_automatically).
+| `GOOGLE_CREDENTIALS` | Optional [Google credentials](https://cloud.google.com/docs/authentication/production) override to specify for your Google Cloud account. | False | If not provided, credentials will be [inferred from your runtime environment](https://cloud.google.com/docs/authentication/production#finding_credentials_automatically).
 | `PARTIAL_RESULT_SET_FETCH_SIZE` | Number of intermediate result sets that are buffered in transit for a read query. | False | 1 |
 
 ## Mapping of Data Types
