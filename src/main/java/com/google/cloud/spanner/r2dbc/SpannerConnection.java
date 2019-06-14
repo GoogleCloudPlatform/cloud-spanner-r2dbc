@@ -35,7 +35,7 @@ import reactor.core.publisher.Mono;
 /**
  * {@link Connection} implementation for Cloud Spanner.
  */
-public class SpannerConnection implements Connection {
+public class SpannerConnection implements Connection, StatementExecutionContext {
 
   private static final TransactionOptions READ_WRITE_TRANSACTION =
       TransactionOptions.newBuilder()
@@ -46,9 +46,15 @@ public class SpannerConnection implements Connection {
 
   private final Client client;
 
-  private final SpannerConnectionConfiguration config;
+  private final Session session;
 
-  private final SpannerStatementExecutionContext ctx;
+  private Transaction transaction;
+
+  private TransactionOptions transactionOptions;
+
+  private AtomicLong seqNum = new AtomicLong(0);
+
+  private final SpannerConnectionConfiguration config;
 
   /**
    * Instantiates a Spanner session with given configuration.
@@ -57,7 +63,7 @@ public class SpannerConnection implements Connection {
    */
   public SpannerConnection(Client client, Session session, SpannerConnectionConfiguration config) {
     this.client = client;
-    this.ctx = new SpannerStatementExecutionContext(session);
+    this.session = session;
     this.config = config;
   }
 
@@ -70,9 +76,8 @@ public class SpannerConnection implements Connection {
    * Begins a new transaction with the specified {@link TransactionOptions}.
    */
   public Mono<Void> beginTransaction(TransactionOptions transactionOptions) {
-    return this.client.beginTransaction(this.ctx.getSessionName(), transactionOptions)
-        .doOnNext(
-            transaction -> this.ctx.setTransaction(transaction, transactionOptions))
+    return this.client.beginTransaction(this.getSessionName(), transactionOptions)
+        .doOnNext(transaction -> this.setTransaction(transaction, transactionOptions))
         .then();
   }
 
@@ -83,17 +88,17 @@ public class SpannerConnection implements Connection {
 
   private Mono<Void> commitTransaction(boolean logMessage) {
     return Mono.defer(() -> {
-      if (this.ctx.getTransactionId() != null && this.ctx.isTransactionReadWrite()) {
+      if (this.getTransactionId() != null && this.isTransactionReadWrite()) {
         return this.client.commitTransaction(
-            this.ctx.getSessionName(), this.ctx.getTransaction())
-            .doOnNext(response -> this.ctx.setTransaction(null, null))
+            this.getSessionName(), this.transaction)
+            .doOnNext(response -> this.setTransaction(null, null))
             .then();
       }
 
       if (logMessage) {
-        if (this.ctx.getTransactionId() == null) {
+        if (this.getTransactionId() == null) {
           this.logger.debug("commitTransaction() is a no-op; called with no transaction active.");
-        } else if (!this.ctx.isTransactionReadWrite()) {
+        } else if (!this.isTransactionReadWrite()) {
           this.logger.debug("commitTransaction() is a no-op; "
               + "called outside of a read-write transaction.");
         }
@@ -105,20 +110,20 @@ public class SpannerConnection implements Connection {
   @Override
   public Mono<Void> rollbackTransaction() {
     return Mono.defer(() -> {
-      if (this.ctx.getTransactionId() == null) {
+      if (this.getTransactionId() == null) {
         this.logger.warn("rollbackTransaction() is a no-op; called with no transaction active.");
         return Mono.empty();
       }
 
       return this.client
-            .rollbackTransaction(this.ctx.getSessionName(), this.ctx.getTransaction())
-            .doOnSuccess(response -> this.ctx.setTransaction(null, null));
+            .rollbackTransaction(this.getSessionName(), this.transaction)
+            .doOnSuccess(response -> this.setTransaction(null, null));
     });
   }
 
   @Override
   public Mono<Void> close() {
-    return commitTransaction(false).then(this.client.deleteSession(this.ctx.getSessionName()));
+    return commitTransaction(false).then(this.client.deleteSession(this.getSessionName()));
   }
 
   @Override
@@ -134,7 +139,7 @@ public class SpannerConnection implements Connection {
   @Override
   public SpannerStatement createStatement(String sql) {
     SpannerStatement statement
-        = new SpannerStatement(this.client, this.ctx, sql, this.config);
+        = new SpannerStatement(this.client, this, sql, this.config);
 
     return statement;
   }
@@ -154,75 +159,50 @@ public class SpannerConnection implements Connection {
     return null;
   }
 
-  /**
-   * Returns the {@link SpannerStatementExecutionContext} associated with the current
-   * {@link Connection}.
-   * The context is aware of the current session and optional transaction. It also provides
-   * monotonically increasing {@codde seqNo} used for multiple DML statements within a transaction.
-   * @return execution context
-   */
-  public SpannerStatementExecutionContext getExecutionContext() {
-    return this.ctx;
+  @Override
+  public ByteString getTransactionId() {
+    return this.transaction == null ? null : this.transaction.getId();
   }
 
+  @Override
+  public String getSessionName() {
+    return this.session == null ? null : this.session.getName();
+  }
+
+  @Override
+  public long nextSeqNum() {
+    return this.seqNum.getAndIncrement();
+  }
 
   /**
-   * A class to hold session and transaction-related data that needs to be communicated from
-   * {@link SpannerConnection} to {@link SpannerStatement}.
+   * Sets a new transaction or unsets the current one if {@code null} is passed in.
+   * Transactions are mutable in the execution context.
+   * @param transaction the newly opened transaction
    */
-  public static class SpannerStatementExecutionContext implements StatementExecutionContext {
-
-    private Session session;
-
-    private Transaction transaction;
-
-    private TransactionOptions transactionOptions;
-
-    private AtomicLong seqNum = new AtomicLong(0);
-
-    /**
-     * Creates a new transaction with a given session.
-     * Sessions are immutable in the execution context.
-     * @param session the session under which the current context is used.
-     */
-    private SpannerStatementExecutionContext(Session session) {
-      this.session = session;
-    }
-
-    /**
-     * Sets a new transaction or unsets the current one if {@code null} is passed in.
-     * Transactions are mutable in the execution context.
-     * @param transaction the newly opened transaction
-     */
-    private void setTransaction(
-        @Nullable Transaction transaction, @Nullable TransactionOptions transactionOptions) {
-      this.transaction = transaction;
-      this.transactionOptions = transactionOptions;
-    }
-
-    public ByteString getTransactionId() {
-      return this.transaction == null ? null : this.transaction.getId();
-    }
-
-    public Transaction getTransaction() {
-      return this.transaction;
-    }
-
-    public String getSessionName() {
-      return this.session == null ? null : this.session.getName();
-    }
-
-    public long nextSeqNum() {
-      return this.seqNum.getAndIncrement();
-    }
-
-    public boolean isTransactionReadWrite() {
-      return this.transactionOptions == null ? false : this.transactionOptions.hasReadWrite();
-    }
-
-    public boolean isTransactionPartitionedDml() {
-      return this.transactionOptions == null ? false : this.transactionOptions.hasPartitionedDml();
-    }
-
+  private void setTransaction(
+      @Nullable Transaction transaction, @Nullable TransactionOptions transactionOptions) {
+    this.transaction = transaction;
+    this.transactionOptions = transactionOptions;
   }
+
+  /**
+   * Determines whether the current transaction, if present, is a Read/Write Cloud Spanner
+   * transaction.
+   * @return whether the current transaction is a Read/Write transaction ({@code false} if there is
+   *     no active transaction).
+   */
+  private boolean isTransactionReadWrite() {
+    return this.transactionOptions == null ? false : this.transactionOptions.hasReadWrite();
+  }
+
+  /**
+   * Determines whether the current transaction, if present, is a Partitioned DML Cloud Spanner
+   * transaction.
+   * @return whether the current transaction is a Partitioned DML transaction ({@code false} if
+   *     there is no active transaction).
+   */
+  private boolean isTransactionPartitionedDml() {
+    return this.transactionOptions == null ? false : this.transactionOptions.hasPartitionedDml();
+  }
+
 }

@@ -218,7 +218,7 @@ public class SpannerIT {
 
     Mono<Connection> connection = (Mono<Connection>) this.connectionFactory.create();
     SpannerConnection spannerConnection = (SpannerConnection) connection.block();
-    String activeSessionName = spannerConnection.getExecutionContext().getSessionName();
+    String activeSessionName = spannerConnection.getSessionName();
 
     List<String> activeSessions = getSessionNames();
     assertThat(activeSessions).contains(activeSessionName);

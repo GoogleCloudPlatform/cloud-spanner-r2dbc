@@ -226,13 +226,13 @@ public class SpannerConnectionTest {
   public void executionContextHasCorrectSessionName() {
     SpannerConnection connection = new SpannerConnection(
         this.mockClient, Session.newBuilder().setName("session-name").build(), null);
-    assertThat(connection.getExecutionContext().getSessionName()).isEqualTo("session-name");
+    assertThat(connection.getSessionName()).isEqualTo("session-name");
   }
 
   @Test
   public void executionContextDoesNotHaveTransactionWhenInitialized() {
     SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
-    assertThat(connection.getExecutionContext().getTransactionId()).isNull();
+    assertThat(connection.getTransactionId()).isNull();
   }
 
   @Test
@@ -246,19 +246,19 @@ public class SpannerConnectionTest {
         .thenReturn(Mono.empty());
 
     StepVerifier.create(connection.beginTransaction()).verifyComplete();
-    assertThat(connection.getExecutionContext().getTransactionId()).isEqualTo(transactionId);
+    assertThat(connection.getTransactionId()).isEqualTo(transactionId);
 
     StepVerifier.create(connection.rollbackTransaction()).verifyComplete();
-    assertThat(connection.getExecutionContext().getTransactionId()).isNull();
+    assertThat(connection.getTransactionId()).isNull();
   }
 
   @Test
   public void nextSeqNumIsSequential() {
     SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
-    long prevNum = connection.getExecutionContext().nextSeqNum();
+    long prevNum = connection.nextSeqNum();
 
     for (int i = 0; i < 9; i++) {
-      long num = connection.getExecutionContext().nextSeqNum();
+      long num = connection.nextSeqNum();
       System.out.println(num);
 
       if (num <= prevNum) {

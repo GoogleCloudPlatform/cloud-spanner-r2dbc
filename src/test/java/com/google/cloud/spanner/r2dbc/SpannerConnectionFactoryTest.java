@@ -66,7 +66,7 @@ public class SpannerConnectionFactoryTest {
     SpannerConnectionFactory factory = new SpannerConnectionFactory(mockClient, this.config);
     Mono<SpannerConnection> connection = Mono.from(factory.create());
 
-    StepVerifier.create(connection.map(con -> con.getExecutionContext().getSessionName()))
+    StepVerifier.create(connection.map(con -> con.getSessionName()))
             .expectNext("jam session")
             .verifyComplete();
   }
