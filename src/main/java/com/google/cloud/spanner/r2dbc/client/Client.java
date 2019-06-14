@@ -123,7 +123,7 @@ public interface Client {
   /**
    * Execute a DDL query.
    *
-   * The underlying API is a long-running operation that has to be polled for status.
+   * <p>The underlying API is a long-running operation that has to be polled for status.
    *
    * @param fullyQualifiedDatabaseName database name, including project ID and instance name.
    * @param ddlStatement statement to execute (CREATE/DROP etc.).
