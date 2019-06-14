@@ -183,16 +183,8 @@ public class GrpcClient implements Client {
   public Mono<ExecuteBatchDmlResponse> executeBatchDml(Session session,
       @Nullable SpannerTransactionContext transactionContext, String sql,
       List<Struct> params, Map<String, Type> types) {
-
-    ExecuteBatchDmlRequest.Builder request = ExecuteBatchDmlRequest.newBuilder()
-        .setSession(session.getName());
-    if (transactionContext != null && transactionContext.getTransaction() != null) {
-      request.setTransaction(
-          TransactionSelector.newBuilder().setId(transactionContext.getTransaction().getId())
-              .build())
-          .setSeqno(transactionContext.nextSeqNum());
-
-    }
+    ExecuteBatchDmlRequest.Builder request = createBatchDmlRequestBuilderBuilder(session,
+        transactionContext);
     for (Struct paramsStruct : params) {
       ExecuteBatchDmlRequest.Statement statement = ExecuteBatchDmlRequest.Statement.newBuilder()
           .setSql(sql).setParams(paramsStruct).putAllParamTypes(types)
@@ -202,6 +194,36 @@ public class GrpcClient implements Client {
 
     return ObservableReactiveUtil
         .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
+  }
+
+  @Override
+  public Mono<ExecuteBatchDmlResponse> executeBatchDml(Session session,
+      SpannerTransactionContext transactionContext, List<String> statements) {
+    ExecuteBatchDmlRequest.Builder request = createBatchDmlRequestBuilderBuilder(session,
+        transactionContext);
+    for (String sql : statements) {
+      ExecuteBatchDmlRequest.Statement statement = ExecuteBatchDmlRequest.Statement.newBuilder()
+          .setSql(sql)
+          .build();
+      request.addStatements(statement);
+    }
+
+    return ObservableReactiveUtil
+        .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
+  }
+
+  private ExecuteBatchDmlRequest.Builder createBatchDmlRequestBuilderBuilder(Session session,
+      SpannerTransactionContext transactionContext) {
+    ExecuteBatchDmlRequest.Builder request = ExecuteBatchDmlRequest.newBuilder()
+        .setSession(session.getName());
+    if (transactionContext != null && transactionContext.getTransaction() != null) {
+      request.setTransaction(
+          TransactionSelector.newBuilder().setId(transactionContext.getTransaction().getId())
+              .build())
+          .setSeqno(transactionContext.nextSeqNum());
+
+    }
+    return request;
   }
 
   @Override

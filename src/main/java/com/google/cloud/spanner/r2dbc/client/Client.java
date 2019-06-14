@@ -101,6 +101,11 @@ public interface Client {
       @Nullable SpannerTransactionContext transactionContext, String sql,
       List<Struct> params, Map<String, Type> types);
 
+
+  Mono<ExecuteBatchDmlResponse> executeBatchDml(Session session,
+      SpannerTransactionContext transactionContext,
+      List<String> statements);
+
   /**
    * Executes a DDL query.
    */

@@ -49,7 +49,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -58,6 +60,9 @@ import reactor.test.StepVerifier;
  * Test for {@link SpannerStatement}.
  */
 public class SpannerStatementTest {
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   private static final Session TEST_SESSION =
       Session.newBuilder().setName("project/session/1234").build();
@@ -252,6 +257,45 @@ public class SpannerStatementTest {
             .flatMap(r -> Mono.from(r.getRowsUpdated())))
         .expectNext(555)
         .verifyComplete();
+  }
+
+  @Test
+  public void batchDmlQueryTest() {
+    ResultSet resultSet1 = ResultSet.newBuilder()
+        .setStats(ResultSetStats.newBuilder().setRowCountExact(555).build())
+        .build();
+
+    ResultSet resultSet2 = ResultSet.newBuilder()
+        .setStats(ResultSetStats.newBuilder().setRowCountExact(777).build())
+        .build();
+
+    ExecuteBatchDmlResponse executeBatchDmlResponse = ExecuteBatchDmlResponse.newBuilder()
+        .addResultSets(resultSet1)
+        .addResultSets(resultSet2)
+        .build();
+
+    when(this.mockClient.executeBatchDml(any(), any(), any()))
+        .thenReturn(Mono.just(executeBatchDmlResponse));
+
+    StepVerifier.create(
+        Flux.from(new SpannerBatch(
+            this.mockClient, null, TEST_TRANSACTION)
+            .add("Insert into books")
+            .add("Insert into authors")
+            .execute())
+            .flatMap(r -> Mono.from(r.getRowsUpdated())))
+        .expectNext(555)
+        .expectNext(777)
+        .verifyComplete();
+  }
+
+  @Test
+  public void batchDmlExceptionTest() {
+    this.exception.expect(IllegalArgumentException.class);
+    this.exception.expectMessage("Only DML statements are supported in batches");
+
+    new SpannerBatch(this.mockClient, null, TEST_TRANSACTION)
+            .add("select * from books");
   }
 
   @Test

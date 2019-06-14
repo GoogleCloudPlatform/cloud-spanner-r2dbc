@@ -122,7 +122,7 @@ public class SpannerConnection implements Connection {
 
   @Override
   public Batch createBatch() {
-    return null;
+    return new SpannerBatch(this.client, this.session, this.transactionContext);
   }
 
   @Override
