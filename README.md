@@ -45,7 +45,7 @@ By default, the R2DBC driver will attempt to infer your account credentials from
 in which the application is run. There are a number of different ways to conveniently provide
 account credentials to the driver.
 
-#### Google Cloud SDK
+#### Using Google Cloud SDK
 
 Google Cloud SDK is a command line interface for Google Cloud Platform products and services.
 This is the recommended way of setting up authentication during local development.
@@ -65,17 +65,37 @@ Instructions:
 After completing the SDK configuration, the Spanner R2DBC driver will automatically pick up your
 credentials allowing you to access your Spanner database. 
 
-#### Service Account
+#### Using a Service Account
 
 A [Google Service Account](https://cloud.google.com/iam/docs/understanding-service-accounts) is a
 special type of Google Account intended to represent a non-human user that needs to authenticate
-and be authorized to access your Google Cloud resources. Each service account has an account key
-JSON file that is used as the credentials to accessing the resources of your account.
-This is the recommended method of authentication for production use.
+and be authorized to access your Google Cloud resources.
 
-Setting up credentials for your service account can be done by following [these instructions](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
+Each service account has an account key JSON file that you can use to provide credentials to your
+application. This is the recommended method of authentication for production use.
 
-#### Google Cloud Platform Environment
+You can learn how to create a service account and authenticate your application using
+it by following [these instructions](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually).
+
+If you are unsatisfied with credentials inference methods, you may override this behavior
+by manually specifying a service account key JSON file using the `google_credentials`
+option to the `ConnectionFactory` builder.
+
+Example:
+```
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.GOOGLE_CREDENTIALS;
+
+String pathToCredentialsKeyFile = ...;
+
+GoogleCredentials creds = GoogleCredentials.fromStream(new FileInputStream(credentialsLocation));
+ConnectionFactoryOptions options =
+    ConnectionFactoryOptions.builder()
+        .option(GOOGLE_CREDENTIALS, creds)
+        .option(..) // Other options here
+        .build();
+```
+
+#### Using Google Cloud Platform Environment
 
 If your application is running on Google Cloud Platform infrastructure including: Compute Engine,
 Kubernetes Engine, the App Engine flexible environment, or Cloud Functions, the credentials will
