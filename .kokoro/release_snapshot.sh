@@ -11,12 +11,21 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitations under the Licensecense.
 
 set -eo pipefail
 
-pushd ..
-./mvnw verify -B -V -DskipITs
-popd
+source $(dirname "$0")/common.sh
+MAVEN_SETTINGS_FILE=$(realpath $(dirname "$0")/../)/settings.xml
+pushd $(dirname "$0")/../
 
-source $(dirname "$0")/release_snapshot.sh
+setup_environment_secrets
+create_settings_xml_file "settings.xml"
+
+mvn clean deploy -B \
+  -DskipTests=true \
+  --settings ${MAVEN_SETTINGS_FILE} \
+  -Dgpg.executable=gpg \
+  -Dgpg.passphrase=${GPG_PASSPHRASE} \
+  -Dgpg.homedir=${GPG_HOMEDIR} \
+  -P release
