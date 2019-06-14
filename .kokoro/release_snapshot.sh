@@ -17,15 +17,18 @@ set -eo pipefail
 
 source $(dirname "$0")/common.sh
 MAVEN_SETTINGS_FILE=$(realpath $(dirname "$0")/../)/settings.xml
+
 pushd $(dirname "$0")/../
 
 setup_environment_secrets
 create_settings_xml_file "settings.xml"
 
-$(dirname "$0")/../mvnw clean deploy -B \
+$(dirname "$0")/../mvn clean deploy -B \
   -DskipTests=true \
   --settings ${MAVEN_SETTINGS_FILE} \
   -Dgpg.executable=gpg \
   -Dgpg.passphrase=${GPG_PASSPHRASE} \
   -Dgpg.homedir=${GPG_HOMEDIR} \
   -P release
+
+popd
