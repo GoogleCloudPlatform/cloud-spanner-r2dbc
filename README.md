@@ -32,19 +32,22 @@ SQL and DML statements can be constructed with parameters:
 ```java
 mySpannerConnection.createStatement(
   "INSERT BOOKS (ID, TITLE) VALUES (@id, @title)")
-  .bind("id", "book-id-1")
-  .bind("title", "Book One")
-  .add()
-  .bind("id", "book-id-2")
-  .bind("title", "Book Two")
-  .execute();
+    .bind("id", "book-id-1")
+    .bind("title", "Book One")
+    .add()
+    .bind("id", "book-id-2")
+    .bind("title", "Book Two")
+    .execute();
 ``` 
 
 The parameter identifiers must be `String`. 
 Positional parameters are not supported.
 
 The example above binds two sets of parameters to a single DML template. 
-It will produce a `Flux` containing two `SpannerResult` objects for the two instances of the statement that are executed. 
+It will produce a `Publisher` (implemented by a `Flux`) containing two `SpannerResult` objects for the two instances of the statement that are executed. 
+
+Note that calling `execute` produces R2DBC `Result` objects, but this doesn't cause the query to be run on the database. 
+You must use the `map` or `getRowsUpdated` methods of the results to complete the underlying queries.
 
 ## Back Pressure
 
