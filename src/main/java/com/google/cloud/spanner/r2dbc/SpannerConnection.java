@@ -174,6 +174,14 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
     return this.seqNum.getAndIncrement();
   }
 
+  public boolean isTransactionReadWrite() {
+    return this.transactionOptions == null ? false : this.transactionOptions.hasReadWrite();
+  }
+
+  public boolean isTransactionPartitionedDml() {
+    return this.transactionOptions == null ? false : this.transactionOptions.hasPartitionedDml();
+  }
+
   /**
    * Sets a new transaction or unsets the current one if {@code null} is passed in.
    * Transactions are mutable in the execution context.
@@ -183,26 +191,6 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
       @Nullable Transaction transaction, @Nullable TransactionOptions transactionOptions) {
     this.transaction = transaction;
     this.transactionOptions = transactionOptions;
-  }
-
-  /**
-   * Determines whether the current transaction, if present, is a Read/Write Cloud Spanner
-   * transaction.
-   * @return whether the current transaction is a Read/Write transaction ({@code false} if there is
-   *     no active transaction).
-   */
-  private boolean isTransactionReadWrite() {
-    return this.transactionOptions == null ? false : this.transactionOptions.hasReadWrite();
-  }
-
-  /**
-   * Determines whether the current transaction, if present, is a Partitioned DML Cloud Spanner
-   * transaction.
-   * @return whether the current transaction is a Partitioned DML transaction ({@code false} if
-   *     there is no active transaction).
-   */
-  private boolean isTransactionPartitionedDml() {
-    return this.transactionOptions == null ? false : this.transactionOptions.hasPartitionedDml();
   }
 
 }

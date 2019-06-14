@@ -51,4 +51,20 @@ public interface StatementExecutionContext {
    */
   public ByteString getTransactionId();
 
+  /**
+   * Determines whether the current transaction, if present, is a Read/Write Cloud Spanner
+   * transaction.
+   * @return whether the current transaction is a Read/Write transaction ({@code false} if there is
+   *     no active transaction).
+   */
+  public boolean isTransactionReadWrite();
+
+  /**
+   * Determines whether the current transaction, if present, is a Partitioned DML Cloud Spanner
+   * transaction.
+   * @return whether the current transaction is a Partitioned DML transaction ({@code false} if
+   *     there is no active transaction).
+   */
+  public boolean isTransactionPartitionedDml();
+
 }
