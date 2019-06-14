@@ -121,7 +121,7 @@ public class SpannerConnectionTest {
         .build();
 
     when(this.mockClient.executeStreamingSql(
-          any(ExecutionContext.class), eq(sql), eq(EMPTY_STRUCT), eq(EMPTY_TYPE_MAP)))
+          any(StatementExecutionContext.class), eq(sql), eq(EMPTY_STRUCT), eq(EMPTY_TYPE_MAP)))
         .thenReturn(Flux.just(makeBookPrs("Odyssey")));
 
     Statement statement = connection.createStatement(sql);
@@ -134,7 +134,7 @@ public class SpannerConnectionTest {
         .expectComplete()
         .verify();
 
-    verify(this.mockClient).executeStreamingSql(any(ExecutionContext.class), eq(sql),
+    verify(this.mockClient).executeStreamingSql(any(StatementExecutionContext.class), eq(sql),
         eq(EMPTY_STRUCT), eq(EMPTY_TYPE_MAP));
   }
 

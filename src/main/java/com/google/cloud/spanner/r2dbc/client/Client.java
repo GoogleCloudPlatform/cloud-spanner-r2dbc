@@ -16,7 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc.client;
 
-import com.google.cloud.spanner.r2dbc.SpannerConnection;
+import com.google.cloud.spanner.r2dbc.StatementExecutionContext;
 import com.google.longrunning.Operation;
 import com.google.protobuf.Struct;
 import com.google.spanner.v1.CommitResponse;
@@ -86,19 +86,19 @@ public interface Client {
    * Execute a streaming query and get partial results.
    */
   Flux<PartialResultSet> executeStreamingSql(
-      SpannerConnection.Context ctx,
+      StatementExecutionContext ctx,
       String sql,
       Struct params,
       Map<String, Type> types);
 
-  default Flux<PartialResultSet> executeStreamingSql(SpannerConnection.Context ctx, String sql) {
+  default Flux<PartialResultSet> executeStreamingSql(StatementExecutionContext ctx, String sql) {
     return executeStreamingSql(ctx, sql, null, null);
   }
 
   /**
    * Execute DML batch.
    */
-  Mono<ExecuteBatchDmlResponse> executeBatchDml(SpannerConnection.Context ctx, String sql,
+  Mono<ExecuteBatchDmlResponse> executeBatchDml(StatementExecutionContext ctx, String sql,
       List<Struct> params, Map<String, Type> types);
 
   /**

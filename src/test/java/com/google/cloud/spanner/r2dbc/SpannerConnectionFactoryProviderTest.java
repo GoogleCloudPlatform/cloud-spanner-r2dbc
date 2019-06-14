@@ -62,15 +62,17 @@ public class SpannerConnectionFactoryProviderTest {
 
   SpannerConnectionFactoryProvider spannerConnectionFactoryProvider;
 
-  Client mockClient = mock(Client.class);
+  Client mockClient;
 
-  ExecutionContext mockContext = mock(ExecutionContext.class);
+  StatementExecutionContext mockContext;
 
   /**
    * Initializes unit under test with a mock {@link Client}.
    */
   @Before
   public void setUp() {
+    this.mockClient = mock(Client.class);
+    this.mockContext = mock(StatementExecutionContext.class);
     this.spannerConnectionFactoryProvider = new SpannerConnectionFactoryProvider();
     this.spannerConnectionFactoryProvider.setClient(this.mockClient);
   }
@@ -127,7 +129,8 @@ public class SpannerConnectionFactoryProviderTest {
         = (SpannerConnectionFactory)this.spannerConnectionFactoryProvider.create(options);
 
     TestPublisher<PartialResultSet> partialResultSetPublisher = TestPublisher.create();
-    when(this.mockClient.executeStreamingSql(any(ExecutionContext.class), any(), any(), any()))
+    when(this.mockClient.executeStreamingSql(
+        any(StatementExecutionContext.class), any(), any(), any()))
         .thenReturn(partialResultSetPublisher.flux());
     Session session = Session.newBuilder().setName("session-name").build();
     when(this.mockClient.createSession(any()))

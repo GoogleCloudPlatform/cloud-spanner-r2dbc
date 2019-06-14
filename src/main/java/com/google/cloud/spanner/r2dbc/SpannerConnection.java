@@ -48,7 +48,7 @@ public class SpannerConnection implements Connection {
 
   private final SpannerConnectionConfiguration config;
 
-  private volatile Context ctx;
+  private volatile SpannerStatementExecutionContext ctx;
 
   /**
    * Instantiates a Spanner session with given configuration.
@@ -57,7 +57,7 @@ public class SpannerConnection implements Connection {
    */
   public SpannerConnection(Client client, Session session, SpannerConnectionConfiguration config) {
     this.client = client;
-    this.ctx = new Context(session);
+    this.ctx = new SpannerStatementExecutionContext(session);
     this.config = config;
   }
 
@@ -111,7 +111,8 @@ public class SpannerConnection implements Connection {
       }
 
       return this.client
-            .rollbackTransaction(this.ctx.getSessionName(), this.ctx.getTransaction());
+            .rollbackTransaction(this.ctx.getSessionName(), this.ctx.getTransaction())
+            .doOnSuccess(response -> this.ctx.setTransaction(null, null));
     });
   }
 
@@ -154,12 +155,13 @@ public class SpannerConnection implements Connection {
   }
 
   /**
-   * Returns the {@link Context} associated with the current {@link Connection}.
+   * Returns the {@link SpannerStatementExecutionContext} associated with the current
+   * {@link Connection}.
    * The context is aware of the current session and optional transaction. It also provides
    * monotonically increasing {@codde seqNo} used for multiple DML statements within a transaction.
    * @return execution context
    */
-  public Context getExecutionContext() {
+  public SpannerStatementExecutionContext getExecutionContext() {
     return this.ctx;
   }
 
@@ -168,7 +170,7 @@ public class SpannerConnection implements Connection {
    * A class to hold session and transaction-related data that needs to be communicated from
    * {@link SpannerConnection} to {@link SpannerStatement}.
    */
-  public static class Context {
+  public static class SpannerStatementExecutionContext implements StatementExecutionContext {
 
     private Session session;
 
@@ -183,7 +185,7 @@ public class SpannerConnection implements Connection {
      * Sessions are immutable in the execution context.
      * @param session the session under which the current context is used.
      */
-    private Context(Session session) {
+    private SpannerStatementExecutionContext(Session session) {
       this.session = session;
     }
 
@@ -192,7 +194,8 @@ public class SpannerConnection implements Connection {
      * Transactions are mutable in the execution context.
      * @param transaction the newly opened transaction
      */
-    private void setTransaction(@Nullable Transaction transaction, TransactionOptions options) {
+    private void setTransaction(
+        @Nullable Transaction transaction, @Nullable TransactionOptions transactionOptions) {
       this.transaction = transaction;
       this.transactionOptions = transactionOptions;
     }

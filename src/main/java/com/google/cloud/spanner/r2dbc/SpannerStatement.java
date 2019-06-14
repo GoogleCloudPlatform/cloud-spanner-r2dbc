@@ -40,7 +40,7 @@ public class SpannerStatement implements Statement {
 
   private Client client;
 
-  private SpannerConnection.Context ctx;
+  private StatementExecutionContext ctx;
 
   private String sql;
 
@@ -64,7 +64,7 @@ public class SpannerStatement implements Statement {
    */
   public SpannerStatement(
       Client client,
-      SpannerConnection.Context ctx,
+      StatementExecutionContext ctx,
       String sql,
       SpannerConnectionConfiguration config) {
 

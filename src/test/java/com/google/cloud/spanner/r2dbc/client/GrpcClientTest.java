@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.spanner.r2dbc.ExecutionContext;
+import com.google.cloud.spanner.r2dbc.StatementExecutionContext;
 import com.google.protobuf.ByteString;
 import com.google.spanner.v1.CreateSessionRequest;
 import com.google.spanner.v1.ExecuteSqlRequest;
@@ -56,14 +56,14 @@ public class GrpcClientTest {
 
   static ByteString TRANSACTION_ID = ByteString.copyFrom("/transaction/abc".getBytes());
 
-  ExecutionContext mockContext;
+  StatementExecutionContext mockContext;
 
   /**
    * Sets up execution context mock.
    */
   @Before
   public void setUp() {
-    this.mockContext = mock(ExecutionContext.class);
+    this.mockContext = mock(StatementExecutionContext.class);
     when(this.mockContext.getSessionName()).thenReturn(SESSION_NAME);
     when(this.mockContext.getTransactionId()).thenReturn(TRANSACTION_ID);
   }

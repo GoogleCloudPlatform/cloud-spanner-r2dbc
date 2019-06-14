@@ -17,7 +17,7 @@
 package com.google.cloud.spanner.r2dbc.client;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.spanner.r2dbc.SpannerConnection;
+import com.google.cloud.spanner.r2dbc.StatementExecutionContext;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
 import com.google.common.annotations.VisibleForTesting;
@@ -191,7 +191,7 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<ExecuteBatchDmlResponse> executeBatchDml(SpannerConnection.Context ctx, String sql,
+  public Mono<ExecuteBatchDmlResponse> executeBatchDml(StatementExecutionContext ctx, String sql,
       List<Struct> params, Map<String, Type> types) {
     return Mono.defer(() -> {
       ExecuteBatchDmlRequest.Builder request = ExecuteBatchDmlRequest.newBuilder()
@@ -216,7 +216,7 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Flux<PartialResultSet> executeStreamingSql(SpannerConnection.Context ctx, String sql,
+  public Flux<PartialResultSet> executeStreamingSql(StatementExecutionContext ctx, String sql,
       Struct params, Map<String, Type> types) {
 
     return Flux.defer(() -> {

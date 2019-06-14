@@ -66,8 +66,6 @@ public class SpannerStatementTest {
           .setDatabaseName("db")
           .build();
 
-  private ExecutionContext mockContext;
-
   private final Value a1 = Value.newBuilder().setBoolValue(false).build();
   private final Value a2 = Value.newBuilder().setStringValue("abc").build();
 
@@ -82,9 +80,13 @@ public class SpannerStatementTest {
 
   private Client mockClient;
 
+  private StatementExecutionContext mockContext;
+
+
   @Before
   public void setupMocks() {
     this.mockClient = mock(Client.class);
+    this.mockContext = mock(StatementExecutionContext.class);
   }
 
   @Test
