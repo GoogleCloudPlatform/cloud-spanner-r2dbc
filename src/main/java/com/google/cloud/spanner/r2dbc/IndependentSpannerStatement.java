@@ -47,6 +47,7 @@ public class IndependentSpannerStatement extends SpannerStatement {
   @Override
   public Publisher<? extends Result> execute() {
     return this.statementType == StatementType.DML
+        && this.spannerConnection.getTransactionId() == null
         ? this.spannerConnection.beginTransaction().thenMany(super.execute())
         .delayUntil(r -> this.spannerConnection.commitTransaction())
         : super.execute();

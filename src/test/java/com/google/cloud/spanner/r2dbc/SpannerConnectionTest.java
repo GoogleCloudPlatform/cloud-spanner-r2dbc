@@ -163,6 +163,24 @@ public class SpannerConnectionTest {
           Statement statement = connection.createStatement(sql);
           assertThat(statement.getClass()).isEqualTo(SpannerStatement.class);
         })).verifyComplete();
+    verify(this.mockClient, times(1)).beginTransaction(eq(TEST_SESSION_NAME), any());
+  }
+
+  @Test
+  public void executeDmlInTransactionStartingAfterCreationTest() {
+    SpannerConnection connection
+        = new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
+    String sql = "insert into books values (title) @title";
+
+    when(this.mockClient.executeBatchDml(any(), any(), any(), any())).thenReturn(Mono.empty());
+
+    StepVerifier.create(
+        Mono.fromSupplier(() -> connection.createStatement(sql))
+            .delayUntil(s -> connection.beginTransaction())
+            .doOnSuccess(SpannerStatement::execute)
+    ).consumeNextWith(x -> {
+    }).verifyComplete();
+    verify(this.mockClient, times(1)).beginTransaction(eq(TEST_SESSION_NAME), any());
   }
 
   @Test
