@@ -149,6 +149,18 @@ public class SpannerConnectionTest {
   }
 
   @Test
+  public void executeDmlInTransactionTest() {
+    SpannerConnection connection
+        = new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
+    String sql = "insert into books values (title) @title";
+
+    connection.beginTransaction().block();
+
+    Statement statement = connection.createStatement(sql);
+    assertThat(statement.getClass()).isEqualTo(SpannerStatement.class);
+  }
+
+  @Test
   public void noopCommitTransactionWhenTransactionNotStarted() {
     SpannerConnection connection =
         new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
