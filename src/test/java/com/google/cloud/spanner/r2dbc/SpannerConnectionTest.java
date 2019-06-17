@@ -139,6 +139,16 @@ public class SpannerConnectionTest {
   }
 
   @Test
+  public void executeSingleUseDml() {
+    SpannerConnection connection
+        = new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
+    String sql = "insert into books values (title) @title";
+
+    Statement statement = connection.createStatement(sql);
+    assertThat(statement).isInstanceOf(IndependentSpannerStatement.class);
+  }
+
+  @Test
   public void noopCommitTransactionWhenTransactionNotStarted() {
     SpannerConnection connection =
         new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
