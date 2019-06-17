@@ -17,6 +17,8 @@
 package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.statement.StatementParser;
+import com.google.cloud.spanner.r2dbc.statement.StatementType;
 import com.google.protobuf.ByteString;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
@@ -138,7 +140,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
 
   @Override
   public SpannerStatement createStatement(String sql) {
-    return getTransactionId() == null
+    return getTransactionId() == null && StatementParser.getStatementType(sql) == StatementType.DML
         ? new IndependentSpannerStatement(this.client, sql, this.config, this)
         : new SpannerStatement(this.client, this, sql, this.config);
   }

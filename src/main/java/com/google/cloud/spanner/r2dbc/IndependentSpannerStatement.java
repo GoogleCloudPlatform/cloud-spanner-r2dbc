@@ -17,7 +17,6 @@
 package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
-import com.google.cloud.spanner.r2dbc.statement.StatementType;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import io.r2dbc.spi.Result;
 import org.reactivestreams.Publisher;
@@ -46,8 +45,7 @@ public class IndependentSpannerStatement extends SpannerStatement {
 
   @Override
   public Publisher<? extends Result> execute() {
-    return this.statementType == StatementType.DML
-        && this.spannerConnection.getTransactionId() == null
+    return this.spannerConnection.getTransactionId() == null
         ? this.spannerConnection.beginTransaction().thenMany(super.execute())
         .delayUntil(r -> this.spannerConnection.commitTransaction())
         : super.execute();
