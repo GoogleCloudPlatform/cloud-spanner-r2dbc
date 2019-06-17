@@ -334,7 +334,8 @@
                 <goals>
                   <goal>jar</goal>
                 </goals>
-                <configuration> <!-- add this to disable checking -->
+                <configuration>
+                  <!-- ignore javadoc errors -->
                   <additionalparam>-Xdoclint:none</additionalparam>
                   <source>8</source>
                 </configuration>
