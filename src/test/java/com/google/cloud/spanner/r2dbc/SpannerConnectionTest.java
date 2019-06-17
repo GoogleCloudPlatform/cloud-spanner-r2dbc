@@ -159,7 +159,7 @@ public class SpannerConnectionTest {
     String sql = "insert into books values (title) @title";
 
     StepVerifier.create(connection.beginTransaction()
-        .doOnSuccess(aVoid -> {
+        .doOnSuccess(avoid -> {
           Statement statement = connection.createStatement(sql);
           assertThat(statement.getClass()).isEqualTo(SpannerStatement.class);
         })).verifyComplete();

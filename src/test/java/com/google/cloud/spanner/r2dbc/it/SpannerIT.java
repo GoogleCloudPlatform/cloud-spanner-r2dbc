@@ -244,7 +244,8 @@ public class SpannerIT {
                 Mono.fromRunnable(() ->
                     StepVerifier.create(Flux.from(c.createStatement(
                         "INSERT BOOKS "
-                            + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, PUBLISHED, WORDS_PER_SENTENCE)"
+                            + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
+                            + "PUBLISHED, WORDS_PER_SENTENCE)"
                             + " VALUES "
                             + "(@uuid, @title, @author, @category, @fiction, @published, @wps);")
                         .bind("uuid", "1")
@@ -274,14 +275,13 @@ public class SpannerIT {
                         .flatMapSequential(r -> Mono.from(r.getRowsUpdated())))
                         .expectNext(1).expectNext(1).expectNext(1).verifyComplete())
             )
-            .doOnSuccess(aVoid -> {
+            .doOnSuccess(avoid -> {
               long retrieved = executeReadQuery(
                   connectionFactory,
                   "Select count(1) as count FROM books",
                   (row, rowMetadata) -> row.get("count", Long.class)).get(0);
               assertThat(retrieved).isEqualTo(3);
-            })).consumeNextWith(connection -> {
-    }).verifyComplete();
+            })).consumeNextWith(connection -> {}).verifyComplete();
   }
 
   @Test
