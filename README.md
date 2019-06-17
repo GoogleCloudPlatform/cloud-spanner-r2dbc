@@ -48,7 +48,7 @@ account credentials to the driver.
 #### Using Google Cloud SDK
 
 Google Cloud SDK is a command line interface for Google Cloud Platform products and services.
-This is the recommended way of setting up authentication during local development.
+This is a convenient way of setting up authentication during local development.
 
 If you are using the SDK, the driver can automatically infer your account credentials from your
 SDK configuration.
@@ -69,10 +69,10 @@ credentials allowing you to access your Spanner database.
 
 A [Google Service Account](https://cloud.google.com/iam/docs/understanding-service-accounts) is a
 special type of Google Account intended to represent a non-human user that needs to authenticate
-and be authorized to access your Google Cloud resources.
+and be authorized to access your Google Cloud resources. Each service account has an account key JSON file that you can use to provide credentials to your
+application.
 
-Each service account has an account key JSON file that you can use to provide credentials to your
-application. This is the recommended method of authentication for production use.
+This is the recommended method of authentication for production use.
 
 You can learn how to create a service account and authenticate your application by following
 [these instructions](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually).
@@ -82,7 +82,8 @@ by manually specifying a service account key JSON file using the `google_credent
 option to the `ConnectionFactory` builder.
 
 Example:
-```
+
+```java
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.GOOGLE_CREDENTIALS;
 
 String pathToCredentialsKeyFile = ...;
@@ -164,6 +165,7 @@ See [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-typ
 The Cloud Spanner R2DBC driver supports named parameter binding using Cloud Spanner's [parameter syntax](https://cloud.google.com/spanner/docs/sql-best-practices).
 
 SQL and DML statements can be constructed with parameters:
+
 ```java
 mySpannerConnection.createStatement(
   "INSERT BOOKS (ID, TITLE) VALUES (@id, @title)")
