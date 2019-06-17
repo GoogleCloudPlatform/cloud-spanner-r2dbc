@@ -24,7 +24,7 @@ import org.reactivestreams.Publisher;
 /**
  * A `SpannerStatement` that is single-use for read and write.
  */
-public class IndependentSpannerStatement extends SpannerStatement {
+public class AutoCommitSpannerStatement extends SpannerStatement {
 
   private final SpannerConnection spannerConnection;
 
@@ -36,7 +36,7 @@ public class IndependentSpannerStatement extends SpannerStatement {
    * @param config config about the database and instance to use
    * @param spannerConnection the connection used for this single-use statement.
    */
-  public IndependentSpannerStatement(Client client, String sql,
+  public AutoCommitSpannerStatement(Client client, String sql,
       SpannerConnectionConfiguration config, SpannerConnection spannerConnection) {
     super(client, spannerConnection, sql, config);
     this.spannerConnection = Assert
@@ -46,7 +46,8 @@ public class IndependentSpannerStatement extends SpannerStatement {
   @Override
   public Publisher<? extends Result> execute() {
     return this.spannerConnection.getTransactionId() == null
-        ? this.spannerConnection.beginTransaction().thenMany(super.execute())
+        ? this.spannerConnection.beginTransaction()
+        .thenMany(super.execute())
         .delayUntil(r -> this.spannerConnection.commitTransaction())
         : super.execute();
   }

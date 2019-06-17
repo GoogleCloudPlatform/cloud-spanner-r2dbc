@@ -47,7 +47,7 @@ public class SpannerStatement implements Statement {
   private SpannerConnectionConfiguration config;
 
   private StatementBindings statementBindings;
-  private StatementExecutionContext ctx;
+  protected StatementExecutionContext ctx;
 
   /**
    * Creates a Spanner statement for a given SQL statement.

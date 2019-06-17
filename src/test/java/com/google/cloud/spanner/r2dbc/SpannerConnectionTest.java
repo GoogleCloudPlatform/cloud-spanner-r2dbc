@@ -31,8 +31,11 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.CommitResponse;
+import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.ResultSet;
 import com.google.spanner.v1.ResultSetMetadata;
+import com.google.spanner.v1.ResultSetStats;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
@@ -149,7 +152,7 @@ public class SpannerConnectionTest {
     String sql = "insert into books values (title) @title";
 
     Statement statement = connection.createStatement(sql);
-    assertThat(statement).isInstanceOf(IndependentSpannerStatement.class);
+    assertThat(statement).isInstanceOf(AutoCommitSpannerStatement.class);
   }
 
   @Test
@@ -181,6 +184,29 @@ public class SpannerConnectionTest {
     ).consumeNextWith(x -> {
     }).verifyComplete();
     verify(this.mockClient, times(1)).beginTransaction(eq(TEST_SESSION_NAME), any());
+  }
+
+  @Test
+  public void executeDmlAfterTransaction() {
+    SpannerConnection connection
+        = new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
+    String sql = "insert into books values (title) @title";
+
+    when(this.mockClient.executeBatchDml(any(), any(), any(), any())).thenReturn(Mono.just(
+        ExecuteBatchDmlResponse.newBuilder().addResultSets(ResultSet.newBuilder().setStats(
+            ResultSetStats.newBuilder().setRowCountExact(1).build()).build()).build()));
+
+    StepVerifier.create(
+        connection.beginTransaction()
+            .then(Mono.fromSupplier(() -> connection.createStatement(sql)))
+            .delayUntil(s -> connection.commitTransaction())
+            .flatMapMany(s -> s.execute())
+            .flatMap(r -> r.getRowsUpdated())
+            .collectList()
+    ).consumeNextWith(x -> {
+    }).verifyComplete();
+    verify(this.mockClient, times(2)).beginTransaction(eq(TEST_SESSION_NAME), any());
+    verify(this.mockClient, times(2)).commitTransaction(eq(TEST_SESSION_NAME), any());
   }
 
   @Test

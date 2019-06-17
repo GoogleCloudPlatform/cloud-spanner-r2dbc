@@ -140,8 +140,9 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
 
   @Override
   public SpannerStatement createStatement(String sql) {
-    return getTransactionId() == null && StatementParser.getStatementType(sql) == StatementType.DML
-        ? new IndependentSpannerStatement(this.client, sql, this.config, this)
+    return StatementParser.getStatementType(sql) == StatementType.DML
+        && !isTransactionPartitionedDml()
+        ? new AutoCommitSpannerStatement(this.client, sql, this.config, this)
         : new SpannerStatement(this.client, this, sql, this.config);
   }
 
