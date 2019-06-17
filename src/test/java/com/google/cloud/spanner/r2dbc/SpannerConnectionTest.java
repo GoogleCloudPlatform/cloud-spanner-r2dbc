@@ -136,6 +136,10 @@ public class SpannerConnectionTest {
 
     verify(this.mockClient).executeStreamingSql(any(StatementExecutionContext.class), eq(sql),
         eq(EMPTY_STRUCT), eq(EMPTY_TYPE_MAP));
+
+    // Single use READ query doesn't need these round trips below.
+    verify(this.mockClient, times(0)).beginTransaction(eq(TEST_SESSION_NAME), any());
+    verify(this.mockClient, times(0)).commitTransaction(eq(TEST_SESSION_NAME), any());
   }
 
   @Test
@@ -154,10 +158,11 @@ public class SpannerConnectionTest {
         = new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
     String sql = "insert into books values (title) @title";
 
-    connection.beginTransaction().block();
-
-    Statement statement = connection.createStatement(sql);
-    assertThat(statement.getClass()).isEqualTo(SpannerStatement.class);
+    StepVerifier.create(connection.beginTransaction()
+        .doOnSuccess(aVoid -> {
+          Statement statement = connection.createStatement(sql);
+          assertThat(statement.getClass()).isEqualTo(SpannerStatement.class);
+        })).verifyComplete();
   }
 
   @Test

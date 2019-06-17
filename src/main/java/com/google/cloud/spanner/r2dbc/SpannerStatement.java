@@ -40,15 +40,14 @@ public class SpannerStatement implements Statement {
 
   private Client client;
 
-  protected StatementExecutionContext ctx;
+  protected StatementType statementType;
 
   private String sql;
 
   private SpannerConnectionConfiguration config;
 
   private StatementBindings statementBindings;
-
-  private StatementType statementType;
+  private StatementExecutionContext ctx;
 
   /**
    * Creates a Spanner statement for a given SQL statement.
