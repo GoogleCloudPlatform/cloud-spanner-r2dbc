@@ -164,7 +164,7 @@ public class SpannerConnectionTest {
     StepVerifier.create(connection.beginTransaction()
         .doOnSuccess(avoid -> {
           Statement statement = connection.createStatement(sql);
-          assertThat(statement.getClass()).isEqualTo(SpannerStatement.class);
+          assertThat(statement.getClass()).isEqualTo(AutoCommitSpannerStatement.class);
         })).verifyComplete();
     verify(this.mockClient, times(1)).beginTransaction(eq(TEST_SESSION_NAME), any());
   }
@@ -193,8 +193,10 @@ public class SpannerConnectionTest {
     String sql = "insert into books values (title) @title";
 
     when(this.mockClient.executeBatchDml(any(), any(), any(), any())).thenReturn(Mono.just(
-        ExecuteBatchDmlResponse.newBuilder().addResultSets(ResultSet.newBuilder().setStats(
-            ResultSetStats.newBuilder().setRowCountExact(1).build()).build()).build()));
+        ExecuteBatchDmlResponse.newBuilder()
+            .addResultSets(
+                ResultSet.newBuilder()
+                    .setStats(ResultSetStats.newBuilder().setRowCountExact(1))).build()));
 
     StepVerifier.create(
         connection.beginTransaction()
