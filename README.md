@@ -161,7 +161,7 @@ See [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-typ
 
 ## Statements 
 
-Statement objects are used to run statements on your Cloud Spanner database. Based on the type
+R2DBC statement objects are used to run statements on your Cloud Spanner database. Based on the type
 of statement, the Cloud Spanner R2DBC handles the treatment and execution of the statement
 slightly differently.
 
