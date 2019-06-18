@@ -168,7 +168,7 @@ slightly differently.
 The table below describes whether parameter bindings are available for each statement type and
 the Spanner GRPC endpoint used to execute the query.
 
-| Statement Type | Allows Parameter Bindings | Statement Execution Method |
+| Statement Type | Allows Parameter Bindings | Cloud Spanner API Method   |
 |----------------|---------------------------|----------------------------|
 | SELECT Queries | Yes                       | [ExecuteStreamingSql](https://cloud.google.com/spanner/docs/reference/rpc/google.spanner.v1#google.spanner.v1.Spanner.ExecuteStreamingSql) |
 | DML Statements | Yes                       | [ExecuteBatchDml](https://cloud.google.com/spanner/docs/reference/rpc/google.spanner.v1#google.spanner.v1.Spanner.ExecuteBatchDml) |
