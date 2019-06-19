@@ -230,15 +230,29 @@ The default number of fragments per request to Cloud Spanner is 1, but this can 
 ## Exception Handling
 
 The Cloud Spanner R2DBC propagates all exceptions down to the user. The exceptions thrown are split
-into two categories:
+into two exception classes:
 
-- Transient: Errors caused by network problems or causes outside of the user's control.
-    The operations that fail due to these errors can be retried.
+- `R2dbcTransientException`: Errors caused by network problems or causes outside of the
+    user's control. The operations that fail due to these errors can be retried.
     
-- Non-transient: Errors caused by invalid operations or user error. These include syntax errors,
-    invalid requests, performing invalid operations on the Spanner driver, etc. These errors
-    should not be retried.
+- `R2dbcNonTransientException`: Errors caused by invalid operations or user error.
+    These include SQL syntax errors, invalid requests, performing invalid operations on the
+    Spanner driver, etc. These errors should not be retried.
     
-All errors are propagated to the users as `R2dbcTransientException` and `R2dbcNonTransientException`
-respectively. The user may use reactive methods to retry operations which throw
-`R2dbcTransientException`.
+The user may leverage reactive methods to retry operations which throw `R2dbcTransientException`.
+
+Example using Project Reactor's [`Retry` utilities](https://projectreactor.io/docs/extra/snapshot/api/overview-summary.html):
+
+```java
+// This describes a retry strategy which only attempts a retry if the exception class
+// matches R2dbcTransientException.class
+Retry retry =
+    Retry.anyOf(R2dbcTransientException.class)
+        .randomBackoff(Duration.ofMillis(100), Duration.ofSeconds(60))
+        .retryMax(5);
+
+Mono.from(connection
+    .createStatement("Select * from table")
+    .execute())
+    .retryWhen(retry); // This retries the subscription using the retry strategy.
+```
