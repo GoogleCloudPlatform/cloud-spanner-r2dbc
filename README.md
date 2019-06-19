@@ -226,3 +226,20 @@ The number of fragments for each row cannot be determined beforehand.
 While you can decide the number of rows you request from `SpannerResult`, the Cloud Spanner R2DBC driver will always request a fixed number of fragments from Cloud Spanner to fulfill your request and will do so repeatedly if necessary.
 
 The default number of fragments per request to Cloud Spanner is 1, but this can be configured with the `partial_result_set_fetch_size` config property for your situation.
+
+## Exception Handling
+
+The Cloud Spanner R2DBC propagates all exceptions down to the user. The exceptions thrown are split
+into two categories:
+
+- Transient: Errors caused by network problems or causes outside of the user's control.
+    The operations that fail due to these errors can be retried.
+    
+- Non-transient: Errors caused by invalid operations or user error. These include syntax errors,
+    invalid requests, performing invalid operations on the Spanner driver, etc. These errors
+    should not be retried.
+    
+All errors are propagated to the users as `R2dbcTransientException` and `R2dbcNonTransientException`
+respectively. The user may use reactive methods to retry operations which throw
+`R2dbcTransientException`.
+
