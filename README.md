@@ -229,8 +229,8 @@ The default number of fragments per request to Cloud Spanner is 1, but this can 
 
 ## Exception Handling
 
-The Cloud Spanner R2DBC propagates all exceptions down to the user. The exceptions thrown are split
-into two exception classes:
+The Cloud Spanner R2DBC propagates all exceptions down to the user. All exceptions thrown
+are wrapped by and propagated through two exception classes:
 
 - `R2dbcTransientException`: Errors caused by network problems or causes outside of the
     user's control. The operations that fail due to these errors can be retried.
