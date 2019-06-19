@@ -19,7 +19,7 @@ package com.google.cloud.spanner.r2dbc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.longrunning.Operation;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.ExecuteBatchDmlResponse;
@@ -34,12 +35,8 @@ import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.ResultSet;
 import com.google.spanner.v1.ResultSetMetadata;
 import com.google.spanner.v1.ResultSetStats;
-import com.google.spanner.v1.Session;
 import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
-import com.google.spanner.v1.Transaction;
-import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Result;
@@ -64,22 +61,12 @@ public class SpannerStatementTest {
   @Rule
   public ExpectedException exception = ExpectedException.none();
 
-  private static final Session TEST_SESSION =
-      Session.newBuilder().setName("project/session/1234").build();
-
   private static final SpannerConnectionConfiguration TEST_CONFIG =
       new SpannerConnectionConfiguration.Builder()
           .setInstanceName("test-instance")
           .setProjectId("project")
           .setDatabaseName("db")
           .build();
-
-  private static final SpannerTransactionContext TEST_TRANSACTION =
-      SpannerTransactionContext.from(
-          Transaction.getDefaultInstance(),
-          TransactionOptions.newBuilder()
-              .setReadWrite(ReadWrite.getDefaultInstance())
-              .build());
 
   private final Value a1 = Value.newBuilder().setBoolValue(false).build();
   private final Value a2 = Value.newBuilder().setStringValue("abc").build();
@@ -93,11 +80,17 @@ public class SpannerStatementTest {
           .build()
   ).build();
 
-  private Client mockClient;
+  private Client mockClient = mock(Client.class);
+
+  private StatementExecutionContext mockContext = mock(StatementExecutionContext.class);
+
+  private SpannerConnection mockConnection = mock(SpannerConnection.class);
+
 
   @Before
   public void setupMocks() {
-    this.mockClient = mock(Client.class);
+    when(this.mockConnection.beginTransaction()).thenReturn(Mono.empty());
+    when(this.mockConnection.commitTransaction()).thenReturn(Mono.empty());
   }
 
   @Test
@@ -110,11 +103,11 @@ public class SpannerStatementTest {
                     .setType(Type.newBuilder().setCode(TypeCode.STRING)))))
         .addValues(Value.newBuilder().setStringValue("Odyssey"))
         .build();
-    when(this.mockClient.executeStreamingSql(eq(TEST_SESSION), isNull(), eq(sql), any(), any()))
+    when(this.mockClient.executeStreamingSql(same(this.mockContext), eq(sql), any(), any()))
         .thenReturn(Flux.just(partialResultSet));
 
     SpannerStatement statement =
-        new SpannerStatement(this.mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
+        new SpannerStatement(this.mockClient, this.mockContext, sql, TEST_CONFIG);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>) statement.execute();
 
@@ -122,10 +115,10 @@ public class SpannerStatementTest {
 
     StepVerifier.create(result.flatMap(
         spannerResult -> spannerResult.map((row, rowMetadata) -> (String) row.get(0))))
-        .expectNext("Odyssey")
-        .verifyComplete();
+            .expectNext("Odyssey")
+            .verifyComplete();
 
-    verify(this.mockClient).executeStreamingSql(eq(TEST_SESSION), isNull(), eq(sql), any(), any());
+    verify(this.mockClient).executeStreamingSql(same(this.mockContext), eq(sql), any(), any());
   }
 
   @Test
@@ -154,19 +147,19 @@ public class SpannerStatementTest {
     types.put("id", Type.newBuilder().setCode(TypeCode.STRING).build());
     Struct idBinding1 = Struct.newBuilder()
         .putFields("id", Value.newBuilder().setStringValue("b1").build()).build();
-    when(this.mockClient.executeStreamingSql(TEST_SESSION, null, sql,
+    when(this.mockClient.executeStreamingSql(this.mockContext, sql,
         idBinding1, types))
         .thenReturn(Flux.just(partialResultSet1));
 
     Struct idBinding2 = Struct.newBuilder().putFields("id", Value.newBuilder()
         .setStringValue("b2").build()).build();
-    when(this.mockClient.executeStreamingSql(TEST_SESSION, null, sql,
+    when(this.mockClient.executeStreamingSql(this.mockContext, sql,
         idBinding2, types))
         .thenReturn(Flux.just(partialResultSet2));
 
     //execute query
-    SpannerStatement statement =
-        new SpannerStatement(this.mockClient, TEST_SESSION, null, sql, TEST_CONFIG);
+    SpannerStatement statement
+        = new SpannerStatement(this.mockClient, this.mockContext, sql, TEST_CONFIG);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>) statement
         .bind("id", "b1").add()
@@ -179,10 +172,8 @@ public class SpannerStatementTest {
         .expectNext("Fables")
         .verifyComplete();
 
-    verify(this.mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
-        idBinding1, types);
-    verify(this.mockClient, times(1)).executeStreamingSql(TEST_SESSION, null, sql,
-        idBinding2, types);
+    verify(this.mockClient, times(1)).executeStreamingSql(this.mockContext, sql, idBinding1, types);
+    verify(this.mockClient, times(1)).executeStreamingSql(this.mockContext, sql, idBinding2, types);
   }
 
   @Test
@@ -195,16 +186,12 @@ public class SpannerStatementTest {
 
     Flux<PartialResultSet> inputs = Flux.just(p1);
 
-    when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
+    when(this.mockClient.executeStreamingSql(
+        same(this.mockContext), any(), any(), any())).thenReturn(inputs);
 
     Mono<Result> resultMono =
-        Mono.from(
-            new SpannerStatement(
-                this.mockClient,
-                null,
-                null,
-                "SELECT * FROM table",
-                TEST_CONFIG).execute());
+        Mono.from(new SpannerStatement(
+            this.mockClient, this.mockContext, "SELECT * FROM table", TEST_CONFIG).execute());
 
     StepVerifier.create(resultMono.flatMap(r -> Mono.from(r.getRowsUpdated())))
         .expectNext(0)
@@ -222,20 +209,19 @@ public class SpannerStatementTest {
     ).setChunkedValue(false)
         .addValues(this.a1).build();
 
-    PartialResultSet p2 =
-        PartialResultSet.newBuilder().setChunkedValue(false).addValues(this.a2).build();
+    PartialResultSet p2 = PartialResultSet.newBuilder().setChunkedValue(false)
+        .addValues(this.a2).build();
 
     Flux<PartialResultSet> inputs = Flux.just(p1, p2);
 
-    when(this.mockClient.executeStreamingSql(any(), any(), any(), any(), any())).thenReturn(inputs);
+    when(this.mockClient.executeStreamingSql(
+        same(this.mockContext), any(), any(), any())).thenReturn(inputs);
 
-    StepVerifier
-        .create(Flux.from(
-            new SpannerStatement(this.mockClient, null, TEST_TRANSACTION,
-                "SELECT", TEST_CONFIG).execute())
-            .flatMap(r -> Mono.from(r.getRowsUpdated())))
-        .expectNext(0)
-        .verifyComplete();
+    StepVerifier.create(Flux.from(
+        new SpannerStatement(this.mockClient, this.mockContext, "SELECT", TEST_CONFIG).execute())
+          .flatMap(r -> Mono.from(r.getRowsUpdated())))
+          .expectNext(0)
+          .verifyComplete();
   }
 
   @Test
@@ -248,19 +234,29 @@ public class SpannerStatementTest {
         .addResultSets(resultSet)
         .build();
 
-    when(this.mockClient.executeBatchDml(any(), any(), any(), any(), any()))
+    when(this.mockClient.executeBatchDml(any(), any(), any(), any()))
         .thenReturn(Mono.just(executeBatchDmlResponse));
 
-    StepVerifier.create(
-        Flux.from(new SpannerStatement(
-            this.mockClient, null, TEST_TRANSACTION, "Insert into books", TEST_CONFIG).execute())
-            .flatMap(r -> Mono.from(r.getRowsUpdated())))
-        .expectNext(555)
-        .verifyComplete();
+    StepVerifier.create(Flux.from(
+        new SpannerStatement(this.mockClient, this.mockContext, "Insert into books", TEST_CONFIG)
+            .execute())
+          .flatMap(r -> Mono.from(r.getRowsUpdated())))
+          .expectNext(555)
+          .verifyComplete();
   }
 
   @Test
-  public void batchDmlQueryTest() {
+  public void batchDmlQueryAutoCommitTransactionTest() {
+    batchDmlQueryTest(null, 1, 1);
+  }
+
+  @Test
+  public void batchDmlQueryWithinTransactionTest() {
+    batchDmlQueryTest(ByteString.copyFromUtf8("abc"), 0, 0);
+  }
+
+  private void batchDmlQueryTest(ByteString transactionId,
+      int beginTransactionCount, int commitTransactionCount) {
     ResultSet resultSet1 = ResultSet.newBuilder()
         .setStats(ResultSetStats.newBuilder().setRowCountExact(555).build())
         .build();
@@ -274,12 +270,14 @@ public class SpannerStatementTest {
         .addResultSets(resultSet2)
         .build();
 
-    when(this.mockClient.executeBatchDml(any(), any(), any()))
+    when(this.mockClient.executeBatchDml(any(), any()))
         .thenReturn(Mono.just(executeBatchDmlResponse));
+
+    when(this.mockContext.getTransactionId()).thenReturn(transactionId);
 
     StepVerifier.create(
         Flux.from(new SpannerBatch(
-            this.mockClient, null, TEST_TRANSACTION)
+            this.mockClient, this.mockContext, this.mockConnection)
             .add("Insert into books")
             .add("Insert into authors")
             .execute())
@@ -287,6 +285,9 @@ public class SpannerStatementTest {
         .expectNext(555)
         .expectNext(777)
         .verifyComplete();
+
+    verify(this.mockConnection, times(beginTransactionCount)).beginTransaction();
+    verify(this.mockConnection, times(commitTransactionCount)).commitTransaction();
   }
 
   @Test
@@ -294,7 +295,7 @@ public class SpannerStatementTest {
     this.exception.expect(IllegalArgumentException.class);
     this.exception.expectMessage("Only DML statements are supported in batches");
 
-    new SpannerBatch(this.mockClient, null, TEST_TRANSACTION)
+    new SpannerBatch(this.mockClient, null, null)
             .add("select * from books");
   }
 
@@ -305,7 +306,7 @@ public class SpannerStatementTest {
 
     String sql = "drop TABLE BOOKS";
     SpannerStatement statement =
-        new SpannerStatement(this.mockClient, TEST_SESSION, TEST_TRANSACTION, sql, TEST_CONFIG);
+        new SpannerStatement(this.mockClient, this.mockContext, sql, TEST_CONFIG);
 
     StepVerifier.create(Flux.from(statement.execute()).flatMap(result -> result.getRowsUpdated()))
         .expectNext(0)
@@ -332,12 +333,12 @@ public class SpannerStatementTest {
         .addResultSets(resultSet)
         .build();
 
-    when(this.mockClient.executeBatchDml(TEST_SESSION, TEST_TRANSACTION, sql,
+    when(this.mockClient.executeBatchDml(this.mockContext, sql,
         Arrays.asList(Struct.newBuilder().build()), Collections.EMPTY_MAP))
         .thenReturn(Mono.just(executeBatchDmlResponse));
 
     SpannerStatement statement =
-        new SpannerStatement(this.mockClient, TEST_SESSION, TEST_TRANSACTION, sql, TEST_CONFIG);
+        new SpannerStatement(this.mockClient, this.mockContext, sql, TEST_CONFIG);
 
     Flux<SpannerResult> result = (Flux<SpannerResult>) statement.execute();
 
@@ -351,12 +352,7 @@ public class SpannerStatementTest {
         .expectNext(0)
         .verifyComplete();
 
-    verify(this.mockClient, times(1))
-        .executeBatchDml(
-            TEST_SESSION,
-            TEST_TRANSACTION,
-            sql,
-            Arrays.asList(Struct.newBuilder().build()),
-            Collections.EMPTY_MAP);
+    verify(this.mockClient, times(1)).executeBatchDml(
+        this.mockContext, sql, Arrays.asList(Struct.newBuilder().build()), Collections.EMPTY_MAP);
   }
 }
