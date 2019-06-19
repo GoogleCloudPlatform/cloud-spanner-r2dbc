@@ -193,31 +193,35 @@ public class GrpcClient implements Client {
   @Override
   public Mono<ExecuteBatchDmlResponse> executeBatchDml(StatementExecutionContext ctx, String sql,
       List<Struct> params, Map<String, Type> types) {
-    ExecuteBatchDmlRequest.Builder request = createBatchDmlRequestBuilder(ctx);
-    for (Struct paramsStruct : params) {
-      ExecuteBatchDmlRequest.Statement statement = ExecuteBatchDmlRequest.Statement.newBuilder()
-          .setSql(sql).setParams(paramsStruct).putAllParamTypes(types)
-          .build();
-      request.addStatements(statement);
-    }
+    return Mono.defer(() -> {
+      ExecuteBatchDmlRequest.Builder request = createBatchDmlRequestBuilder(ctx);
+      for (Struct paramsStruct : params) {
+        ExecuteBatchDmlRequest.Statement statement = ExecuteBatchDmlRequest.Statement.newBuilder()
+            .setSql(sql).setParams(paramsStruct).putAllParamTypes(types)
+            .build();
+        request.addStatements(statement);
+      }
 
-    return ObservableReactiveUtil
-        .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
+      return ObservableReactiveUtil
+          .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
+    });
   }
 
   @Override
   public Mono<ExecuteBatchDmlResponse> executeBatchDml(StatementExecutionContext ctx,
       List<String> statements) {
-    ExecuteBatchDmlRequest.Builder request = createBatchDmlRequestBuilder(ctx);
-    for (String sql : statements) {
-      ExecuteBatchDmlRequest.Statement statement = ExecuteBatchDmlRequest.Statement.newBuilder()
-          .setSql(sql)
-          .build();
-      request.addStatements(statement);
-    }
+    return Mono.defer(() -> {
+      ExecuteBatchDmlRequest.Builder request = createBatchDmlRequestBuilder(ctx);
+      for (String sql : statements) {
+        ExecuteBatchDmlRequest.Statement statement = ExecuteBatchDmlRequest.Statement.newBuilder()
+            .setSql(sql)
+            .build();
+        request.addStatements(statement);
+      }
 
-    return ObservableReactiveUtil
-        .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
+      return ObservableReactiveUtil
+          .unaryCall(obs -> this.spanner.executeBatchDml(request.build(), obs));
+    });
   }
 
   private ExecuteBatchDmlRequest.Builder createBatchDmlRequestBuilder(
