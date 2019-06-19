@@ -242,4 +242,3 @@ into two categories:
 All errors are propagated to the users as `R2dbcTransientException` and `R2dbcNonTransientException`
 respectively. The user may use reactive methods to retry operations which throw
 `R2dbcTransientException`.
-
