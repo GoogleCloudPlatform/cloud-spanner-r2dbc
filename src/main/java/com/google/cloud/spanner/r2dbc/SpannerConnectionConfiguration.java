@@ -169,7 +169,7 @@ public class SpannerConnectionConfiguration {
       }
 
       SpannerConnectionConfiguration configuration;
-      if (url != null) {
+      if (this.url != null) {
         configuration = new SpannerConnectionConfiguration(this.url, this.credentials);
       } else {
         configuration = new SpannerConnectionConfiguration(
