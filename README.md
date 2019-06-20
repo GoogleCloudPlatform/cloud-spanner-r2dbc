@@ -170,9 +170,9 @@ it is preferable to reuse your `Connection` object to run multiple statements ra
 a new `Connection` for each statement you wish to run.
 
 Additionally, if a `Connection` is not used for more than 1 hour, the Cloud Spanner database service
-reserves the right to drop the connection. If this occurs, an exception will be thrown when you
-attempt to run queries using the connection, and you will have to recreate the connection in order
-to reattempt the query.
+reserves the right to drop the connection. If this occurs, a `R2dbcNonTransientException` will be
+thrown when you attempt to run queries using the connection, and you will have to recreate the
+connection in order to reattempt the query.
 
 If you definitely need to keep an idle connection alive, for example, if a significant near-term
 increase in database use is expected, then you can prevent the connection from being dropped.
