@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import java.io.IOException;
 import java.time.Duration;
@@ -39,6 +40,15 @@ public class SpannerConnectionConfiguration {
   private Duration ddlOperationTimeout;
 
   private Duration ddlOperationPollInterval;
+
+  /**
+   * Constructor which initializes the configuration from an Cloud Spanner R2DBC url.
+   */
+  private SpannerConnectionConfiguration(String url, GoogleCredentials credentials) {
+    this.fullyQualifiedDbName =
+        ConnectionFactoryOptions.parse(url).getValue(ConnectionFactoryOptions.DATABASE);
+    this.credentials = credentials;
+  }
 
   /**
    * Basic property initializing constructor.
@@ -89,6 +99,8 @@ public class SpannerConnectionConfiguration {
 
   public static class Builder {
 
+    private String url;
+
     private String projectId;
 
     private String instanceName;
@@ -102,6 +114,11 @@ public class SpannerConnectionConfiguration {
     private Duration ddlOperationTimeout = Duration.ofSeconds(600);
 
     private Duration ddlOperationPollInterval = Duration.ofSeconds(5);
+
+    public Builder setUrl(String url) {
+      this.url = url;
+      return this;
+    }
 
     public Builder setProjectId(String projectId) {
       this.projectId = projectId;
@@ -151,11 +168,13 @@ public class SpannerConnectionConfiguration {
             "Could not acquire default application credentials", e);
       }
 
-      SpannerConnectionConfiguration configuration = new SpannerConnectionConfiguration(
-          this.projectId,
-          this.instanceName,
-          this.databaseName,
-          this.credentials);
+      SpannerConnectionConfiguration configuration;
+      if (url != null) {
+        configuration = new SpannerConnectionConfiguration(this.url, this.credentials);
+      } else {
+        configuration = new SpannerConnectionConfiguration(
+            this.projectId, this.instanceName, this.databaseName, this.credentials);
+      }
 
       configuration.partialResultSetFetchSize = this.partialResultSetFetchSize;
       configuration.ddlOperationTimeout = this.ddlOperationTimeout;

@@ -129,4 +129,16 @@ public class SpannerConnectionConfigurationTest {
     assertThat(config.getDdlOperationTimeout()).isEqualTo(Duration.ofSeconds(23));
     assertThat(config.getDdlOperationPollInterval()).isEqualTo(Duration.ofSeconds(45));
   }
+
+  @Test
+  public void databaseUrlSettings() {
+    SpannerConnectionConfiguration config =
+        this.configurationBuilder
+            .setUrl("r2dbc:spanner://spanner.googleapis.com:443/"
+                + "projects/my-project/instances/my-instance/databases/my-database")
+            .build();
+
+    assertThat(config.getFullyQualifiedDatabaseName())
+        .isEqualTo("projects/my-project/instances/my-instance/databases/my-database");
+  }
 }
