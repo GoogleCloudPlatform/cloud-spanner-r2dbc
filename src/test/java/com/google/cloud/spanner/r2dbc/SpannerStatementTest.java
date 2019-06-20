@@ -17,6 +17,7 @@
 package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -46,9 +47,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -57,9 +56,6 @@ import reactor.test.StepVerifier;
  * Test for {@link SpannerStatement}.
  */
 public class SpannerStatementTest {
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   private static final SpannerConnectionConfiguration TEST_CONFIG =
       new SpannerConnectionConfiguration.Builder()
@@ -292,11 +288,12 @@ public class SpannerStatementTest {
 
   @Test
   public void batchDmlExceptionTest() {
-    this.exception.expect(IllegalArgumentException.class);
-    this.exception.expectMessage("Only DML statements are supported in batches");
+    assertThatThrownBy(() ->
+        new SpannerBatch(this.mockClient, null, null)
+        .add("select * from books"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Only DML statements are supported in batches");
 
-    new SpannerBatch(this.mockClient, null, null)
-            .add("select * from books");
   }
 
   @Test
