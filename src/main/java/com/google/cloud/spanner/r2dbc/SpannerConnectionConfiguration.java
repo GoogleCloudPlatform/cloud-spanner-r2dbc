@@ -22,14 +22,19 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Objects;
 
 /**
  * Configurable properties for Cloud Spanner.
  */
 public class SpannerConnectionConfiguration {
 
-  private static final String FULLY_QUALIFIED_DB_NAME_PATTERN
-      = "projects/%s/instances/%s/databases/%s";
+  private static final String FULLY_QUALIFIED_DB_NAME_PATTERN =
+      "projects/%s/instances/%s/databases/%s";
+
+  /** Pattern used to validate that the user input database string is in the right format. */
+  private static final String DB_NAME_VALIDATE_PATTERN =
+      "projects\\/[\\w\\-]+\\/instances\\/[\\w\\-]+\\/databases\\/[\\w\\-]+$";
 
   private final String fullyQualifiedDbName;
 
@@ -45,8 +50,18 @@ public class SpannerConnectionConfiguration {
    * Constructor which initializes the configuration from an Cloud Spanner R2DBC url.
    */
   private SpannerConnectionConfiguration(String url, GoogleCredentials credentials) {
-    this.fullyQualifiedDbName =
+    String databaseString =
         ConnectionFactoryOptions.parse(url).getValue(ConnectionFactoryOptions.DATABASE);
+
+    if (!databaseString.matches(DB_NAME_VALIDATE_PATTERN)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Malformed Cloud Spanner Database String: %s. The url must have the format: %s",
+              databaseString,
+              FULLY_QUALIFIED_DB_NAME_PATTERN));
+    }
+
+    this.fullyQualifiedDbName = databaseString;
     this.credentials = credentials;
   }
 
@@ -95,6 +110,32 @@ public class SpannerConnectionConfiguration {
 
   public Duration getDdlOperationPollInterval() {
     return this.ddlOperationPollInterval;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    SpannerConnectionConfiguration that = (SpannerConnectionConfiguration) o;
+    return this.partialResultSetFetchSize == that.partialResultSetFetchSize
+        && Objects.equals(this.fullyQualifiedDbName, that.fullyQualifiedDbName)
+        && Objects.equals(this.credentials, that.credentials)
+        && Objects.equals(this.ddlOperationTimeout, that.ddlOperationTimeout)
+        && Objects.equals(this.ddlOperationPollInterval, that.ddlOperationPollInterval);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects
+        .hash(this.fullyQualifiedDbName,
+            this.credentials,
+            this.partialResultSetFetchSize,
+            this.ddlOperationTimeout,
+            this.ddlOperationPollInterval);
   }
 
   public static class Builder {

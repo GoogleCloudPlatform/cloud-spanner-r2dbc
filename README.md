@@ -133,7 +133,7 @@ The following options are available to be configured for the connection factory:
 | `project`   | Your GCP Project ID        | True (if `url` not provided) | |
 | `instance`  | Your Spanner Instance name | True (if `url` not provided) | |
 | `database`  | Your Spanner Database name | True (if `url` not provided) | |
-| `url`       | A Cloud Spanner R2DBC URL specifying your Spanner database. An alternative to specifying `project`, `instance`, and `database` | False |
+| `url`       | A Cloud Spanner R2DBC URL specifying your Spanner database. An alternative to specifying `project`, `instance`, and `database` separately. | False |
 | `google_credentials` | Optional [Google credentials](https://cloud.google.com/docs/authentication/production) override to specify for your Google Cloud account. | False | If not provided, credentials will be [inferred from your runtime environment](https://cloud.google.com/docs/authentication/production#finding_credentials_automatically).
 | `partial_result_set_fetch_size` | Number of intermediate result sets that are buffered in transit for a read query. | False | 1 |
 | `ddl_operation_timeout` | Duration in seconds to wait for a DDL operation to complete before timing out | False | 600 seconds |
@@ -141,8 +141,8 @@ The following options are available to be configured for the connection factory:
 
 ### Connection URLs
 
-You may elect to connect to your Spanner database the `url` property instead of specifying the
-`project`, `instance`, and `database` properties separately.
+You may specify the coordinates of your Cloud Spanner database using the `url` property instead of
+specifying the `project`, `instance`, and `database` properties separately.
 
 A Cloud Spanner R2DBC URL is constructed using the following format:
 
