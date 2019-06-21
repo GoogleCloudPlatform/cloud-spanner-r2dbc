@@ -381,7 +381,7 @@ Execution stops after the first failed statement; the remaining statements are n
 ```java
 Batch batch = connection.createBatch();
 Publisher<? extends Result> publisher = batch
-    .add("INSERT INTO books VALUES('Mark Twain', 'The Adventures of Tom Sawyer')
-    .add("INSERT INTO books VALUES('Mark Twain', 'Adventures of Huckleberry Finn')
+    .add("INSERT INTO books VALUES('Mark Twain', 'The Adventures of Tom Sawyer'")
+    .add("INSERT INTO books VALUES('Mark Twain', 'Adventures of Huckleberry Finn'")
     .execute();
 ```
