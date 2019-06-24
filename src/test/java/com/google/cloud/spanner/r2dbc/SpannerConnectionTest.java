@@ -150,8 +150,7 @@ public class SpannerConnectionTest {
         Mono.fromSupplier(() -> connection.createStatement(sql))
             .delayUntil(s -> connection.beginTransaction())
             .doOnSuccess(SpannerStatement::execute))
-        .consumeNextWith(x -> {
-        })
+        .consumeNextWith(x -> {})
         .verifyComplete();
     verify(this.mockClient, times(1)).beginTransaction(eq(TEST_SESSION_NAME), any());
   }
