@@ -42,7 +42,7 @@ public interface Client {
    *
    * @param databaseName Fully qualified Spanner database name in the format {@code
    * projects/[PROJECT_ID]/instances/[INSTANCE]/databases/[DATABASE]}
-   * @returns {@link Mono} of the generated session.
+   * @return {@link Mono} of the generated session.
    */
   Mono<Session> createSession(String databaseName);
 
@@ -59,7 +59,7 @@ public interface Client {
    *
    * @param sessionName name of existing Cloud Spanner session.
    * @param transactionOptions properties determining the type of transaction to create
-   * @returns {@link Mono} of the transaction that was started.
+   * @return {@link Mono} of the transaction that was started.
    */
   Mono<Transaction> beginTransaction(String sessionName, TransactionOptions transactionOptions);
 
@@ -68,7 +68,7 @@ public interface Client {
    *
    * @param sessionName name of existing Cloud Spanner session
    * @param transaction The transaction that you want to commit.
-   * @returns {@link CommitResponse} describing the timestamp at which the transaction committed.
+   * @return {@link CommitResponse} describing the timestamp at which the transaction committed.
    */
   Mono<CommitResponse> commitTransaction(String sessionName, Transaction transaction);
 
@@ -89,7 +89,7 @@ public interface Client {
    * @param sql select or DML query to execute
    * @param params parameter values
    * @param types parameter types
-   * @return
+   * @return the {@link Flux} of partial result sets from the query.
    */
   Flux<PartialResultSet> executeStreamingSql(
       StatementExecutionContext ctx,
@@ -102,7 +102,7 @@ public interface Client {
    *
    * @param ctx connection-specific state.
    * @param sql select or DML query to execute
-   * @return
+   * @return the {@link Flux} of partial result sets from the query.
    */
   default Flux<PartialResultSet> executeStreamingSql(StatementExecutionContext ctx, String sql) {
     return executeStreamingSql(ctx, sql, null, null);
@@ -115,12 +115,19 @@ public interface Client {
    * @param sql select or DML query to execute
    * @param params parameter values
    * @param types parameter types
-   * @return
+   * @return the {@link ExecuteBatchDmlResponse} returned after executing the query
    */
   Mono<ExecuteBatchDmlResponse> executeBatchDml(StatementExecutionContext ctx, String sql,
       List<Struct> params, Map<String, Type> types);
 
 
+  /**
+   * Execute DML batch.
+   *
+   * @param ctx connection-specific state.
+   * @param statements list of DML statements to run.
+   * @return the {@link ExecuteBatchDmlResponse} returned after executing the query.
+   */
   Mono<ExecuteBatchDmlResponse> executeBatchDml(StatementExecutionContext ctx,
       List<String> statements);
 
@@ -133,7 +140,7 @@ public interface Client {
    * @param ddlStatement statement to execute (CREATE/DROP etc.).
    * @param ddlOperationTimeout how long to poll for the operation results until giving up.
    * @param ddlPollInterval how frequently to poll for the operation results.
-   * @return
+   * @return a {@link Mono} containing the operation metadata for tracking status of operation.
    */
   Mono<Operation> executeDdl(
       String fullyQualifiedDatabaseName,
