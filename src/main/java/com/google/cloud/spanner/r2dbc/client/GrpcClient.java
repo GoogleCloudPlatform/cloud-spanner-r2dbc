@@ -214,13 +214,20 @@ public class GrpcClient implements Client {
         return ObservableReactiveUtil.unaryCall(
             obs -> this.spanner.executeBatchDml(request.build(), obs));
       } else {
-        return beginTransaction(ctx.getSessionName(), READ_WRITE_TRANSACTION)
-            .flatMap(transaction -> {
-              request.setTransaction(TransactionSelector.newBuilder().setId(transaction.getId()));
-              return ObservableReactiveUtil
-                  .<ExecuteBatchDmlResponse>unaryCall(
-                      obs -> this.spanner.executeBatchDml(request.build(), obs))
-                  .delayUntil(response -> commitTransaction(ctx.getSessionName(), transaction));
+        request.setTransaction(TransactionSelector.newBuilder().setBegin(READ_WRITE_TRANSACTION));
+        return ObservableReactiveUtil
+            .<ExecuteBatchDmlResponse>unaryCall(
+                obs -> this.spanner.executeBatchDml(request.build(), obs))
+            .delayUntil(response -> {
+              if (response.getResultSetsList().size() > 0) {
+                Transaction transaction =
+                    response.getResultSets(0)
+                        .getMetadata()
+                        .getTransaction();
+                return commitTransaction(ctx.getSessionName(), transaction);
+              } else {
+                return Mono.empty();
+              }
             });
       }
     });
