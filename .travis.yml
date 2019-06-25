@@ -15,7 +15,7 @@ before_install:
     fi;
 
 install:
-  - ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -P release
+  - ./mvnw clean install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 
 script:
   - if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
@@ -23,3 +23,4 @@ script:
     else
       ./mvnw verify -B -V -DskipITs;
     fi;
+  - ./mvnw clean javadoc:jar
