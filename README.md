@@ -374,14 +374,13 @@ Only DML statements are supported.
 
 The call to `execute()` produces a publisher that will publish results.
 The statements are executed in sequential order.
-If one of the statements fails, the execution stops.
 For every successfully executed statement, there will be a result that contatins a number of updated rows.
 Execution stops after the first failed statement; the remaining statements are not executed. 
  
 ```java
-Batch batch = connection.createBatch();
-Publisher<? extends Result> publisher = batch
+Flux.from(connection.createBatch()
     .add("INSERT INTO books VALUES('Mark Twain', 'The Adventures of Tom Sawyer'")
     .add("INSERT INTO books VALUES('Mark Twain', 'Adventures of Huckleberry Finn'")
-    .execute();
+    .execute())
+    .flatMap(r -> r.getRowsUpdated());
 ```
