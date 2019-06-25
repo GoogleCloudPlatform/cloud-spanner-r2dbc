@@ -36,7 +36,7 @@ public class StatementParser {
   /**
    * Returns the statement type of a given SQL string.
    * @param sql the input SQL string.
-   * @return the type of statement of the SQL string.
+   * @returns the type of statement of the SQL string.
    */
   public static StatementType getStatementType(String sql) {
     String processedSql = processSql(sql);
