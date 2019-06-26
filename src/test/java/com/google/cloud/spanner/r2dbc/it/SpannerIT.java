@@ -260,6 +260,14 @@ public class SpannerIT {
         .verifyComplete();
   }
 
+  @Test
+  public void testDmlExceptions() {
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(conn -> conn.createStatement("INSERT BOOKS asdfasdfasdf").execute()))
+        .expectErrorMatches(err -> err.getMessage().contains("Syntax error:"))
+        .verify();
+  }
 
   @Test
   public void testSingleUseDml() {

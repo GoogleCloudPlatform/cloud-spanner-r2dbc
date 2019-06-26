@@ -52,6 +52,7 @@ import com.google.spanner.v1.Type;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Status;
 import io.grpc.auth.MoreCallCredentials;
 import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import java.time.Duration;
@@ -229,6 +230,14 @@ public class GrpcClient implements Client {
                 return Mono.empty();
               }
             });
+      }
+    })
+    .handle((response, sink) -> {
+      if (response.hasStatus() && response.getStatus().getCode() != Status.Code.OK.value()) {
+        sink.error(
+            new R2dbcNonTransientResourceException(response.getStatus().getMessage()));
+      } else {
+        sink.next(response);
       }
     });
   }
