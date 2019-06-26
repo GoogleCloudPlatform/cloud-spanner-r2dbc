@@ -21,10 +21,10 @@ import com.google.protobuf.Value;
 import com.google.protobuf.Value.KindCase;
 import com.google.spanner.v1.Type;
 import java.nio.ByteBuffer;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
@@ -98,7 +98,7 @@ class ValueUtils {
       case TIMESTAMP:
         return listValue.getValuesList().stream()
             .map(ValueUtils::parseTimestamp)
-            .toArray(Timestamp[]::new);
+            .toArray(ZonedDateTime[]::new);
       case DATE:
         return listValue.getValuesList().stream()
             .map(ValueUtils::parseDate)
@@ -129,12 +129,12 @@ class ValueUtils {
     return ByteBuffer.wrap(value.getStringValueBytes().toByteArray());
   }
 
-  private static java.sql.Timestamp parseTimestamp(Value proto) {
+  private static ZonedDateTime parseTimestamp(Value proto) {
     if (proto.getKindCase() == KindCase.NULL_VALUE || proto.getStringValue() == null) {
       return null;
     }
     TemporalAccessor temporalAccessor = TIMESTAMP_FORMATTER.parse(proto.getStringValue());
-    return java.sql.Timestamp.from(Instant.from(temporalAccessor));
+    return ZonedDateTime.from(Instant.from(temporalAccessor).atOffset(ZoneOffset.UTC));
   }
 
   private static LocalDate parseDate(Value proto) {
