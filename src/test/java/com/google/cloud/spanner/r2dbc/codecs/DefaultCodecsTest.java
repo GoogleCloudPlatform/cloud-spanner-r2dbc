@@ -48,61 +48,45 @@ public class DefaultCodecsTest {
     return Arrays.asList(new Object[][]{
         {new Boolean[]{true, false, true, null}, Boolean[].class,
             Type.newBuilder().setCode(TypeCode.ARRAY)
-                .setArrayElementType(Type.newBuilder().setCode(TypeCode.BOOL).build()).build(),
-            null},
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.BOOL).build()).build()},
         {new ByteBuffer[]{ByteBuffer.wrap("ab".getBytes()), ByteBuffer.wrap("cd".getBytes()), null},
             ByteBuffer[].class,
             Type.newBuilder().setCode(TypeCode.ARRAY)
-                .setArrayElementType(Type.newBuilder().setCode(TypeCode.BYTES).build()).build(),
-            null},
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.BYTES).build()).build()},
         {new LocalDate[]{LocalDate.of(800, 12, 31), LocalDate.of(2019, 1, 1), null},
             LocalDate[].class,
             Type.newBuilder().setCode(TypeCode.ARRAY)
-                .setArrayElementType(Type.newBuilder().setCode(TypeCode.DATE).build()).build(),
-            null},
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.DATE).build()).build()},
         {new Double[]{2.0d, 3.0d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN,
             null}, Double[].class,
             Type.newBuilder().setCode(TypeCode.ARRAY)
-                .setArrayElementType(Type.newBuilder().setCode(TypeCode.FLOAT64).build()).build(),
-            null},
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.FLOAT64).build()).build()},
         {new Long[]{2L, 1003L, null}, Long[].class,
             Type.newBuilder().setCode(TypeCode.ARRAY)
-                .setArrayElementType(Type.newBuilder().setCode(TypeCode.INT64).build()).build(),
-            null},
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.INT64).build()).build()},
         {new String[]{"abc", "def", null}, String[].class,
             Type.newBuilder().setCode(TypeCode.ARRAY)
-                .setArrayElementType(Type.newBuilder().setCode(TypeCode.STRING).build()).build(),
-            null},
+                .setArrayElementType(Type.newBuilder().setCode(TypeCode.STRING).build()).build()},
         {new ZonedDateTime[]{ZonedDateTime.parse("2007-12-03T10:15:30+00:00"),
             ZonedDateTime.parse("1800-06-05T10:12:51+00:00"), null},
             ZonedDateTime[].class,
             Type.newBuilder().setCode(TypeCode.ARRAY)
                 .setArrayElementType(
-                    Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()).build(),
-            null},
+                    Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()).build()},
 
-        {true, Boolean.class, Type.newBuilder().setCode(TypeCode.BOOL).build(),
-            null},
-        {false, Boolean.class, Type.newBuilder().setCode(TypeCode.BOOL).build(),
-            null},
+        {true, Boolean.class, Type.newBuilder().setCode(TypeCode.BOOL).build()},
+        {false, Boolean.class, Type.newBuilder().setCode(TypeCode.BOOL).build()},
         {ByteBuffer.wrap("ab".getBytes()), ByteBuffer.class,
-            Type.newBuilder().setCode(TypeCode.BYTES).build(),
-            null},
+            Type.newBuilder().setCode(TypeCode.BYTES).build()},
         {LocalDate.of(1992, 12, 31), LocalDate.class,
-            Type.newBuilder().setCode(TypeCode.DATE).build(),
-            null},
-        {2.0d, Double.class, Type.newBuilder().setCode(TypeCode.FLOAT64).build(),
-            null},
-        {12345L, Long.class, Type.newBuilder().setCode(TypeCode.INT64).build(),
-            null},
+            Type.newBuilder().setCode(TypeCode.DATE).build()},
+        {2.0d, Double.class, Type.newBuilder().setCode(TypeCode.FLOAT64).build()},
+        {12345L, Long.class, Type.newBuilder().setCode(TypeCode.INT64).build()},
         {ZonedDateTime.parse("1800-06-05T10:12:51+00:00"), ZonedDateTime.class,
-            Type.newBuilder().setCode(TypeCode.TIMESTAMP).build(),
-            null},
+            Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()},
         {ZonedDateTime.parse("1800-06-05T10:12:51+10:00"), ZonedDateTime.class,
-            Type.newBuilder().setCode(TypeCode.TIMESTAMP).build(),
-            ZonedDateTime.parse("1800-06-05T00:12:51+00:00")},
-        {"abc", String.class, Type.newBuilder().setCode(TypeCode.STRING).build(),
-            null},
+            Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()},
+        {"abc", String.class, Type.newBuilder().setCode(TypeCode.STRING).build()},
     });
   }
 
@@ -115,16 +99,17 @@ public class DefaultCodecsTest {
   @Parameter(2)
   public Type valueType;
 
-  @Parameter(3)
-  public Object decodedVal;
-
   @Test
   public void codecsTest() {
     Value value = this.codecs.encode(this.val);
     Value nullValue = this.codecs.encode(null);
 
-    Object decodedVal = this.decodedVal != null ? this.decodedVal : this.val;
-    assertThat(this.codecs.decode(value, this.valueType, this.type)).isEqualTo(decodedVal);
+    if (this.val instanceof ZonedDateTime) {
+      assertThat(((ZonedDateTime) this.codecs.decode(value, this.valueType, this.type)).toInstant())
+          .isEqualTo(((ZonedDateTime) this.val).toInstant());
+    } else {
+      assertThat(this.codecs.decode(value, this.valueType, this.type)).isEqualTo(this.val);
+    }
 
     assertThat(this.codecs.decode(nullValue, this.valueType, this.type)).isNull();
   }
