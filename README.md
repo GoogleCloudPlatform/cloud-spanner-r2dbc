@@ -171,9 +171,6 @@ Cloud Spanner R2DBC Driver supports the following types:
 |`TIMESTAMP`     |`java.time.ZonedDateTime` |
 |`ARRAY`         |Array-Variant of the corresponding Java type (e.g. `Long[]` for `ARRAY<INT64>`)|
 
-Note that Cloud Spanner Timestamp type stores time in UTC zone.
-Because of that timestamp value is converted to UTC on write, so when it is read, timestamp values will always be in UTC. 
-
 Null values mapping is supported in both directions.
 
 See [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-types) to learn more about Spanner types.

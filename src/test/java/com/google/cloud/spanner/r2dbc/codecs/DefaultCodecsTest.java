@@ -23,7 +23,7 @@ import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
 import org.junit.Test;
@@ -67,9 +67,9 @@ public class DefaultCodecsTest {
         {new String[]{"abc", "def", null}, String[].class,
             Type.newBuilder().setCode(TypeCode.ARRAY)
                 .setArrayElementType(Type.newBuilder().setCode(TypeCode.STRING).build()).build()},
-        {new ZonedDateTime[]{ZonedDateTime.parse("2007-12-03T10:15:30+00:00"),
-            ZonedDateTime.parse("1800-06-05T10:12:51+00:00"), null},
-            ZonedDateTime[].class,
+        {new LocalDateTime[]{LocalDateTime.parse("2007-12-03T10:15:30"),
+            LocalDateTime.parse("1999-06-05T10:12:51"), null},
+            LocalDateTime[].class,
             Type.newBuilder().setCode(TypeCode.ARRAY)
                 .setArrayElementType(
                     Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()).build()},
@@ -82,9 +82,7 @@ public class DefaultCodecsTest {
             Type.newBuilder().setCode(TypeCode.DATE).build()},
         {2.0d, Double.class, Type.newBuilder().setCode(TypeCode.FLOAT64).build()},
         {12345L, Long.class, Type.newBuilder().setCode(TypeCode.INT64).build()},
-        {ZonedDateTime.parse("1800-06-05T10:12:51+00:00"), ZonedDateTime.class,
-            Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()},
-        {ZonedDateTime.parse("1800-06-05T10:12:51+10:00"), ZonedDateTime.class,
+        {LocalDateTime.parse("1999-06-05T10:12:51"), LocalDateTime.class,
             Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()},
         {"abc", String.class, Type.newBuilder().setCode(TypeCode.STRING).build()},
     });
@@ -104,12 +102,7 @@ public class DefaultCodecsTest {
     Value value = this.codecs.encode(this.val);
     Value nullValue = this.codecs.encode(null);
 
-    if (this.val instanceof ZonedDateTime) {
-      assertThat(((ZonedDateTime) this.codecs.decode(value, this.valueType, this.type)).toInstant())
-          .isEqualTo(((ZonedDateTime) this.val).toInstant());
-    } else {
-      assertThat(this.codecs.decode(value, this.valueType, this.type)).isEqualTo(this.val);
-    }
+    assertThat(this.codecs.decode(value, this.valueType, this.type)).isEqualTo(this.val);
 
     assertThat(this.codecs.decode(nullValue, this.valueType, this.type)).isNull();
   }
