@@ -114,7 +114,7 @@ public interface Client {
    *
    * @param ctx connection-specific state.
    * @param statements list of DML statements to execute.
-   * @return the {@link ExecuteBatchDmlResponse} returned after executing the query
+   * @return the {@link ResultSet}s returned after executing the query
    */
   Flux<ResultSet> executeBatchDml(StatementExecutionContext ctx, List<Statement> statements);
 
