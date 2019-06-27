@@ -40,6 +40,7 @@ import com.google.spanner.v1.ExecuteBatchDmlRequest.Statement;
 import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.ResultSet;
 import com.google.spanner.v1.RollbackRequest;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc;
@@ -199,7 +200,7 @@ public class GrpcClient implements Client {
   }
 
   @Override
-  public Mono<ExecuteBatchDmlResponse> executeBatchDml(
+  public Flux<ResultSet> executeBatchDml(
       StatementExecutionContext ctx,
       List<Statement> statements) {
 
@@ -232,13 +233,14 @@ public class GrpcClient implements Client {
             });
       }
     })
-    .handle((response, sink) -> {
+    .flatMapMany(response -> {
+      Flux<ResultSet> results = Flux.fromIterable(response.getResultSetsList());
       if (response.hasStatus() && response.getStatus().getCode() != Status.Code.OK.value()) {
-        sink.error(
-            new R2dbcNonTransientResourceException(response.getStatus().getMessage()));
-      } else {
-        sink.next(response);
+        results = results.concatWith(
+            Mono.error(
+                new R2dbcNonTransientResourceException(response.getStatus().getMessage())));
       }
+      return results;
     });
   }
 

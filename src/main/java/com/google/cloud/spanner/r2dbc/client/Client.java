@@ -21,8 +21,8 @@ import com.google.longrunning.Operation;
 import com.google.protobuf.Struct;
 import com.google.spanner.v1.CommitResponse;
 import com.google.spanner.v1.ExecuteBatchDmlRequest.Statement;
-import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.ResultSet;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.Transaction;
 import com.google.spanner.v1.TransactionOptions;
@@ -116,8 +116,7 @@ public interface Client {
    * @param statements DML SQL statements to execute.
    * @return
    */
-  Mono<ExecuteBatchDmlResponse> executeBatchDml(
-      StatementExecutionContext ctx, List<Statement> statements);
+  Flux<ResultSet> executeBatchDml(StatementExecutionContext ctx, List<Statement> statements);
 
   /**
    * Execute a DDL query.

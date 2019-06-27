@@ -34,6 +34,8 @@ import com.google.spanner.v1.ExecuteBatchDmlRequest;
 import com.google.spanner.v1.ExecuteBatchDmlResponse;
 import com.google.spanner.v1.ExecuteSqlRequest;
 import com.google.spanner.v1.PartialResultSet;
+import com.google.spanner.v1.ResultSet;
+import com.google.spanner.v1.ResultSetStats;
 import com.google.spanner.v1.Session;
 import com.google.spanner.v1.SpannerGrpc;
 import com.google.spanner.v1.SpannerGrpc.SpannerImplBase;
@@ -124,18 +126,23 @@ public class GrpcClientTest {
 
   @Test
   public void testBatchDmlErrorPropagation() throws IOException {
+    ResultSet expectedResultSet =
+        ResultSet.newBuilder()
+            .setStats(ResultSetStats.newBuilder().setRowCountExact(20))
+            .build();
+
     doTest(new SpannerImplBase() {
           @Override
           public void executeBatchDml(
               ExecuteBatchDmlRequest request,
               StreamObserver<ExecuteBatchDmlResponse> responseObserver) {
-
             ExecuteBatchDmlResponse response =
                 ExecuteBatchDmlResponse.newBuilder()
                     .setStatus(
                         Status.newBuilder()
                             .setCode(Code.ABORTED.getHttpStatusCode())
                             .setMessage("error message"))
+                    .addResultSets(expectedResultSet)
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -144,6 +151,7 @@ public class GrpcClientTest {
         grpcClient ->
           StepVerifier
               .create(grpcClient.executeBatchDml(this.mockContext, new ArrayList<>()))
+              .expectNext(expectedResultSet)
               .expectErrorMessage("error message")
               .verify()
     );
