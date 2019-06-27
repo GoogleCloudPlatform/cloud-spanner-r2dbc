@@ -270,6 +270,25 @@ public class SpannerIT {
   }
 
   @Test
+  public void testMultipleDmlExceptions() {
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(conn ->
+                conn.createBatch()
+                    .add("INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
+                        + "PUBLISHED, WORDS_PER_SENTENCE) VALUES ('23', 'blarg', "
+                        + "'joe', 245, true, DATE '2013-12-25', 20)")
+                    .add("INSERT BOOKS asdfasdfasdfjasidg")
+                    .add("INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, PUBLISHED, "
+                        + "WORDS_PER_SENTENCE) VALUES ('24', 'blarg2', 'Bob', "
+                        + "245, true, DATE '2013-12-25', 20)")
+                    .execute()))
+        .expectNextMatches(result -> Mono.from(result.getRowsUpdated()).block() == 1)
+        .expectErrorMatches(err -> err.getMessage().contains("Syntax error:"))
+        .verify();
+  }
+
+  @Test
   public void testSingleUseDml() {
     long count = executeReadQuery(
         connectionFactory,
