@@ -177,7 +177,7 @@ public class SpannerConnectionTest {
     new SpannerConnection(this.mockClient, TEST_SESSION, configuration);
 
     Thread.sleep(80);
-    verify(this.mockClient, times(1))
+    verify(this.mockClient)
         .executeStreamingSql(any(StatementExecutionContext.class), eq("SELECT 1"), eq(EMPTY_STRUCT),
             eq(EMPTY_TYPE_MAP));
   }
