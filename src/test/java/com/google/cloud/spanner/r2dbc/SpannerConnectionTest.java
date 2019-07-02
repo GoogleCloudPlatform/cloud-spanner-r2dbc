@@ -44,6 +44,7 @@ import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import io.r2dbc.spi.Statement;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import org.junit.Before;
@@ -69,6 +70,8 @@ public class SpannerConnectionTest {
           .setInstanceName("test-instance")
           .setProjectId("project")
           .setDatabaseName("db")
+          .setKeepAliveEnabled(false)
+          .setKeepAliveInterval(Duration.ofMillis(20))
           .build();
 
   private static final TransactionOptions READ_WRITE_TRANSACTION =
@@ -104,7 +107,8 @@ public class SpannerConnectionTest {
   }
 
   @Test
-  public void executeStatementReturnsWorkingStatementWithCorrectQuery() {
+  public void executeStatementReturnsWorkingStatementWithCorrectQuery()
+      throws InterruptedException {
     SpannerConnection connection
         = new SpannerConnection(this.mockClient, TEST_SESSION, TEST_CONFIG);
     String sql = "select book from library";
@@ -133,6 +137,11 @@ public class SpannerConnectionTest {
     verify(this.mockClient).executeStreamingSql(any(StatementExecutionContext.class), eq(sql),
         eq(EMPTY_STRUCT), eq(EMPTY_TYPE_MAP));
 
+    Thread.sleep(80);
+    verify(this.mockClient, times(0))
+        .executeStreamingSql(any(StatementExecutionContext.class), eq("SELECT 1"), eq(EMPTY_STRUCT),
+            eq(EMPTY_TYPE_MAP));
+
     // Single use READ query doesn't need these round trips below.
     verify(this.mockClient, times(0)).beginTransaction(eq(TEST_SESSION_NAME), any());
     verify(this.mockClient, times(0)).commitTransaction(eq(TEST_SESSION_NAME), any());
@@ -153,6 +162,24 @@ public class SpannerConnectionTest {
         .consumeNextWith(x -> {})
         .verifyComplete();
     verify(this.mockClient, times(1)).beginTransaction(eq(TEST_SESSION_NAME), any());
+  }
+
+  @Test
+  public void keepAliveTest() throws InterruptedException {
+    SpannerConnectionConfiguration configuration =
+        new SpannerConnectionConfiguration.Builder()
+            .setInstanceName("test-instance")
+            .setProjectId("project")
+            .setDatabaseName("db")
+            .setKeepAliveInterval(Duration.ofMillis(20))
+            .build();
+
+    new SpannerConnection(this.mockClient, TEST_SESSION, configuration);
+
+    Thread.sleep(80);
+    verify(this.mockClient, times(1))
+        .executeStreamingSql(any(StatementExecutionContext.class), eq("SELECT 1"), eq(EMPTY_STRUCT),
+            eq(EMPTY_TYPE_MAP));
   }
 
   @Test

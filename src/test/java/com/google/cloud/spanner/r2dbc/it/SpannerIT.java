@@ -49,6 +49,7 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
 import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,6 +82,8 @@ public class SpannerIT {
           .option(DRIVER, DRIVER_NAME)
           .option(INSTANCE, TEST_INSTANCE)
           .option(DATABASE, TEST_DATABASE)
+          .option(Option.valueOf("keep-alive-enabled"), true)
+          .option(Option.valueOf("keep-alive-interval"), Duration.ofSeconds(5))
           .build());
 
   private SpannerStub spanner;

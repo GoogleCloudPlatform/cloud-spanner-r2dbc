@@ -46,6 +46,10 @@ public class SpannerConnectionConfiguration {
 
   private Duration ddlOperationPollInterval;
 
+  private Boolean keepAliveEnabled;
+
+  private Duration keepAliveInterval;
+
   /**
    * Constructor which initializes the configuration from an Cloud Spanner R2DBC url.
    */
@@ -112,6 +116,14 @@ public class SpannerConnectionConfiguration {
     return this.ddlOperationPollInterval;
   }
 
+  public Boolean getKeepAliveEnabled() {
+    return this.keepAliveEnabled;
+  }
+
+  public Duration getKeepAliveInterval() {
+    return this.keepAliveInterval;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -125,7 +137,9 @@ public class SpannerConnectionConfiguration {
         && Objects.equals(this.fullyQualifiedDbName, that.fullyQualifiedDbName)
         && Objects.equals(this.credentials, that.credentials)
         && Objects.equals(this.ddlOperationTimeout, that.ddlOperationTimeout)
-        && Objects.equals(this.ddlOperationPollInterval, that.ddlOperationPollInterval);
+        && Objects.equals(this.ddlOperationPollInterval, that.ddlOperationPollInterval)
+        && Objects.equals(this.keepAliveEnabled, that.keepAliveEnabled)
+        && Objects.equals(this.keepAliveInterval, that.keepAliveInterval);
   }
 
   @Override
@@ -135,7 +149,9 @@ public class SpannerConnectionConfiguration {
             this.credentials,
             this.partialResultSetFetchSize,
             this.ddlOperationTimeout,
-            this.ddlOperationPollInterval);
+            this.ddlOperationPollInterval,
+            this.keepAliveEnabled,
+            this.keepAliveInterval);
   }
 
   public static class Builder {
@@ -155,6 +171,10 @@ public class SpannerConnectionConfiguration {
     private Duration ddlOperationTimeout = Duration.ofSeconds(600);
 
     private Duration ddlOperationPollInterval = Duration.ofSeconds(5);
+
+    private Boolean keepAliveEnabled = true;
+
+    private Duration keepAliveInterval = Duration.ofMinutes(10);
 
     public Builder setUrl(String url) {
       this.url = url;
@@ -196,6 +216,16 @@ public class SpannerConnectionConfiguration {
       return this;
     }
 
+    public Builder setKeepAliveEnabled(Boolean keepAliveEnabled) {
+      this.keepAliveEnabled = keepAliveEnabled;
+      return this;
+    }
+
+    public Builder setKeepAliveInterval(Duration keepAliveInterval) {
+      this.keepAliveInterval = keepAliveInterval;
+      return this;
+    }
+
     /**
      * Constructs an instance of the {@link SpannerConnectionConfiguration}.
      *
@@ -222,6 +252,8 @@ public class SpannerConnectionConfiguration {
       configuration.partialResultSetFetchSize = this.partialResultSetFetchSize;
       configuration.ddlOperationTimeout = this.ddlOperationTimeout;
       configuration.ddlOperationPollInterval = this.ddlOperationPollInterval;
+      configuration.keepAliveEnabled = this.keepAliveEnabled;
+      configuration.keepAliveInterval = this.keepAliveInterval;
 
       return configuration;
     }

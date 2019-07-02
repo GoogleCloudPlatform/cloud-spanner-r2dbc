@@ -46,6 +46,13 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   /** Option name for GCP Spanner instance. */
   public static final Option<String> INSTANCE = Option.valueOf("instance");
 
+  /** Option name for enabling and disabling keep-alive functionality. */
+  public static final Option<Boolean> KEEP_ALIVE_ENABLED = Option.valueOf("keep-alive-enabled");
+
+  /** Option name for setting the interval between keep-alive query executions. */
+  public static final Option<Duration> KEEP_ALIVE_INTERVAL =
+      Option.valueOf("keep-alive-interval");
+
   /**
    * Option name for specifying the Cloud Spanner R2DBC URL.
    */
@@ -126,6 +133,14 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 
     if (options.hasOption(DDL_OPERATION_POLL_INTERVAL)) {
       config.setDdlOperationPollInterval(options.getValue(DDL_OPERATION_POLL_INTERVAL));
+    }
+
+    if (options.hasOption(KEEP_ALIVE_ENABLED)) {
+      config.setKeepAliveEnabled(options.getValue(KEEP_ALIVE_ENABLED));
+    }
+
+    if (options.hasOption(KEEP_ALIVE_INTERVAL)) {
+      config.setKeepAliveInterval(options.getValue(KEEP_ALIVE_INTERVAL));
     }
 
     return config.build();

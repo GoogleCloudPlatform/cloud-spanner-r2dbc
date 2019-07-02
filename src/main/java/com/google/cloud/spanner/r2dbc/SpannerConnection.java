@@ -25,11 +25,15 @@ import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.IsolationLevel;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nullable;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -41,6 +45,8 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
       TransactionOptions.newBuilder()
           .setReadWrite(ReadWrite.getDefaultInstance())
           .build();
+
+  private static final String KEEP_ALIVE_STATEMENT = "SELECT 1";
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -56,6 +62,8 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
 
   private final SpannerConnectionConfiguration config;
 
+  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
   /**
    * Instantiates a Spanner session with given configuration.
    * @param client client controlling low-level Spanner operations.
@@ -66,6 +74,21 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
     this.client = client;
     this.session = session;
     this.config = config;
+
+    if (config != null && config.getKeepAliveEnabled()) {
+      this.scheduler.scheduleAtFixedRate(
+          () -> {
+            if (this.transaction != null && this.transaction.isInitialized()) {
+              return;
+            }
+            Flux.from(Flux.from(createStatement(KEEP_ALIVE_STATEMENT).execute())
+                .collectList()
+                .block().get(0)
+                .map((row, rowMetadata) -> 0)).subscribe();
+          },
+          config.getKeepAliveInterval().getSeconds(), config.getKeepAliveInterval().toMillis(),
+          TimeUnit.MILLISECONDS);
+    }
   }
 
   @Override
@@ -127,6 +150,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
 
   @Override
   public Mono<Void> close() {
+    this.scheduler.shutdown();
     return commitTransaction(false).then(this.client.deleteSession(this.getSessionName()));
   }
 
