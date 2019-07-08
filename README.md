@@ -31,6 +31,30 @@ The easiest way to start using the driver is to add the driver dependency throug
 </dependency>
 ```
 
+**Repositories**
+
+```xml
+<repository>
+    <id>spring-snapshots</id>
+    <name>Spring Snapshots</name>
+    <url>https://repo.spring.io/snapshot</url>
+    <snapshots>
+        <enabled>true</enabled>
+    </snapshots>
+</repository>
+```
+
+```xml
+<repository>
+    <id>spring-milestones</id>
+    <name>Spring Milestones</name>
+    <url>https://repo.spring.io/milestone</url>
+    <snapshots>
+        <enabled>false</enabled>
+    </snapshots>
+</repository>
+```
+
 **Gradle Coordinates**
 
 ```
@@ -395,4 +419,46 @@ Flux.from(connection.createBatch()
     .add("INSERT INTO books VALUES('Mark Twain', 'Adventures of Huckleberry Finn'")
     .execute())
     .flatMap(r -> r.getRowsUpdated());
+```
+
+## Using Connection Pool
+For connection pooling, [r2dbc pool](https://github.com/r2dbc/r2dbc-pool) can be used. 
+
+**Maven dependency**
+
+```xml
+<dependency>
+  <groupId>io.r2dbc</groupId>
+  <artifactId>r2dbc-pool</artifactId>
+  <version>1.0.0.BUILD-SNAPSHOT</version>
+</dependency>
+```
+**Example:**
+
+```java
+ConnectionFactory connectionFactory =
+    ConnectionFactories.get(ConnectionFactoryOptions.builder()
+        .option(DRIVER, "spanner")
+        .option(PROJECT, "your-gcp-project-id")
+        .option(INSTANCE, "your-spanner-instance")
+        .option(DATABASE, "your-database-name")
+        .build())
+
+private static final ConnectionPool pool =
+    new ConnectionPool(ConnectionPoolConfiguration.builder(connectionFactory)
+        .validationQuery("SELECT 1")
+        .maxIdleTime(Duration.ofSeconds(10))
+        .maxSize(5)
+        .build());  
+
+Mono.from(pool.create())
+    .delayUntil(c -> c.beginTransaction())
+    .delayUntil(c -> Flux.from(c -> c.createStatement("INSERT INTO test (value) VALUES (@val)")
+                                           .bind("val", "test-value").execute())
+        .flatMapSequential(r -> Mono.from(r.getRowsUpdated())))
+    .delayUntil(c -> c.commitTransaction())
+    .delayUntil(c -> c.close())
+    .block();
+
+pool.dispose();
 ```
