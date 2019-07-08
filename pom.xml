@@ -310,6 +310,7 @@
         <enabled>false</enabled>
       </snapshots>
     </repository>
+    <!-- Snapsot repo is needed for r2dbc-pool -->
     <repository>
       <id>spring-snapshots</id>
       <name>Spring Snapshots</name>
