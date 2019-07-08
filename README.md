@@ -23,36 +23,12 @@ The easiest way to start using the driver is to add the driver dependency throug
 
 **Maven Coordinates**
 
-```
+```xml
 <dependency>
   <groupId>com.google.cloud</groupId>
   <artifactId>cloud-spanner-r2dbc</artifactId>
   <version>0.1.0-SNAPSHOT</version>
 </dependency>
-```
-
-**Repositories**
-
-```xml
-<repository>
-    <id>spring-snapshots</id>
-    <name>Spring Snapshots</name>
-    <url>https://repo.spring.io/snapshot</url>
-    <snapshots>
-        <enabled>true</enabled>
-    </snapshots>
-</repository>
-```
-
-```xml
-<repository>
-    <id>spring-milestones</id>
-    <name>Spring Milestones</name>
-    <url>https://repo.spring.io/milestone</url>
-    <snapshots>
-        <enabled>false</enabled>
-    </snapshots>
-</repository>
 ```
 
 **Gradle Coordinates**
@@ -423,6 +399,10 @@ Flux.from(connection.createBatch()
 
 ## Using Connection Pool
 For connection pooling, [r2dbc pool](https://github.com/r2dbc/r2dbc-pool) can be used. 
+Connection pools are used to cache and reuse database connections.  
+R2DBC-pool manages an adjustable number of connections, keeping them alive and verifying that they are still active.
+If necessary, connections are dropped and re-established.
+Validation query can be provided by user.  
 
 **Maven dependency**
 
