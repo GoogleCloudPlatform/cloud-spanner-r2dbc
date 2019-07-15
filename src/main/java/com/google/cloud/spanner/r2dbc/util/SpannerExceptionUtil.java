@@ -107,7 +107,7 @@ public class SpannerExceptionUtil {
   private static boolean isRetryable(StatusRuntimeException statusRuntimeException) {
     if (statusRuntimeException.getStatus().getCode() == Status.Code.INTERNAL
         && RETRYABLE_ERROR_MESSAGES.stream().anyMatch(
-        errorFragment -> statusRuntimeException.getMessage().contains(errorFragment))) {
+            errorFragment -> statusRuntimeException.getMessage().contains(errorFragment))) {
       return true;
     }
 
