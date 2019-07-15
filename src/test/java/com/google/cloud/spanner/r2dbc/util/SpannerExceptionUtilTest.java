@@ -16,7 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc.util;
 
-import static com.google.cloud.spanner.r2dbc.util.SpannerExceptionUtil.createWrappedR2dbcException;
+import static com.google.cloud.spanner.r2dbc.util.SpannerExceptionUtil.createR2dbcException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.protobuf.Duration;
@@ -39,7 +39,7 @@ public class SpannerExceptionUtilTest {
   @Test
   public void testCreateR2dbcException() {
     R2dbcException exception = SpannerExceptionUtil.createR2dbcException(
-        Code.ALREADY_EXISTS_VALUE, "test", null);
+        Code.ALREADY_EXISTS_VALUE, "test");
 
     assertThat(exception).isInstanceOf(R2dbcDataIntegrityViolationException.class);
     assertThat(exception).hasMessage("test");
@@ -47,14 +47,14 @@ public class SpannerExceptionUtilTest {
 
   @Test
   public void testNonRetryableException() {
-    assertThat(createWrappedR2dbcException(new IllegalArgumentException()))
+    assertThat(createR2dbcException(new IllegalArgumentException()))
         .isInstanceOf(R2dbcNonTransientResourceException.class);
-    assertThat(createWrappedR2dbcException((new IOException())))
+    assertThat(createR2dbcException((new IOException())))
         .isInstanceOf(R2dbcNonTransientResourceException.class);
 
     StatusRuntimeException nonRetryableException =
         new StatusRuntimeException(Status.PERMISSION_DENIED);
-    assertThat(createWrappedR2dbcException(nonRetryableException))
+    assertThat(createR2dbcException(nonRetryableException))
         .isInstanceOf(R2dbcPermissionDeniedException.class);
   }
 
@@ -64,7 +64,7 @@ public class SpannerExceptionUtilTest {
         new StatusRuntimeException(
             Status.INTERNAL.withDescription("HTTP/2 error code: INTERNAL_ERROR"), null);
 
-    assertThat(createWrappedR2dbcException(retryableException))
+    assertThat(createR2dbcException(retryableException))
         .isInstanceOf(R2dbcTransientResourceException.class);
   }
 
@@ -81,7 +81,7 @@ public class SpannerExceptionUtilTest {
     StatusRuntimeException retryableException =
         new StatusRuntimeException(Status.RESOURCE_EXHAUSTED, errorMetadata);
 
-    assertThat(createWrappedR2dbcException(retryableException))
+    assertThat(createR2dbcException(retryableException))
         .isInstanceOf(R2dbcTransientResourceException.class);
   }
 }

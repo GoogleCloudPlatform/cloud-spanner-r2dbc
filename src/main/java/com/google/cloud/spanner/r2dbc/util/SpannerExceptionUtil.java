@@ -46,27 +46,14 @@ public class SpannerExceptionUtil {
           "Received unexpected EOS on DATA frame from server");
 
   /**
-   * Manually creates an {@link R2dbcException} from a provided error code, message, and base
-   * exception.
+   * Manually creates an {@link R2dbcException} from a provided error code and message.
    *
    * @param errorCode the Spanner error code of the error.
    * @param message the error message.
-   * @param baseException the base exception that was thrown.
    * @return the resulting {@link R2dbcException} that is propagated to the user.
    */
-  public static R2dbcException createR2dbcException(
-      int errorCode, String message, @Nullable Throwable baseException) {
-
-    switch (errorCode) {
-      case Code.ALREADY_EXISTS_VALUE:
-        return new R2dbcDataIntegrityViolationException(message, null, errorCode, baseException);
-      case Code.INVALID_ARGUMENT_VALUE:
-        return new R2dbcBadGrammarException(message, null, errorCode, baseException);
-      case Code.PERMISSION_DENIED_VALUE:
-        return new R2dbcPermissionDeniedException(message, null, errorCode, baseException);
-      default:
-        return new R2dbcNonTransientResourceException(message, null, errorCode, baseException);
-    }
+  public static R2dbcException createR2dbcException(int errorCode, String message) {
+    return createR2dbcException(errorCode, message, null);
   }
 
   /**
@@ -75,7 +62,7 @@ public class SpannerExceptionUtil {
    * @param baseException the base exception that is thrown
    * @return the resulting {@link R2dbcException} that is propagated to the user.
    */
-  public static R2dbcException createWrappedR2dbcException(Throwable baseException) {
+  public static R2dbcException createR2dbcException(Throwable baseException) {
     if (!(baseException instanceof StatusRuntimeException)) {
       return new R2dbcNonTransientResourceException(baseException.getMessage(), baseException);
     }
@@ -87,7 +74,27 @@ public class SpannerExceptionUtil {
       return new R2dbcTransientResourceException(
           baseException.getMessage(), null, errorCode, baseException);
     } else {
-      return createR2dbcException(errorCode, baseException.getMessage(), baseException);
+      return createR2dbcException(
+          errorCode, baseException.getMessage(), baseException);
+    }
+  }
+
+  /**
+   * Private helper to manually create an {@link R2dbcException} given the error code,
+   * error message and base exception.
+   */
+  private static R2dbcException createR2dbcException(
+      int errorCode, String message, @Nullable Throwable baseException) {
+
+    switch (errorCode) {
+      case Code.ALREADY_EXISTS_VALUE:
+        return new R2dbcDataIntegrityViolationException(message, null, errorCode, baseException);
+      case Code.INVALID_ARGUMENT_VALUE:
+        return new R2dbcBadGrammarException(message, null, errorCode, baseException);
+      case Code.PERMISSION_DENIED_VALUE:
+        return new R2dbcPermissionDeniedException(message, null, errorCode, baseException);
+      default:
+        return new R2dbcNonTransientResourceException(message, null, errorCode, baseException);
     }
   }
 

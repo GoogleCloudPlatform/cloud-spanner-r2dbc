@@ -78,7 +78,7 @@ public class ObservableReactiveUtil {
 
     @Override
     public void onError(Throwable throwable) {
-      this.sink.error(SpannerExceptionUtil.createWrappedR2dbcException(throwable));
+      this.sink.error(SpannerExceptionUtil.createR2dbcException(throwable));
     }
 
     @Override
@@ -125,7 +125,7 @@ public class ObservableReactiveUtil {
     @Override
     public void onError(Throwable throwable) {
       this.terminalEventReceived = true;
-      this.sink.error(SpannerExceptionUtil.createWrappedR2dbcException(throwable));
+      this.sink.error(SpannerExceptionUtil.createR2dbcException(throwable));
     }
 
     @Override

@@ -243,8 +243,7 @@ public class GrpcClient implements Client {
         R2dbcException exception =
             SpannerExceptionUtil.createR2dbcException(
                 response.getStatus().getCode(),
-                response.getStatus().getMessage(),
-                null);
+                response.getStatus().getMessage());
         results = results.concatWith(Mono.error(exception));
       }
       return results;
