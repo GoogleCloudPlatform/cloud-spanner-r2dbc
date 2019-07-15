@@ -63,7 +63,9 @@ public class SpannerExceptionUtil {
    * @return the resulting {@link R2dbcException} that is propagated to the user.
    */
   public static R2dbcException createR2dbcException(Throwable baseException) {
-    if (!(baseException instanceof StatusRuntimeException)) {
+    if (baseException == null) {
+      return new R2dbcNonTransientResourceException();
+    } else if (!(baseException instanceof StatusRuntimeException)) {
       return new R2dbcNonTransientResourceException(baseException.getMessage(), baseException);
     }
 
