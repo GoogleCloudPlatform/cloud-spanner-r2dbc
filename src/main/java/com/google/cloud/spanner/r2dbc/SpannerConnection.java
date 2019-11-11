@@ -58,6 +58,8 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
 
   private final SpannerConnectionConfiguration config;
 
+  private boolean autoCommit = true;
+
   /**
    * Instantiates a Spanner session with given configuration.
    * @param client client controlling low-level Spanner operations.
@@ -83,7 +85,10 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
    */
   public Mono<Void> beginTransaction(TransactionOptions transactionOptions) {
     return this.client.beginTransaction(this.getSessionName(), transactionOptions)
-        .doOnNext(transaction -> this.setTransaction(transaction, transactionOptions))
+        .doOnNext(transaction -> {
+          this.setTransaction(transaction, transactionOptions);
+          this.autoCommit = false;
+        })
         .then();
   }
 
@@ -212,15 +217,22 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
 
 
   @Override
-  public Publisher<Void> setAutoCommit(boolean b) {
-    // TODO: https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/issues/165
-    throw new RuntimeException("Turning off autocommit is not supported yet.");
+  public Publisher<Void> setAutoCommit(boolean newAutoCommit) {
+    return Mono.defer(() -> {
+      if (newAutoCommit && !this.autoCommit && this.transaction != null) {
+        return this.commitTransaction(false)
+            .doOnSuccess(none -> {
+              this.autoCommit = newAutoCommit;
+            });
+      }
+      this.autoCommit = newAutoCommit;
+      return Mono.empty();
+    });
   }
 
   @Override
   public boolean isAutoCommit() {
-    // TODO: https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/issues/165
-    return true;
+    return this.autoCommit;
   }
 
   @Override
