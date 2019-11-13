@@ -218,6 +218,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
 
   /**
    * Changes the autocommit mode of the current connection. No-op if the value is unchanged.
+   *
    * <p>If autocommit was previously off and a read/write transaction is in progress, the
    * transaction is committed first.
    *
@@ -244,6 +245,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
    *
    * <p>When autocommit is on, each standalone DML query will be executed in its own Read/Write
    * transaction.
+   * 
    * <p>For batching multiple DML queries, see {@link #createBatch()}.
    *
    * @return whether autocommit mode is on.
