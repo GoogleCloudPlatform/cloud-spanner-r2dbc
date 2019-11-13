@@ -216,6 +216,14 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
   }
 
 
+  /**
+   * Changes the autocommit mode of the current connection. No-op if the value is unchanged.
+   * <p>If autocommit was previously off and a read/write transaction is in progress, the
+   * transaction is committed first.
+   *
+   * @param newAutoCommit whether autocommit should be on or off in the future.
+   * @return {@link Mono} of the transaction commit operation, if applicable; empty mono otherwise.
+   */
   @Override
   public Publisher<Void> setAutoCommit(boolean newAutoCommit) {
     return Mono.defer(() -> {
@@ -230,6 +238,16 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
     });
   }
 
+  /**
+   * Determines current autocommit state of the connection (default is autocommit-on).
+   * Autocommit applies to DML queries only.
+   *
+   * <p>When autocommit is on, each standalone DML query will be executed in its own Read/Write
+   * transaction.
+   * <p>For batching multiple DML queries, see {@link #createBatch()}.
+   *
+   * @return whether autocommit mode is on.
+   */
   @Override
   public boolean isAutoCommit() {
     return this.autoCommit;
