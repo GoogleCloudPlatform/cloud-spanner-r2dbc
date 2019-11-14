@@ -227,16 +227,14 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
    */
   @Override
   public Publisher<Void> setAutoCommit(boolean newAutoCommit) {
-    return Mono.defer(() -> {
-      if (newAutoCommit && !this.autoCommit && this.transaction != null) {
-        return this.commitTransaction(false)
-            .doOnSuccess(none -> {
-              this.autoCommit = newAutoCommit;
-            });
-      }
-      this.autoCommit = newAutoCommit;
-      return Mono.empty();
-    });
+    return Mono.defer(
+        () -> {
+          boolean commitNeeded = newAutoCommit && !this.autoCommit && this.transaction != null;
+          return (commitNeeded ? this.commitTransaction(false) : Mono.<Void>empty())
+              .doOnSuccess(none -> {
+                this.autoCommit = newAutoCommit;
+              });
+        });
   }
 
   /**
@@ -245,7 +243,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
    *
    * <p>When autocommit is on, each standalone DML query will be executed in its own Read/Write
    * transaction.
-   * 
+   *
    * <p>For batching multiple DML queries, see {@link #createBatch()}.
    *
    * @return whether autocommit mode is on.
