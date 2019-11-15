@@ -31,8 +31,6 @@ import com.google.cloud.spanner.DatabaseAdminClient;
 import com.google.cloud.spanner.DatabaseId;
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.SpannerOptions;
-import io.r2dbc.pool.ConnectionPool;
-import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -41,7 +39,6 @@ import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.test.TestKit;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -70,13 +67,6 @@ public class SpannerExample implements TestKit<String> {
           .option(DRIVER, DRIVER_NAME)
           .option(INSTANCE, TEST_INSTANCE)
           .option(DATABASE, TEST_DATABASE)
-          .build());
-
-  private static final ConnectionPool pool =
-      new ConnectionPool(ConnectionPoolConfiguration.builder(connectionFactory)
-          .validationQuery("SELECT 1")
-          .maxIdleTime(Duration.ofSeconds(10))
-          .maxSize(15)
           .build());
 
   private static final Logger logger = LoggerFactory.getLogger(SpannerExample.class);
@@ -115,11 +105,13 @@ public class SpannerExample implements TestKit<String> {
 
     DatabaseId id = DatabaseId.of(options.getProjectId(), TEST_INSTANCE, TEST_DATABASE);
     DatabaseAdminClient dbAdminClient = spanner.getDatabaseAdminClient();
-    runDdl(id, dbAdminClient, "CREATE TABLE test ( value INT64 ) PRIMARY KEY (value)");
+    /*runDdl(id, dbAdminClient, "CREATE TABLE test ( value INT64 ) PRIMARY KEY (value)");
     runDdl(id, dbAdminClient,
         "CREATE TABLE test_two_column ( col1 INT64, col2 STRING(MAX) )  PRIMARY KEY (col1)");
     runDdl(id, dbAdminClient, "CREATE TABLE blob_test ( value BYTES(MAX) )  PRIMARY KEY (value)");
     runDdl(id, dbAdminClient, "CREATE TABLE clob_test ( value BYTES(MAX) )  PRIMARY KEY (value)");
+
+     */
   }
 
   private static void runDdl(DatabaseId id, DatabaseAdminClient dbAdminClient, String query) {
@@ -130,12 +122,14 @@ public class SpannerExample implements TestKit<String> {
           Collections.singletonList(query),
           null).get();
     } catch (Exception e) {
-      logger.info("Couldn't run DDL", e);
+      if (!e.getMessage().contains("Duplicate name in schema")) {
+        logger.info("Couldn't run DDL", e);
+      }
     }
   }
 
   private static void executeDml(Function<Connection, Statement> statementFunc) {
-    Mono.from(pool.create())
+    Mono.from(connectionFactory.create())
         .delayUntil(c -> c.beginTransaction())
         .delayUntil(c -> Flux.from(statementFunc.apply(c).execute())
             .flatMapSequential(r -> Mono.from(r.getRowsUpdated())))
@@ -152,7 +146,7 @@ public class SpannerExample implements TestKit<String> {
 
   @Override
   public ConnectionFactory getConnectionFactory() {
-    return pool;
+    return connectionFactory;
   }
 
   // we don't need to create tables because it is slow. we do it upfront.
