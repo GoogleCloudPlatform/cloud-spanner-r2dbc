@@ -88,7 +88,7 @@ public class GrpcClient implements Client {
 
   private static final int PORT = 443;
 
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger LOGGER = LoggerFactory.getLogger(GrpcClient.class);
 
   private final ManagedChannel channel;
   private final SpannerStub spanner;
@@ -348,7 +348,7 @@ public class GrpcClient implements Client {
       )
           .map(rs -> Boolean.TRUE)
           .onErrorResume(error -> {
-            this.logger.warn("Spanner healthcheck failed", error);
+            this.LOGGER.warn("Cloud Spanner healthcheck failed", error);
             return Mono.just(Boolean.FALSE);
           });
     });
