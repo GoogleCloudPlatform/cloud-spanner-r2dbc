@@ -442,7 +442,8 @@ public class SpannerTestKit implements TestKit<String> {
             Flux.from(connection.setAutoCommit(false))
                 .thenMany(connection.beginTransaction())
                 // DML syntax fix adding column list
-                .thenMany(connection.createStatement("INSERT INTO test (value) VALUES(200)").execute())
+                .thenMany(connection.createStatement(
+                    "INSERT INTO test (value) VALUES(200)").execute())
                 .flatMap(Result::getRowsUpdated)
                 .thenMany(connection.setAutoCommit(true))
                 .thenMany(connection.createStatement("SELECT value FROM test").execute())
@@ -451,7 +452,8 @@ public class SpannerTestKit implements TestKit<String> {
         )
         .as(StepVerifier::create)
         // Cloud Spanner only has a 64 bit "integer"
-        .expectNext(200L).as("autoCommit(true) committed the transaction. Expecting a value to be present")
+        .expectNext(200L)
+        .as("autoCommit(true) committed the transaction. Expecting a value to be present")
         .verifyComplete();
   }
 
@@ -462,7 +464,8 @@ public class SpannerTestKit implements TestKit<String> {
         .flatMapMany(connection ->
             Flux.from(connection.setAutoCommit(false))
                 .thenMany(connection.beginTransaction())
-                .thenMany(connection.createStatement("INSERT INTO test (value) VALUES(200)").execute())
+                .thenMany(connection.createStatement(
+                    "INSERT INTO test (value) VALUES(200)").execute())
                 .flatMap(Result::getRowsUpdated)
                 .thenMany(connection.setAutoCommit(false))
                 .thenMany(connection.rollbackTransaction())
