@@ -345,8 +345,9 @@ public class SpannerIT {
     ).expectNext(1, 1, 1)
         .verifyComplete();
 
-    long retrieved = executeReadQuery(connectionFactory, "Select count(1) as count FROM books",
-                  (row, rowMetadata) -> row.get("count", Long.class)).get(0);
+    long retrieved = executeReadQuery(connectionFactory,
+        "Select count(1) as count FROM books",
+        (row, rowMetadata) -> row.get("count", Long.class)).get(0);
     assertThat(retrieved).isEqualTo(3);
   }
 
