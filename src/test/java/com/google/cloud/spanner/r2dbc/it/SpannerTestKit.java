@@ -125,9 +125,9 @@ public class SpannerTestKit implements TestKit<String> {
             "SELECT table_name FROM information_schema.tables WHERE table_name = @name")
                 .bind("name", tableName)
                 .execute())
-        .flatMap(result -> result.map((row, meta) -> true))
-        .defaultIfEmpty(false)
-        .blockFirst();
+        .flatMap(result -> result.map((r, m) -> r))
+        .hasElements()
+        .block();
 
     if (!tableExists) {
       logger.info("Table " + tableName + " does not exist; creating");
