@@ -4,11 +4,17 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.google.cloud</groupId>
-  <artifactId>cloud-spanner-r2dbc-parent</artifactId>
-  <packaging>pom</packaging>
+  <artifactId>cloud-spanner-r2dbc</artifactId>
+  <packaging>jar</packaging>
   <version>0.1.0-SNAPSHOT</version>
 
-  <name>Google Cloud Spanner R2DBC Parent Project</name>
+  <parent>
+    <groupId>com.google.cloud</groupId>
+    <artifactId>cloud-spanner-r2dbc-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <name>Google Cloud Spanner R2DBC</name>
   <description>Reactive R2DBC driver implementation for Cloud Spanner.</description>
   <url>https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc</url>
 
@@ -19,43 +25,6 @@
     </license>
   </licenses>
 
-  <developers>
-    <developer>
-      <id>ChengyuanZhao</id>
-      <name>Chengyuan Zhao</name>
-      <email>cccz@google.com</email>
-      <organization>Google</organization>
-      <organizationUrl>http://www.google.com</organizationUrl>
-    </developer>
-    <developer>
-      <id>dmitry-s</id>
-      <name>Dmitry Solomakha</name>
-      <email>dsolomakha@google.com</email>
-      <organization>Google</organization>
-      <organizationUrl>http://www.google.com</organizationUrl>
-    </developer>
-    <developer>
-      <id>dzou</id>
-      <name>Daniel Zou</name>
-      <email>dzou@google.com</email>
-      <organization>Google</organization>
-      <organizationUrl>http://www.google.com</organizationUrl>
-    </developer>
-    <developer>
-      <id>elefeint</id>
-      <name>Elena Felder</name>
-      <email>elfel@google.com</email>
-      <organization>Google</organization>
-      <organizationUrl>http://www.google.com</organizationUrl>
-    </developer>
-    <developer>
-      <id>meltsufin</id>
-      <name>Mike Eltsufin</name>
-      <email>meltsufin@google.com</email>
-      <organization>Google</organization>
-      <organizationUrl>http://www.google.com</organizationUrl>
-    </developer>
-  </developers>
 
   <organization>
     <name>Google LLC</name>
@@ -83,93 +52,107 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <deploy.autorelease>true</deploy.autorelease>
-
-    <google-cloud-bom.version>2.9.0</google-cloud-bom.version>
-
-    <r2dbc.version>0.8.0.RELEASE</r2dbc.version>
-    <reactor.version>Dysprosium-RELEASE</reactor.version>
-
-    <google-auth.version>0.18.0</google-auth.version>
-
-    <mockito.version>3.1.0</mockito.version>
-    <slf4j.version>1.7.26</slf4j.version>
 
   </properties>
 
-  <modules>
-    <module>cloud-spanner-r2dbc</module>
-    <module>cloud-spanner-r2dbc-sample</module>
-  </modules>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>io.r2dbc</groupId>
+      <artifactId>r2dbc-spi</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.projectreactor.addons</groupId>
+      <artifactId>reactor-extra</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>grpc-google-common-protos</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>grpc-google-cloud-spanner-v1</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>grpc-google-cloud-spanner-admin-database-v1</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.auth</groupId>
+      <artifactId>google-auth-library-oauth2-http</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-auth</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <!-- test dependencies -->
+    <dependency>
+      <groupId>io.r2dbc</groupId>
+      <artifactId>r2dbc-spi-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-spanner</artifactId>
+      <scope>test</scope>
+    </dependency>
 
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>com.google.cloud</groupId>
-        <artifactId>libraries-bom</artifactId>
-        <version>${google-cloud-bom.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-bom</artifactId>
-        <version>${reactor.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>io.r2dbc</groupId>
-        <artifactId>r2dbc-spi</artifactId>
-        <version>${r2dbc.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.auth</groupId>
-        <artifactId>google-auth-library-oauth2-http</artifactId>
-        <version>${google-auth.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.r2dbc</groupId>
-        <artifactId>r2dbc-spi-test</artifactId>
-        <version>${r2dbc.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.assertj</groupId>
-        <artifactId>assertj-core</artifactId>
-        <version>3.12.2</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.12</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <version>${mockito.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-simple</artifactId>
-        <version>${slf4j.version}</version>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-
+    <!-- facilitate project ID discovery in integration tests -->
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
   <build>
     <pluginManagement>
@@ -182,7 +165,6 @@
           <configuration>
             <serverId>ossrh</serverId>
             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-            <!-- TBD: we probably don't need this set to TRUE, since there is a separate release job -->
             <autoReleaseAfterClose>${deploy.autorelease}</autoReleaseAfterClose>
           </configuration>
         </plugin>
@@ -229,8 +211,8 @@
               <goal>check</goal>
             </goals>
             <configuration>
-              <headerLocation>checkstyle/java.header</headerLocation>
-              <configLocation>checkstyle/custom-checks.xml</configLocation>
+              <headerLocation>../checkstyle/java.header</headerLocation>
+              <configLocation>../checkstyle/custom-checks.xml</configLocation>
             </configuration>
           </execution>
         </executions>
@@ -267,6 +249,7 @@
       </plugin>
     </plugins>
   </build>
+
 
   <profiles>
     <profile>
