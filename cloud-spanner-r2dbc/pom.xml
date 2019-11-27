@@ -3,10 +3,8 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.google.cloud</groupId>
   <artifactId>cloud-spanner-r2dbc</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0-SNAPSHOT</version>
 
   <parent>
     <groupId>com.google.cloud</groupId>
@@ -14,7 +12,7 @@
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
-  <name>Google Cloud Spanner R2DBC</name>
+  <name>Google Cloud Spanner R2DBC Driver</name>
   <description>Reactive R2DBC driver implementation for Cloud Spanner.</description>
   <url>https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/cloud-spanner-r2dbc</url>
 
