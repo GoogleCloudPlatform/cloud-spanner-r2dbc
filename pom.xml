@@ -95,6 +95,9 @@
     <mockito.version>3.1.0</mockito.version>
     <slf4j.version>1.7.26</slf4j.version>
 
+    <assertj.version>3.12.2</assertj.version>
+    <junit.version>4.12</junit.version>
+
   </properties>
 
   <modules>
@@ -136,6 +139,8 @@
         <artifactId>slf4j-api</artifactId>
         <version>${slf4j.version}</version>
       </dependency>
+
+      <!-- Test dependencies -->
       <dependency>
         <groupId>io.r2dbc</groupId>
         <artifactId>r2dbc-spi-test</artifactId>
@@ -145,13 +150,13 @@
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
-        <version>3.12.2</version>
+        <version>${assertj.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.12</version>
+        <version>${junit.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -182,7 +187,6 @@
           <configuration>
             <serverId>ossrh</serverId>
             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-            <!-- TBD: we probably don't need this set to TRUE, since there is a separate release job -->
             <autoReleaseAfterClose>${deploy.autorelease}</autoReleaseAfterClose>
           </configuration>
         </plugin>
