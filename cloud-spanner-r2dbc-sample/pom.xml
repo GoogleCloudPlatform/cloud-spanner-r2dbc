@@ -26,6 +26,13 @@
       <version>${project.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>compile</scope>
+    </dependency>
+
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.assertj</groupId>
@@ -55,6 +62,7 @@
 
   <build>
     <plugins>
+
       <plugin>
         <artifactId>maven-deploy-plugin</artifactId>
         <configuration>
@@ -66,6 +74,16 @@
         <artifactId>nexus-staging-maven-plugin</artifactId>
         <configuration>
           <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.6.0</version>
+        <configuration>
+          <mainClass>com.example.SampleApplication</mainClass>
+          <cleanupDaemonThreads>false</cleanupDaemonThreads>
         </configuration>
       </plugin>
     </plugins>

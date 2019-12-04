@@ -16,28 +16,51 @@
 
 package com.example;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * An example R2DBC application using the Cloud Spanner R2DBC.
  */
 public class SampleApplication {
 
-  private static final String SAMPLE_INSTANCE = "";
+  private static final Logger LOGGER = LoggerFactory.getLogger(SampleApplication.class);
 
-  private static final String SAMPLE_DATABASE = "";
+  private static final String INSTANCE = System.getProperty("spanner.instance");
 
-  private static final String SAMPLE_PROJECT = "";
+  private static final String DATABASE = System.getProperty("spanner.database");
+
+  private static final String PROJECT = System.getProperty("gcp.project");
 
   /**
    * Runs through a list of database operations.
    */
   public static void main(String[] args) {
 
-    BookExampleApp bookExampleApp = new BookExampleApp(SAMPLE_INSTANCE, SAMPLE_DATABASE,
-        SAMPLE_PROJECT);
+    if (!(validateProperty("spanner.instance", INSTANCE)
+        & validateProperty("spanner.database", DATABASE)
+        & validateProperty("gcp.project", PROJECT))) {
+      System.exit(1);
+    }
+
+
+    LOGGER.info(
+        "Performing Cloud Spanner operations on:\n\tProject:{}\n\tInstance:{}\n\tDatabase:{}",
+        INSTANCE, DATABASE, PROJECT);
+
+    BookExampleApp bookExampleApp = new BookExampleApp(INSTANCE, DATABASE, PROJECT);
 
     bookExampleApp.dropTableIfPresent();
     bookExampleApp.createTable();
     bookExampleApp.saveBooks();
     bookExampleApp.retrieveBooks();
+  }
+
+  private static boolean validateProperty(String name, String value) {
+    if (value == null) {
+      LOGGER.error("Please provide {} property.", name);
+      return false;
+    }
+    return true;
   }
 }
