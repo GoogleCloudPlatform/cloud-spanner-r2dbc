@@ -20,7 +20,6 @@ To run integration tests, you will need to set up a real Spanner instance.
 The following properties can be passed to maven with `-D` flag:
 
 
-. Integration Test Properties
 |===
 |Property |Default
 
