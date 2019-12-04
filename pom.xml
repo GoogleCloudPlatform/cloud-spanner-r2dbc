@@ -234,7 +234,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>3.0.0-M1</version>
+        <version>3.0.0-M4</version>
         <executions>
           <execution>
             <id>failsafe-integration-tests</id>
@@ -242,6 +242,12 @@
             <goals>
               <goal>integration-test</goal>
             </goals>
+            <configuration>
+              <includes>
+                <include>**/*TestKit.java</include>
+                <include>**/*IT.java</include>
+              </includes>
+            </configuration>
           </execution>
           <execution>
             <id>failsafe-verify</id>
