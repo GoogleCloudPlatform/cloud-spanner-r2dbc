@@ -16,6 +16,7 @@
 
 package com.example;
 
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,12 +38,9 @@ public class SampleApplication {
    */
   public static void main(String[] args) {
 
-    if (!(validateProperty("spanner.instance", INSTANCE)
-        & validateProperty("spanner.database", DATABASE)
-        & validateProperty("gcp.project", PROJECT))) {
-      System.exit(1);
-    }
-
+    Validate.notNull(INSTANCE, "Please provide spanner.instance property");
+    Validate.notNull(DATABASE, "Please provide spanner.database property");
+    Validate.notNull(PROJECT, "Please provide gcp.project property");
 
     LOGGER.info(
         "Performing Cloud Spanner operations on:\n\tProject:{}\n\tInstance:{}\n\tDatabase:{}",
@@ -56,11 +54,4 @@ public class SampleApplication {
     bookExampleApp.retrieveBooks();
   }
 
-  private static boolean validateProperty(String name, String value) {
-    if (value == null) {
-      LOGGER.error("Please provide {} property.", name);
-      return false;
-    }
-    return true;
-  }
 }

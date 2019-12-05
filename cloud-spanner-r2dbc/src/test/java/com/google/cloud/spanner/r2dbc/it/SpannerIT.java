@@ -75,8 +75,8 @@ public class SpannerIT {
           // TODO: consider whether to bring autodiscovery of project ID
           .option(Option.valueOf("project"), ServiceOptions.getDefaultProjectId())
           .option(DRIVER, DRIVER_NAME)
-          .option(INSTANCE, TestConstants.INSTANCE)
-          .option(DATABASE, TestConstants.DATABASE)
+          .option(INSTANCE, DatabaseProperties.INSTANCE)
+          .option(DATABASE, DatabaseProperties.DATABASE)
           .build());
 
   private SpannerStub spanner;
@@ -558,8 +558,8 @@ public class SpannerIT {
   }
 
   private List<String> getSessionNames() {
-    String databaseName = DatabaseName.format(
-        ServiceOptions.getDefaultProjectId(), TestConstants.INSTANCE, TestConstants.DATABASE);
+    String databaseName = DatabaseName.format(ServiceOptions.getDefaultProjectId(),
+        DatabaseProperties.INSTANCE, DatabaseProperties.DATABASE);
 
     ListSessionsRequest listSessionsRequest =
         ListSessionsRequest.newBuilder()

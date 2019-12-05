@@ -21,7 +21,7 @@ import com.google.cloud.ServiceOptions;
 /**
  * Instance/database properties with defaults.
  */
-interface TestConstants {
+interface DatabaseProperties {
 
   String INSTANCE = System.getProperty("spanner.instance", "reactivetest");
 

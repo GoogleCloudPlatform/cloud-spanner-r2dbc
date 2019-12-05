@@ -15,7 +15,8 @@
   <name>Google Cloud Spanner R2DBC Sample App</name>
 
   <properties>
-    <apache-commons.version>2.6</apache-commons.version>
+    <apache-commons-io.version>2.6</apache-commons-io.version>
+    <apache-commons-lang.version>3.9</apache-commons-lang.version>
   </properties>
 
   <dependencies>
@@ -33,6 +34,12 @@
       <scope>compile</scope>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>${apache-commons-lang.version}</version>
+    </dependency>
+
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.assertj</groupId>
@@ -47,7 +54,7 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>${apache-commons.version}</version>
+      <version>${apache-commons-io.version}</version>
       <scope>test</scope>
     </dependency>
 

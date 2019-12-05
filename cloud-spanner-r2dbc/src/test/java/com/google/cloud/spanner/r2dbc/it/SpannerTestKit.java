@@ -65,8 +65,8 @@ public class SpannerTestKit implements TestKit<String> {
       ConnectionFactories.get(ConnectionFactoryOptions.builder()
           .option(Option.valueOf("project"), ServiceOptions.getDefaultProjectId())
           .option(DRIVER, DRIVER_NAME)
-          .option(INSTANCE, TestConstants.INSTANCE)
-          .option(DATABASE, TestConstants.DATABASE)
+          .option(INSTANCE, DatabaseProperties.INSTANCE)
+          .option(DATABASE, DatabaseProperties.DATABASE)
           .build());
 
   private static final Logger logger = LoggerFactory.getLogger(SpannerTestKit.class);
@@ -109,7 +109,7 @@ public class SpannerTestKit implements TestKit<String> {
     dbAdminClient = spanner.getDatabaseAdminClient();
 
     DatabaseId id = DatabaseId.of(
-        options.getProjectId(), TestConstants.INSTANCE, TestConstants.DATABASE);
+        options.getProjectId(), DatabaseProperties.INSTANCE, DatabaseProperties.DATABASE);
     createTableIfNeeded(id, "test", " ( value INT64 ) PRIMARY KEY (value)");
     createTableIfNeeded(
         id, "test_two_column", " ( col1 INT64, col2 STRING(MAX) )  PRIMARY KEY (col1)");

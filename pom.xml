@@ -96,7 +96,6 @@
 
     <assertj.version>3.12.2</assertj.version>
     <junit.version>4.12</junit.version>
-
   </properties>
 
   <dependencyManagement>

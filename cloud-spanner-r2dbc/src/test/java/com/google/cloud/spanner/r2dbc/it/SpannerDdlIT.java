@@ -41,7 +41,7 @@ public class SpannerDdlIT {
   private static final ConnectionFactory connectionFactory =
       ConnectionFactories.get(ConnectionFactoryOptions.builder()
           .option(DRIVER, DRIVER_NAME)
-          .option(URL, TestConstants.URL)
+          .option(URL, DatabaseProperties.URL)
           .build());
 
   /**
