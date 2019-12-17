@@ -61,11 +61,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
             <scope>provided</scope>
         </dependency>
 
+        <!-- R2DBC driver -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>cloud-spanner-r2dbc</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Client library -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-spanner</artifactId>
+        </dependency>
+
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

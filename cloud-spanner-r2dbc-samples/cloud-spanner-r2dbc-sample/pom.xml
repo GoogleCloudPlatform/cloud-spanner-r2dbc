@@ -21,6 +21,7 @@
 
   <dependencies>
 
+    <!-- R2DBC driver -->
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>cloud-spanner-r2dbc</artifactId>
