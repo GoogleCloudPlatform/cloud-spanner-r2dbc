@@ -1,6 +1,0 @@
-{
-  "tables": [{
-    "name": "met_objects",
-    "manifestFile": "met_objects-manifest.json"
-  }]
-}
