@@ -44,6 +44,7 @@
           <cleanupDaemonThreads>false</cleanupDaemonThreads>
         </configuration>
       </plugin>
+
     </plugins>
   </build>
 
