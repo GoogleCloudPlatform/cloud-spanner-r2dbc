@@ -17,9 +17,11 @@
 package com.google.cloud.spanner.r2dbc.statement;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 
 import com.google.protobuf.ListValue;
+import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.Type;
@@ -65,4 +67,21 @@ public class StatementBindingsTest {
     assertThat(statementBindings.getTypes()).isEmpty();
     assertThat(statementBindings.getBindings()).containsExactly(Struct.getDefaultInstance());
   }
+
+  @Test
+  public void testBindingNullColumnThrowsException() {
+    StatementBindings statementBindings = new StatementBindings();
+    assertThatThrownBy(() -> statementBindings.createBind(null, "val"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Identifier must not be null.");
+  }
+
+  @Test
+  public void testBindingNullValueThrowsException() {
+    StatementBindings statementBindings = new StatementBindings();
+    assertThatThrownBy(() -> statementBindings.createBind("col1", null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Value bound must not be null.");
+  }
+
 }

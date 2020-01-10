@@ -48,7 +48,8 @@ public class SpannerStatement implements Statement {
 
   private SpannerConnectionConfiguration config;
 
-  private StatementBindings statementBindings;
+  // temporarily visible for a simple demo test
+  StatementBindings statementBindings;
 
   private StatementExecutionContext ctx;
 
@@ -84,6 +85,13 @@ public class SpannerStatement implements Statement {
     this.statementBindings.completeBinding();
     return this;
   }
+
+  public Statement bind(String identifier, String value) {
+    return value == null ? this.bindNull(identifier, String.class)
+        : this.bind(identifier, (Object)value);
+  }
+
+  // ... more overloads for well known types (Integer etc.)
 
   @Override
   public Statement bind(String identifier, Object value) {

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.longrunning.Operation;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.ExecuteBatchDmlRequest;
@@ -339,4 +340,32 @@ public class SpannerStatementTest {
     verify(this.mockClient, times(1))
         .executeBatchDml(this.mockContext, statementList);
   }
+
+  @Test
+  public void bindingNullParameterThrowsException() {
+    SpannerStatement statement = new SpannerStatement(
+        this.mockClient, this.mockContext, "select * from Books where title=@title", TEST_CONFIG);
+
+    assertThatThrownBy(() -> statement.bind("title", null))
+      .isInstanceOf(IllegalArgumentException.class)
+    .hasMessage("Value bound must not be null.");
+
+  }
+
+  @Test
+  public void bindingNullParameterWithKnownValueType() {
+    String sql ="select * from Books where title=@title";
+    SpannerStatement statement = new SpannerStatement(
+        this.mockClient, this.mockContext, sql, TEST_CONFIG);
+
+    String nullValueWithKnownType = null;
+    statement.bind("title", nullValueWithKnownType);
+
+    Struct expectedStruct = Struct.newBuilder()
+        .putFields("title", Value.newBuilder().setNullValue(NullValue.NULL_VALUE).build())
+        .build();
+    assertThat(statement.statementBindings.getBindings())
+        .containsExactly(expectedStruct);
+  }
+
 }
