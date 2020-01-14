@@ -161,8 +161,4 @@ public class SpannerStatement implements Statement {
     }
   }
 
-  @Override
-  public Statement fetchSize(int rows) {
-    return null;
-  }
 }
