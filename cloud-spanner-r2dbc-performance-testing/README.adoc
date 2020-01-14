@@ -1,0 +1,29 @@
+== Set up data
+
+These benchmarks use a public Met museum artwork data set in Cloud Spanner export format.
+The dataset is included on the top level of this repository.
+
+0. Unarchive `benchmark-data-met.tar.gz` into a folder `benchmark-data-met`.
+0. Upload the folder into a valid GCP Storage bucket.
+0. In a valid Spanner instance, select IMPORT/EXPORT tab.
+0. Follow the import link.
+0. Follow importing form instructions:
+  * Choose your bucket and folder as the source folder (don't forget the trailing slash).
+  * Give the name for a new database (the import will create it).
+  * Choose your region, confirm charges and hit Import.
+
+This will create a dataflow job importing the data.
+
+
+== Run benchmarks:
+
+```
+mvn clean install
+
+java -jar -Dspanner.instance=[INSTANCE] -Dspanner.database=[DATABASE] -Dgcp.project=[PROJECT] target/benchmarks.jar
+```
+
+To run individual benchmark class (in this case, `DmlBenchmark`):
+```
+java -jar -Dspanner.instance=[INSTANCE] -Dspanner.database=[DATABASE] -Dgcp.project=[PROJECT] target/benchmarks.jar DmlBenchmark
+```

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud;
+package com.google.cloud.spanner.r2dbc.benchmarks;
 
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
@@ -42,7 +42,7 @@ import org.openjdk.jmh.annotations.State;
 import reactor.core.publisher.Mono;
 
 /**
- *
+ * Shared benchmark state: setting up R2DBC and client library; generating test queries.
  */
 @Fork(value = 1, warmups = 1)
 @BenchmarkMode(Mode.AverageTime)
@@ -64,7 +64,7 @@ public class BenchmarkState {
   public static class R2dbcConnectionState {
     final Connection r2dbcConnection;
 
-    /** come on checkstyle. */
+    /** Shared state for R2DBC tests. */
     public R2dbcConnectionState() {
       ConnectionFactory connectionFactory = ConnectionFactories.get(
           ConnectionFactoryOptions.builder()
@@ -87,7 +87,7 @@ public class BenchmarkState {
 
     final DatabaseAdminClient dbAdminClient;
 
-    /** come on checkstyle. */
+    /** Shared state for the client library. */
     public ClientLibraryConnectionState() {
       SpannerOptions options = SpannerOptions.newBuilder().build();
       Spanner spanner = options.getService();
@@ -101,7 +101,8 @@ public class BenchmarkState {
 
   @State(Scope.Benchmark)
   public static class CommonState {
-    final Integer[] objectIds = new Integer[] {1010,2007,4001,5995,6992,7989,9983,10980,11977,14968,15965,16962,
+    final Integer[] objectIds = new Integer[] {
+        1010,2007,4001,5995,6992,7989,9983,10980,11977,14968,15965,16962,
         18956,21947,22944,23941,26932,29923,36902,37899,38896,39893,40890,41887,42884,43881,44878,
         45875,46872,47869,49863,50860,53851,54848,55845,56842,58836,59833,60830,63821,65815,66812,
         67809,68806,69803,81767,83761,86752,102704,104698,106692,108686,112674,122644,157539,168506,
@@ -121,11 +122,11 @@ public class BenchmarkState {
     final Random random = new Random();
 
     Integer getObjectId() {
-      return objectIds[random.nextInt(objectIds.length)];
+      return this.objectIds[this.random.nextInt(this.objectIds.length)];
     }
 
     Integer getRandomValue() {
-      return random.nextInt(1000);
+      return this.random.nextInt(1000);
     }
 
     String getSingleRowUpdateQuery() {
@@ -136,7 +137,8 @@ public class BenchmarkState {
     }
 
     String getCreateTableQuery(Integer suffix) {
-      return String.format("CREATE TABLE TEST_TABLE%S (RowId INT64 NOT NULL, State STRING(2)) PRIMARY KEY (RowId)",
+      return String.format(
+          "CREATE TABLE TEST_TABLE%S (RowId INT64 NOT NULL, State STRING(2)) PRIMARY KEY (RowId)",
           suffix);
     }
 

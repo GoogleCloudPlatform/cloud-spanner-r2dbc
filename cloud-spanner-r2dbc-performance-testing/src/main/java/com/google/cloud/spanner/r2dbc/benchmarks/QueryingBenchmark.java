@@ -14,19 +14,13 @@
  * limitations under the License.
  */
 
-package com.google.cloud;
+package com.google.cloud.spanner.r2dbc.benchmarks;
 
 import com.google.cloud.spanner.ResultSet;
 import com.google.cloud.spanner.Statement;
-import com.google.cloud.spanner.TransactionContext;
-import com.google.cloud.spanner.TransactionRunner.TransactionCallable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.infra.Blackhole;
 import reactor.core.publisher.Flux;
 
@@ -110,87 +104,5 @@ public class QueryingBenchmark extends BenchmarkState {
 
     resultSet.close();
   }
-
-
-  /**
-   * DML with r2dbc driver.
-   */
-  @Benchmark
-  public void testDmlR2dbcDriver(R2dbcConnectionState r2dbcState, CommonState common,
-      Blackhole blackhole) {
-
-    String query = common.getSingleRowUpdateQuery();
-
-    Integer result =
-        Flux.from(r2dbcState.r2dbcConnection.createStatement(query).execute())
-            .flatMap(spannerResult -> spannerResult.getRowsUpdated())
-            .blockFirst();
-
-    blackhole.consume(result);
-  }
-
-
-  /**
-   * DML with client library.
-   */
-  @Benchmark
-  public void testDmlClientLibrary(
-      ClientLibraryConnectionState clientLibraryState, CommonState common, Blackhole blackhole) {
-
-    final String query = common.getSingleRowUpdateQuery();
-
-    Long result = clientLibraryState.dbClient
-        .readWriteTransaction().run(new TransactionCallable<Long>() {
-          @Nullable
-          @Override
-          public Long run(TransactionContext transactionContext) throws Exception {
-            return transactionContext.executeUpdate(Statement.of(query));
-          }
-        });
-
-    blackhole.consume(result);
-  }
-
-  /**
-   * DDL with r2dbc driver.
-   */
-  @Benchmark
-  @OutputTimeUnit(TimeUnit.SECONDS)
-  public void testDdlR2dbcDriver(R2dbcConnectionState r2dbcState, CommonState common,
-      Blackhole blackhole) {
-
-    Integer suffix = common.getRandomValue();
-    String createQuery = common.getCreateTableQuery(suffix);
-    String dropQuery = common.getDropTableQuery(suffix);
-
-
-    Flux.from(r2dbcState.r2dbcConnection.createStatement(createQuery).execute())
-            .thenMany(Flux.from(r2dbcState.r2dbcConnection.createStatement(dropQuery).execute()))
-            .blockLast();
-  }
-
-  /**
-   * DDL with client library.
-   */
-  @Benchmark
-  @OutputTimeUnit(TimeUnit.SECONDS)
-  public void testDdlClientLibrary(
-      ClientLibraryConnectionState clientLibraryState, CommonState common, Blackhole blackhole)
-  throws Exception {
-
-    Integer suffix = common.getRandomValue();
-    String createQuery = common.getCreateTableQuery(suffix);
-    String dropQuery = common.getDropTableQuery(suffix);
-
-    clientLibraryState.dbAdminClient
-        .updateDatabaseDdl(TEST_INSTANCE, TEST_DATABASE, Arrays.asList(createQuery), null)
-        .get();
-
-    clientLibraryState.dbAdminClient
-        .updateDatabaseDdl(TEST_INSTANCE, TEST_DATABASE, Arrays.asList(dropQuery), null)
-        .get();
-
-  }
-
 
 }
