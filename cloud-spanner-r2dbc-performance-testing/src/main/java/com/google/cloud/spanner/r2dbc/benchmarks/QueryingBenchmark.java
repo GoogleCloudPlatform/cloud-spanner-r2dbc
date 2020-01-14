@@ -102,6 +102,7 @@ public class QueryingBenchmark extends BenchmarkState {
 
     blackhole.consume(result);
 
+    // avoid leaks.
     resultSet.close();
   }
 

@@ -13,7 +13,9 @@ The dataset is included on the top level of this repository.
   * Choose your region, confirm charges and hit Import.
 
 This will create a dataflow job importing the data.
+Once the job is done, you will have a table named `met_objects` with 200,074 rows.
 
+If you are curious, this https://cloud.google.com/blog/products/gcp/when-art-meets-big-data-analyzing-200000-items-from-the-met-collection-in-bigquery[blog post] has more details about the data set.
 
 == Run benchmarks:
 
@@ -26,4 +28,48 @@ java -jar -Dspanner.instance=[INSTANCE] -Dspanner.database=[DATABASE] -Dgcp.proj
 To run individual benchmark class (in this case, `DmlBenchmark`):
 ```
 java -jar -Dspanner.instance=[INSTANCE] -Dspanner.database=[DATABASE] -Dgcp.project=[PROJECT] target/benchmarks.jar DmlBenchmark
+```
+
+
+== Benchmark Results (2020/01/14)
+
+Performing DDL with client library seems to have a lot of variability in performance.
+This may well be by design -- GAX uses https://github.com/googleapis/gax-java/blob/a60bd347b69fbf725b0dd8ae18bbcf5b00b66b7b/gax-grpc/src/main/java/com/google/longrunning/stub/OperationsStubSettings.java#L242[exponential backoff] with initial delay of 100ms to execute long-running operations. R2DBC https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/blob/8eff19dbbac92fbbb42473795e6d810cc77565ce/cloud-spanner-r2dbc/src/main/java/com/google/cloud/spanner/r2dbc/SpannerConnectionConfiguration.java#L155-L157[by default] queries every 5 seconds up to a timeout of 10 minutes.
+
+For all other operations, the numbers look fairly similar between client library and R2DBC.
+
+Full run output is in `benchmark-run-20200114-1.txt` and `benchmark-run-20200114-2.txt`.
+
+=== Run 1
+
+```
+Benchmark                                                Mode  Cnt   Score    Error  Units
+DdlBenchmark.testDdlClientLibrary                        avgt    5  32.172 ± 66.025   s/op
+DdlBenchmark.testDdlR2dbcDriver                          avgt    5  11.286 ±  0.269   s/op
+
+DmlBenchmark.testDmlClientLibrary                        avgt    5  86.026 ± 11.228  ms/op
+DmlBenchmark.testDmlR2dbcDriver                          avgt    5  83.427 ±  4.887  ms/op
+
+QueryingBenchmark.tesFirstResponseQueryingClientLibrary  avgt    5  25.980 ±  0.900  ms/op
+QueryingBenchmark.testFirstResponseQueryingR2dbc         avgt    5  26.667 ±  0.759  ms/op
+
+QueryingBenchmark.testQueryingClientLibrary              avgt    5  27.117 ±  1.408  ms/op
+QueryingBenchmark.testQueryingR2dbc                      avgt    5  26.108 ±  0.758  ms/op
+
+```
+
+=== Run 2
+```
+Benchmark                                                Mode  Cnt   Score    Error  Units
+DdlBenchmark.testDdlClientLibrary                        avgt    5  27.348 ± 41.975   s/op
+DdlBenchmark.testDdlR2dbcDriver                          avgt    5  11.355 ±  0.149   s/op
+
+DmlBenchmark.testDmlClientLibrary                        avgt    5  86.507 ± 12.852  ms/op
+DmlBenchmark.testDmlR2dbcDriver                          avgt    5  85.155 ±  0.719  ms/op
+
+QueryingBenchmark.tesFirstResponseQueryingClientLibrary  avgt    5  26.666 ±  1.662  ms/op
+QueryingBenchmark.testFirstResponseQueryingR2dbc         avgt    5  25.640 ±  0.820  ms/op
+
+QueryingBenchmark.testQueryingClientLibrary              avgt    5  26.690 ±  3.304  ms/op
+QueryingBenchmark.testQueryingR2dbc                      avgt    5  26.470 ±  0.941  ms/op
 ```

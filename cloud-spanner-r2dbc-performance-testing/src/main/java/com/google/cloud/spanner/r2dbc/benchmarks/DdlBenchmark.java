@@ -16,6 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc.benchmarks;
 
+import io.r2dbc.spi.Result;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -33,15 +34,14 @@ public class DdlBenchmark extends BenchmarkState {
    */
   @Benchmark
   @OutputTimeUnit(TimeUnit.SECONDS)
-  public void testDdlR2dbcDriver(R2dbcConnectionState r2dbcState, CommonState common,
-      Blackhole blackhole) {
+  public Result testDdlR2dbcDriver(R2dbcConnectionState r2dbcState, CommonState common) {
 
     Integer suffix = common.getRandomValue();
     String createQuery = common.getCreateTableQuery(suffix);
     String dropQuery = common.getDropTableQuery(suffix);
 
 
-    Flux.from(r2dbcState.r2dbcConnection.createStatement(createQuery).execute())
+    return Flux.from(r2dbcState.r2dbcConnection.createStatement(createQuery).execute())
         .thenMany(Flux.from(r2dbcState.r2dbcConnection.createStatement(dropQuery).execute()))
         .blockLast();
   }
@@ -59,14 +59,15 @@ public class DdlBenchmark extends BenchmarkState {
     String createQuery = common.getCreateTableQuery(suffix);
     String dropQuery = common.getDropTableQuery(suffix);
 
-    clientLibraryState.dbAdminClient
+    Void createResult = clientLibraryState.dbAdminClient
         .updateDatabaseDdl(TEST_INSTANCE, TEST_DATABASE, Arrays.asList(createQuery), null)
         .get();
+    blackhole.consume(createResult);
 
-    clientLibraryState.dbAdminClient
+    Void dropResult = clientLibraryState.dbAdminClient
         .updateDatabaseDdl(TEST_INSTANCE, TEST_DATABASE, Arrays.asList(dropQuery), null)
         .get();
-
+    blackhole.consume(dropResult);
   }
 
 }

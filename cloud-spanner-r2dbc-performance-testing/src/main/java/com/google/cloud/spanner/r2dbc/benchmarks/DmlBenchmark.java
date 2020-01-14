@@ -21,7 +21,6 @@ import com.google.cloud.spanner.TransactionContext;
 import com.google.cloud.spanner.TransactionRunner.TransactionCallable;
 import javax.annotation.Nullable;
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.infra.Blackhole;
 import reactor.core.publisher.Flux;
 
 /**
@@ -33,8 +32,7 @@ public class DmlBenchmark extends BenchmarkState {
    * DML with r2dbc driver.
    */
   @Benchmark
-  public void testDmlR2dbcDriver(R2dbcConnectionState r2dbcState, CommonState common,
-      Blackhole blackhole) {
+  public Integer testDmlR2dbcDriver(R2dbcConnectionState r2dbcState, CommonState common) {
 
     String query = common.getSingleRowUpdateQuery();
 
@@ -43,7 +41,7 @@ public class DmlBenchmark extends BenchmarkState {
             .flatMap(spannerResult -> spannerResult.getRowsUpdated())
             .blockFirst();
 
-    blackhole.consume(result);
+    return result;
   }
 
 
@@ -51,12 +49,12 @@ public class DmlBenchmark extends BenchmarkState {
    * DML with client library.
    */
   @Benchmark
-  public void testDmlClientLibrary(
-      ClientLibraryConnectionState clientLibraryState, CommonState common, Blackhole blackhole) {
+  public Long testDmlClientLibrary(
+      ClientLibraryConnectionState clientLibraryState, CommonState common) {
 
     final String query = common.getSingleRowUpdateQuery();
 
-    Long result = clientLibraryState.dbClient
+    return clientLibraryState.dbClient
         .readWriteTransaction().run(new TransactionCallable<Long>() {
           @Nullable
           @Override
@@ -65,7 +63,6 @@ public class DmlBenchmark extends BenchmarkState {
           }
         });
 
-    blackhole.consume(result);
   }
 
 }

@@ -1,0 +1,449 @@
+# JMH version: 1.22
+# VM version: JDK 1.8.0_181-google-v7, OpenJDK 64-Bit Server VM, 25.181-b01
+# VM invoker: /usr/local/buildtools/java/jdk8-google-v7-64/jre/bin/java
+
+# Warmup: 5 iterations, 10 s each
+# Measurement: 5 iterations, 10 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: com.google.cloud.spanner.r2dbc.benchmarks.DdlBenchmark.testDdlClientLibrary
+
+# Run progress: 0.00% complete, ETA 00:26:40
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 2:52:46 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+23.107 s/op
+# Warmup Iteration   2: 28.600 s/op
+# Warmup Iteration   3: 22.978 s/op
+# Warmup Iteration   4: 29.466 s/op
+# Warmup Iteration   5: 23.344 s/op
+Iteration   1: 23.092 s/op
+Iteration   2: 16.383 s/op
+Iteration   3: 23.202 s/op
+Iteration   4: 22.355 s/op
+Iteration   5: 23.920 s/op
+
+# Run progress: 6.25% complete, ETA 00:59:27
+# Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 2:56:44 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+19.969 s/op
+# Warmup Iteration   2: 36.985 s/op
+# Warmup Iteration   3: 37.009 s/op
+# Warmup Iteration   4: 22.950 s/op
+# Warmup Iteration   5: 16.827 s/op
+Iteration   1: 22.536 s/op
+Iteration   2: 11.092 s/op
+Iteration   3: 46.936 s/op
+Iteration   4: 28.033 s/op
+Iteration   5: 52.264 s/op
+
+
+Result "com.google.cloud.spanner.r2dbc.benchmarks.DdlBenchmark.testDdlClientLibrary":
+  32.172 ±(99.9%) 66.025 s/op [Average]
+  (min, avg, max) = (11.092, 32.172, 52.264), stdev = 17.147
+  CI (99.9%): [≈ 0, 98.197] (assumes normal distribution)
+
+
+# JMH version: 1.22
+# VM version: JDK 1.8.0_181-google-v7, OpenJDK 64-Bit Server VM, 25.181-b01
+# VM invoker: /usr/local/buildtools/java/jdk8-google-v7-64/jre/bin/java
+
+# Warmup: 5 iterations, 10 s each
+# Measurement: 5 iterations, 10 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: com.google.cloud.spanner.r2dbc.benchmarks.DdlBenchmark.testDdlR2dbcDriver
+
+# Run progress: 12.50% complete, ETA 01:02:15
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:01:39 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+11.512 s/op
+# Warmup Iteration   2: 11.371 s/op
+# Warmup Iteration   3: 11.264 s/op
+# Warmup Iteration   4: 11.381 s/op
+# Warmup Iteration   5: 11.340 s/op
+Iteration   1: 11.159 s/op
+Iteration   2: 11.365 s/op
+Iteration   3: 11.224 s/op
+Iteration   4: 11.379 s/op
+Iteration   5: 11.327 s/op
+
+# Run progress: 18.75% complete, ETA 00:46:53
+# Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:03:35 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+11.558 s/op
+# Warmup Iteration   2: 11.328 s/op
+# Warmup Iteration   3: 11.347 s/op
+# Warmup Iteration   4: 11.441 s/op
+# Warmup Iteration   5: 11.431 s/op
+Iteration   1: 11.286 s/op
+Iteration   2: 11.283 s/op
+Iteration   3: 11.182 s/op
+Iteration   4: 11.299 s/op
+Iteration   5: 11.378 s/op
+
+
+Result "com.google.cloud.spanner.r2dbc.benchmarks.DdlBenchmark.testDdlR2dbcDriver":
+  11.286 ±(99.9%) 0.269 s/op [Average]
+  (min, avg, max) = (11.182, 11.286, 11.378), stdev = 0.070
+  CI (99.9%): [11.017, 11.554] (assumes normal distribution)
+
+
+# JMH version: 1.22
+# VM version: JDK 1.8.0_181-google-v7, OpenJDK 64-Bit Server VM, 25.181-b01
+# VM invoker: /usr/local/buildtools/java/jdk8-google-v7-64/jre/bin/java
+
+# Warmup: 5 iterations, 10 s each
+# Measurement: 5 iterations, 10 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: com.google.cloud.spanner.r2dbc.benchmarks.DmlBenchmark.testDmlClientLibrary
+
+# Run progress: 25.00% complete, ETA 00:38:14
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:05:31 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+101.406 ms/op
+# Warmup Iteration   2: 86.948 ms/op
+# Warmup Iteration   3: 86.150 ms/op
+# Warmup Iteration   4: 85.539 ms/op
+# Warmup Iteration   5: 84.806 ms/op
+Iteration   1: 85.369 ms/op
+Iteration   2: 84.397 ms/op
+Iteration   3: 85.982 ms/op
+Iteration   4: 91.907 ms/op
+Iteration   5: 85.145 ms/op
+
+# Run progress: 31.25% complete, ETA 00:31:46
+# Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:07:12 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+97.162 ms/op
+# Warmup Iteration   2: 86.865 ms/op
+# Warmup Iteration   3: 86.783 ms/op
+# Warmup Iteration   4: 84.848 ms/op
+# Warmup Iteration   5: 84.055 ms/op
+Iteration   1: 83.618 ms/op
+Iteration   2: 83.599 ms/op
+Iteration   3: 90.173 ms/op
+Iteration   4: 87.933 ms/op
+Iteration   5: 84.806 ms/op
+
+
+Result "com.google.cloud.spanner.r2dbc.benchmarks.DmlBenchmark.testDmlClientLibrary":
+  86.026 ±(99.9%) 11.228 ms/op [Average]
+  (min, avg, max) = (83.599, 86.026, 90.173), stdev = 2.916
+  CI (99.9%): [74.798, 97.254] (assumes normal distribution)
+
+
+# JMH version: 1.22
+# VM version: JDK 1.8.0_181-google-v7, OpenJDK 64-Bit Server VM, 25.181-b01
+# VM invoker: /usr/local/buildtools/java/jdk8-google-v7-64/jre/bin/java
+
+# Warmup: 5 iterations, 10 s each
+# Measurement: 5 iterations, 10 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: com.google.cloud.spanner.r2dbc.benchmarks.DmlBenchmark.testDmlR2dbcDriver
+
+# Run progress: 37.50% complete, ETA 00:26:53
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:08:54 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+87.768 ms/op
+# Warmup Iteration   2: 86.067 ms/op
+# Warmup Iteration   3: 85.573 ms/op
+# Warmup Iteration   4: 85.323 ms/op
+# Warmup Iteration   5: 84.968 ms/op
+Iteration   1: 84.796 ms/op
+Iteration   2: 84.510 ms/op
+Iteration   3: 84.515 ms/op
+Iteration   4: 83.621 ms/op
+Iteration   5: 82.943 ms/op
+
+# Run progress: 43.75% complete, ETA 00:22:55
+# Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:10:36 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+87.286 ms/op
+# Warmup Iteration   2: 84.901 ms/op
+# Warmup Iteration   3: 84.250 ms/op
+# Warmup Iteration   4: 83.576 ms/op
+# Warmup Iteration   5: 83.534 ms/op
+Iteration   1: 85.678 ms/op
+Iteration   2: 83.011 ms/op
+Iteration   3: 82.845 ms/op
+Iteration   4: 83.001 ms/op
+Iteration   5: 82.599 ms/op
+
+
+Result "com.google.cloud.spanner.r2dbc.benchmarks.DmlBenchmark.testDmlR2dbcDriver":
+  83.427 ±(99.9%) 4.887 ms/op [Average]
+  (min, avg, max) = (82.599, 83.427, 85.678), stdev = 1.269
+  CI (99.9%): [78.540, 88.314] (assumes normal distribution)
+
+
+# JMH version: 1.22
+# VM version: JDK 1.8.0_181-google-v7, OpenJDK 64-Bit Server VM, 25.181-b01
+# VM invoker: /usr/local/buildtools/java/jdk8-google-v7-64/jre/bin/java
+
+# Warmup: 5 iterations, 10 s each
+# Measurement: 5 iterations, 10 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: com.google.cloud.spanner.r2dbc.benchmarks.QueryingBenchmark.tesFirstResponseQueryingClientLibrary
+
+# Run progress: 50.00% complete, ETA 00:19:32
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:12:18 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+33.420 ms/op
+# Warmup Iteration   2: 27.423 ms/op
+# Warmup Iteration   3: 27.293 ms/op
+# Warmup Iteration   4: 27.675 ms/op
+# Warmup Iteration   5: 26.503 ms/op
+Iteration   1: 25.949 ms/op
+Iteration   2: 25.632 ms/op
+Iteration   3: 25.582 ms/op
+Iteration   4: 25.898 ms/op
+Iteration   5: 25.551 ms/op
+
+# Run progress: 56.25% complete, ETA 00:16:30
+# Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:14:00 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+32.379 ms/op
+# Warmup Iteration   2: 27.607 ms/op
+# Warmup Iteration   3: 27.103 ms/op
+# Warmup Iteration   4: 27.618 ms/op
+# Warmup Iteration   5: 26.698 ms/op
+Iteration   1: 26.190 ms/op
+Iteration   2: 25.777 ms/op
+Iteration   3: 26.224 ms/op
+Iteration   4: 25.998 ms/op
+Iteration   5: 25.710 ms/op
+
+
+Result "com.google.cloud.spanner.r2dbc.benchmarks.QueryingBenchmark.tesFirstResponseQueryingClientLibrary":
+  25.980 ±(99.9%) 0.900 ms/op [Average]
+  (min, avg, max) = (25.710, 25.980, 26.224), stdev = 0.234
+  CI (99.9%): [25.080, 26.880] (assumes normal distribution)
+
+
+# JMH version: 1.22
+# VM version: JDK 1.8.0_181-google-v7, OpenJDK 64-Bit Server VM, 25.181-b01
+# VM invoker: /usr/local/buildtools/java/jdk8-google-v7-64/jre/bin/java
+
+# Warmup: 5 iterations, 10 s each
+# Measurement: 5 iterations, 10 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: com.google.cloud.spanner.r2dbc.benchmarks.QueryingBenchmark.testFirstResponseQueryingR2dbc
+
+# Run progress: 62.50% complete, ETA 00:13:45
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:15:41 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+29.359 ms/op
+# Warmup Iteration   2: 27.562 ms/op
+# Warmup Iteration   3: 27.062 ms/op
+# Warmup Iteration   4: 27.152 ms/op
+# Warmup Iteration   5: 27.245 ms/op
+Iteration   1: 26.836 ms/op
+Iteration   2: 27.535 ms/op
+Iteration   3: 26.445 ms/op
+Iteration   4: 26.268 ms/op
+Iteration   5: 26.182 ms/op
+
+# Run progress: 68.75% complete, ETA 00:11:11
+# Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:17:23 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+29.893 ms/op
+# Warmup Iteration   2: 27.878 ms/op
+# Warmup Iteration   3: 27.406 ms/op
+# Warmup Iteration   4: 27.546 ms/op
+# Warmup Iteration   5: 27.337 ms/op
+Iteration   1: 26.897 ms/op
+Iteration   2: 26.751 ms/op
+Iteration   3: 26.744 ms/op
+Iteration   4: 26.552 ms/op
+Iteration   5: 26.391 ms/op
+
+
+Result "com.google.cloud.spanner.r2dbc.benchmarks.QueryingBenchmark.testFirstResponseQueryingR2dbc":
+  26.667 ±(99.9%) 0.759 ms/op [Average]
+  (min, avg, max) = (26.391, 26.667, 26.897), stdev = 0.197
+  CI (99.9%): [25.908, 27.426] (assumes normal distribution)
+
+
+# JMH version: 1.22
+# VM version: JDK 1.8.0_181-google-v7, OpenJDK 64-Bit Server VM, 25.181-b01
+# VM invoker: /usr/local/buildtools/java/jdk8-google-v7-64/jre/bin/java
+
+# Warmup: 5 iterations, 10 s each
+# Measurement: 5 iterations, 10 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: com.google.cloud.spanner.r2dbc.benchmarks.QueryingBenchmark.testQueryingClientLibrary
+
+# Run progress: 75.00% complete, ETA 00:08:46
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:19:05 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+35.567 ms/op
+# Warmup Iteration   2: 29.740 ms/op
+# Warmup Iteration   3: 28.676 ms/op
+# Warmup Iteration   4: 28.219 ms/op
+# Warmup Iteration   5: 27.845 ms/op
+Iteration   1: 28.523 ms/op
+Iteration   2: 25.980 ms/op
+Iteration   3: 26.139 ms/op
+Iteration   4: 26.159 ms/op
+Iteration   5: 25.869 ms/op
+
+# Run progress: 81.25% complete, ETA 00:06:27
+# Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:20:47 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+34.613 ms/op
+# Warmup Iteration   2: 28.858 ms/op
+# Warmup Iteration   3: 28.150 ms/op
+# Warmup Iteration   4: 27.558 ms/op
+# Warmup Iteration   5: 27.672 ms/op
+Iteration   1: 27.230 ms/op
+Iteration   2: 27.683 ms/op
+Iteration   3: 27.063 ms/op
+Iteration   4: 26.851 ms/op
+Iteration   5: 26.760 ms/op
+
+
+Result "com.google.cloud.spanner.r2dbc.benchmarks.QueryingBenchmark.testQueryingClientLibrary":
+  27.117 ±(99.9%) 1.408 ms/op [Average]
+  (min, avg, max) = (26.760, 27.117, 27.683), stdev = 0.366
+  CI (99.9%): [25.710, 28.525] (assumes normal distribution)
+
+
+# JMH version: 1.22
+# VM version: JDK 1.8.0_181-google-v7, OpenJDK 64-Bit Server VM, 25.181-b01
+# VM invoker: /usr/local/buildtools/java/jdk8-google-v7-64/jre/bin/java
+
+# Warmup: 5 iterations, 10 s each
+# Measurement: 5 iterations, 10 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: com.google.cloud.spanner.r2dbc.benchmarks.QueryingBenchmark.testQueryingR2dbc
+
+# Run progress: 87.50% complete, ETA 00:04:14
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:22:28 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+29.878 ms/op
+# Warmup Iteration   2: 27.864 ms/op
+# Warmup Iteration   3: 27.323 ms/op
+# Warmup Iteration   4: 26.791 ms/op
+# Warmup Iteration   5: 26.455 ms/op
+Iteration   1: 26.505 ms/op
+Iteration   2: 26.259 ms/op
+Iteration   3: 26.096 ms/op
+Iteration   4: 26.389 ms/op
+Iteration   5: 26.390 ms/op
+
+# Run progress: 93.75% complete, ETA 00:02:05
+# Fork: 1 of 1
+# Warmup Iteration   1: Jan 14, 2020 3:24:10 PM com.google.auth.oauth2.DefaultCredentialsProvider warnAboutProblematicCredentials
+WARNING: Your application has authenticated using end user credentials from Google Cloud SDK. We recommend that most server applications use service accounts instead. If your application continues to use end user credentials from Cloud SDK, you might receive a "quota exceeded" or "API not enabled" error. For more information about service accounts, see https://cloud.google.com/docs/authentication/.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+29.534 ms/op
+# Warmup Iteration   2: 27.304 ms/op
+# Warmup Iteration   3: 27.008 ms/op
+# Warmup Iteration   4: 27.471 ms/op
+# Warmup Iteration   5: 26.750 ms/op
+Iteration   1: 26.386 ms/op
+Iteration   2: 26.245 ms/op
+Iteration   3: 25.977 ms/op
+Iteration   4: 25.944 ms/op
+Iteration   5: 25.985 ms/op
+
+
+Result "com.google.cloud.spanner.r2dbc.benchmarks.QueryingBenchmark.testQueryingR2dbc":
+  26.108 ±(99.9%) 0.758 ms/op [Average]
+  (min, avg, max) = (25.944, 26.108, 26.386), stdev = 0.197
+  CI (99.9%): [25.350, 26.866] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:33:06
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+Benchmark                                                Mode  Cnt   Score    Error  Units
+DdlBenchmark.testDdlClientLibrary                        avgt    5  32.172 ± 66.025   s/op
+DdlBenchmark.testDdlR2dbcDriver                          avgt    5  11.286 ±  0.269   s/op
+DmlBenchmark.testDmlClientLibrary                        avgt    5  86.026 ± 11.228  ms/op
+DmlBenchmark.testDmlR2dbcDriver                          avgt    5  83.427 ±  4.887  ms/op
+QueryingBenchmark.tesFirstResponseQueryingClientLibrary  avgt    5  25.980 ±  0.900  ms/op
+QueryingBenchmark.testFirstResponseQueryingR2dbc         avgt    5  26.667 ±  0.759  ms/op
+QueryingBenchmark.testQueryingClientLibrary              avgt    5  27.117 ±  1.408  ms/op
+QueryingBenchmark.testQueryingR2dbc                      avgt    5  26.108 ±  0.758  ms/op
