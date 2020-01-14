@@ -6,9 +6,6 @@
   <artifactId>cloud-spanner-r2dbc-parent</artifactId>
   <packaging>pom</packaging>
   <version>0.2.0-SNAPSHOT</version>
-  <modules>
-    <module>cloud-spanner-r2dbc-samples</module>
-  </modules>
 
   <name>Google Cloud Spanner R2DBC Parent Project</name>
   <description>Reactive R2DBC driver implementation for Cloud Spanner.</description>
@@ -389,6 +386,4 @@
       </build>
     </profile>
   </profiles>
-<modules>  <module>cloud-spanner-r2dbc-performance-testing</module>
-  </modules>
 </project>
