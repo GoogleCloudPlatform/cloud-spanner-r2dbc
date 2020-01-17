@@ -22,6 +22,7 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.r2dbc.springdata.it.entities.President;
+import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
@@ -34,17 +35,27 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.r2dbc.core.DatabaseClient;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+/**
+ * Integration tests for the Spring Data R2DBC dialect.
+ *
+ * <p>By default, the test is configured to run tests in the `reactivetest` instance on the
+ * `testdb` database. This can be configured by overriding the `spanner.instance` and
+ * `spanner.database` system properties.
+ */
 public class SpannerR2dbcDialectIT {
 
   private static final Logger logger = LoggerFactory.getLogger(SpannerR2dbcDialectIT.class);
 
   private static final String DRIVER_NAME = "spanner";
 
-  private static final String TEST_INSTANCE = "reactivetest";
+  private static final String TEST_INSTANCE =
+      System.getProperty("spanner.instance", "reactivetest");
 
-  private static final String TEST_DATABASE = "testdb";
+  private static final String TEST_DATABASE =
+      System.getProperty("spanner.database", "testdb");
 
   private static final ConnectionFactory connectionFactory =
       ConnectionFactories.get(ConnectionFactoryOptions.builder()
@@ -61,28 +72,25 @@ public class SpannerR2dbcDialectIT {
    */
   @BeforeEach
   public void initializeTestEnvironment() {
+    Connection connection = Mono.from(connectionFactory.create()).block();
+
     this.databaseClient = DatabaseClient.create(connectionFactory);
-    try {
+
+    if (SpannerTestUtils.tableExists(connection, "PRESIDENT")) {
       this.databaseClient.execute("DROP TABLE PRESIDENT")
           .fetch()
           .rowsUpdated()
           .block();
-    } catch (Exception e) {
-      logger.error("Failed to drop table; this is ok if it does not exist.", e);
     }
 
-    try {
-      this.databaseClient.execute(
-          "CREATE TABLE PRESIDENT ("
-              + "  NAME STRING(256) NOT NULL,"
-              + "  START_YEAR INT64 NOT NULL"
-              + ") PRIMARY KEY (NAME)")
-          .fetch()
-          .rowsUpdated()
-          .block();
-    } catch (Exception e) {
-      logger.error("Failed to create table; this is ok if it already existed.", e);
-    }
+    this.databaseClient.execute(
+        "CREATE TABLE PRESIDENT ("
+            + "  NAME STRING(256) NOT NULL,"
+            + "  START_YEAR INT64 NOT NULL"
+            + ") PRIMARY KEY (NAME)")
+        .fetch()
+        .rowsUpdated()
+        .block();
   }
 
   @Test
