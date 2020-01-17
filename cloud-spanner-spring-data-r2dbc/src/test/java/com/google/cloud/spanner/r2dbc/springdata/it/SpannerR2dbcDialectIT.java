@@ -26,11 +26,13 @@ import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.r2dbc.core.DatabaseClient;
 import reactor.test.StepVerifier;
 
@@ -58,6 +60,15 @@ public class SpannerR2dbcDialectIT {
   public void initializeTestEnvironment() {
     this.databaseClient = DatabaseClient.create(connectionFactory);
     try {
+      this.databaseClient.execute("DROP TABLE PRESIDENT")
+          .fetch()
+          .rowsUpdated()
+          .block();
+    } catch (Exception e) {
+      logger.error("Failed to drop table; this is ok if it does not exist.", e);
+    }
+
+    try {
       this.databaseClient.execute(
           "CREATE TABLE PRESIDENT ("
               + "  NAME STRING(256) NOT NULL,"
@@ -67,26 +78,13 @@ public class SpannerR2dbcDialectIT {
           .rowsUpdated()
           .block();
     } catch (Exception e) {
-      logger.error("Failed to create table; this is ok if it already existed: ", e);
+      logger.error("Failed to create table; this is ok if it already existed.", e);
     }
-  }
-
-  @AfterEach
-  public void deleteTables() {
-    this.databaseClient.execute("DROP TABLE PRESIDENT")
-        .fetch()
-        .rowsUpdated()
-        .block();
   }
 
   @Test
   public void testReadWrite() {
-    this.databaseClient.insert()
-        .into(President.class)
-        .using(new President("Bill Clinton", 1994))
-        .then()
-        .as(StepVerifier::create)
-        .verifyComplete();
+    insertPresident(new President("Bill Clinton", 1992));
 
     this.databaseClient.select()
         .from(President.class)
@@ -95,7 +93,57 @@ public class SpannerR2dbcDialectIT {
         .as(StepVerifier::create)
         .expectNextMatches(
             president -> president.getName().equals("Bill Clinton")
-                && president.getStartYear() == 1994)
+                && president.getStartYear() == 1992)
+        .verifyComplete();
+  }
+
+  @Test
+  public void testLimitOffsetSupport() {
+    insertPresident(new President("Bill Clinton", 1992));
+    insertPresident(new President("Joe Smith", 1996));
+    insertPresident(new President("Bob", 2000));
+    insertPresident(new President("Hello", 2004));
+    insertPresident(new President("George Washington", 2008));
+
+    this.databaseClient.select()
+        .from(President.class)
+        // Get the page at index 1; 2 elements per page.
+        .orderBy(Sort.by(Direction.ASC, "name"))
+        .page(PageRequest.of(0, 2))
+        .fetch()
+        .all()
+        .as(StepVerifier::create)
+        .expectNextMatches(president -> president.getName().equals("Bill Clinton"))
+        .expectNextMatches(president -> president.getName().equals("Bob"))
+        .verifyComplete();
+  }
+
+  @Test
+  public void testRowMap() {
+    insertPresident(new President("Bill Clinton", 1992));
+    insertPresident(new President("Joe Smith", 1996));
+    insertPresident(new President("Bob", 2000));
+    insertPresident(new President("Hello", 2004));
+    insertPresident(new President("George Washington", 2008));
+
+    this.databaseClient.select()
+        .from(President.class)
+        .orderBy(Sort.by(Direction.ASC, "name"))
+        .map(row -> (String) row.get("name"))
+        .all()
+        .as(StepVerifier::create)
+        .expectNext(
+            "Bill Clinton", "Bob", "George Washington", "Hello", "Joe Smith")
+        .verifyComplete();
+  }
+
+  private void insertPresident(President president) {
+    this.databaseClient
+        .insert()
+        .into(President.class)
+        .using(president)
+        .then()
+        .as(StepVerifier::create)
         .verifyComplete();
   }
 }

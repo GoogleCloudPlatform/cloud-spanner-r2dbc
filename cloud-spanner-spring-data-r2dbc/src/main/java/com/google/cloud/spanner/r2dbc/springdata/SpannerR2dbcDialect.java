@@ -18,14 +18,16 @@ package com.google.cloud.spanner.r2dbc.springdata;
 
 import org.springframework.data.r2dbc.dialect.BindMarkersFactory;
 import org.springframework.data.r2dbc.dialect.R2dbcDialect;
+import org.springframework.data.relational.core.dialect.AbstractDialect;
 import org.springframework.data.relational.core.dialect.LimitClause;
-import org.springframework.data.relational.core.sql.render.SelectRenderContext;
 
-public class SpannerR2dbcDialect implements R2dbcDialect {
+/**
+ * The {@link R2dbcDialect} implementation which enables usage of Spring Data R2DBC with Cloud
+ * Spanner.
+ */
+public class SpannerR2dbcDialect extends AbstractDialect implements R2dbcDialect {
   private static final BindMarkersFactory NAMED =
       BindMarkersFactory.named("@", "val", 32);
-
-  private static final SelectRenderContext SELECT_RENDER_CONTEXT = new SelectRenderContext(){};
 
   private static final LimitClause LIMIT_CLAUSE = new LimitClause() {
     @Override
@@ -35,12 +37,12 @@ public class SpannerR2dbcDialect implements R2dbcDialect {
 
     @Override
     public String getOffset(long offset) {
-      return "LIMIT 999999999 OFFSET " + offset;
+      return "LIMIT " + Long.MAX_VALUE + " OFFSET " + offset;
     }
 
     @Override
     public String getLimitOffset(long limit, long offset) {
-      return String.format("LIMIT %d OFFSET %d", limit, offset);
+      return "LIMIT " + limit + " OFFSET " + offset;
     }
 
     @Override
@@ -57,10 +59,5 @@ public class SpannerR2dbcDialect implements R2dbcDialect {
   @Override
   public LimitClause limit() {
     return LIMIT_CLAUSE;
-  }
-
-  @Override
-  public SelectRenderContext getSelectContext() {
-    return SELECT_RENDER_CONTEXT;
   }
 }

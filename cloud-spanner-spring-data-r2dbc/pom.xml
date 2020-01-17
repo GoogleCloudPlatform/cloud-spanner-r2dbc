@@ -9,6 +9,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
+  <name>Cloud Spanner R2DBC Spring Data Dialect</name>
   <artifactId>cloud-spanner-spring-data-r2dbc</artifactId>
 
   <properties>

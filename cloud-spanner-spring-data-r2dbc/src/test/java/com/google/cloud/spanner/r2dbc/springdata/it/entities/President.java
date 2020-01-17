@@ -42,4 +42,12 @@ public class President {
   public void setStartYear(long startYear) {
     this.startYear = startYear;
   }
+
+  @Override
+  public String toString() {
+    return "President{" +
+        "name='" + name + '\'' +
+        ", startYear=" + startYear +
+        '}';
+  }
 }
