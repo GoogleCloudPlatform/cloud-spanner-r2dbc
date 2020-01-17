@@ -56,6 +56,9 @@ public class SpannerR2dbcDialectIT {
 
   private DatabaseClient databaseClient;
 
+  /**
+   * Initializes the integration test environment for the Spanner R2DBC dialect.
+   */
   @BeforeEach
   public void initializeTestEnvironment() {
     this.databaseClient = DatabaseClient.create(connectionFactory);

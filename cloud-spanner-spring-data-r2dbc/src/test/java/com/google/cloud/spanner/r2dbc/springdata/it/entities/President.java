@@ -28,7 +28,7 @@ public class President {
   }
 
   public String getName() {
-    return name;
+    return this.name;
   }
 
   public void setName(String name) {
@@ -36,7 +36,7 @@ public class President {
   }
 
   public long getStartYear() {
-    return startYear;
+    return this.startYear;
   }
 
   public void setStartYear(long startYear) {
@@ -45,9 +45,10 @@ public class President {
 
   @Override
   public String toString() {
-    return "President{" +
-        "name='" + name + '\'' +
-        ", startYear=" + startYear +
-        '}';
+    return "President{"
+        + "name='"
+        + this.name + '\''
+        + ", startYear="
+        + this.startYear + '}';
   }
 }
