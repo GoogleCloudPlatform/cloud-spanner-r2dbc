@@ -1,0 +1,69 @@
+<html>
+<head>
+  <title>Spring Data R2DBC for Cloud Spanner demo</title>
+  <script>
+
+    var xhr = new XMLHttpRequest();
+
+    function appendOutput(extraText) {
+      document.getElementById('result').value += (extraText + "\n\n\n");
+    }
+
+    function listBooks() {
+
+      fetch('/list', {
+        method: 'GET',
+      }).then(response => response.json())
+      .then(json => appendOutput("Book list:\n" + json.map(book => book.title).join('\n')));
+
+      return false;
+    }
+
+    function addBook() {
+      var newTitle = document.getElementById('newBookTitle').value;
+
+      fetch('/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json'},
+        body: newTitle
+      }).then(response => {
+         if (response.ok) {
+           appendOutput("Added book.");
+         } else {
+           appendOutput("Failed to add book.");
+         }
+       });
+
+
+      return false;
+    }
+
+  </script>
+
+  <style>
+    div.buttonLink {
+      margin-bottom: 1em;
+    }
+  </style>
+</head>
+
+
+<body>
+
+<div id="actions" style="padding-bottom: 3em;">
+  <div class="buttonLink">
+    <a href="/" onClick="return listBooks();">List Books</a>
+  </div>
+  <div class="buttonLink">
+  New Book Title: <input id="newBookTitle" name="title"/> <a class="buttonLink" href="/" onClick="return addBook();">Add Book</a>
+  </div>
+</div>
+
+<textarea id="result" disabled="true" style="background-color: aqua; width: 200em; height: 30em;">
+
+
+</textarea>
+
+
+</body>
+</html>
