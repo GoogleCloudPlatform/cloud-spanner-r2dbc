@@ -16,14 +16,12 @@
 
 package com.example;
 
-import java.awt.print.Book;
-import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 
 /**
- *
+ * Spring Data repository for books.
+ * <p>Query derivation is not supported yet.</p>
  */
-
 interface BookRepository extends ReactiveCrudRepository<Book, String> {
 
 }

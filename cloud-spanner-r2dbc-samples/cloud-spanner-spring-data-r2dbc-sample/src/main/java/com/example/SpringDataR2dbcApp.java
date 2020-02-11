@@ -34,12 +34,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.r2dbc.core.DatabaseClient;
+import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 import org.springframework.util.Assert;
 
 /**
- *
+ * Driver application showing Cloud Spanner R2DBC use with Spring Data.
  */
 @SpringBootApplication
+@EnableR2dbcRepositories
 public class SpringDataR2dbcApp {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SpringDataR2dbcApp.class);
@@ -54,7 +56,6 @@ public class SpringDataR2dbcApp {
   private DatabaseClient r2dbcClient;
 
   public static void main(String[] args) {
-    System.out.println("instance = " + SPANNER_INSTANCE);
     Assert.notNull(INSTANCE, "Please provide spanner.instance property");
     Assert.notNull(DATABASE, "Please provide spanner.database property");
     Assert.notNull(GCP_PROJECT, "Please provide gcp.project property");
@@ -64,7 +65,7 @@ public class SpringDataR2dbcApp {
 
 
   @Bean
-  public static DatabaseClient r2dbcClient() {
+  public static ConnectionFactory spannerConnectionFactory() {
     ConnectionFactory connectionFactory = ConnectionFactories.get(ConnectionFactoryOptions.builder()
         .option(Option.valueOf("project"), GCP_PROJECT)
         .option(DRIVER, DRIVER_NAME)
@@ -72,28 +73,36 @@ public class SpringDataR2dbcApp {
         .option(DATABASE, SPANNER_DATABASE)
         .build());
 
-    return DatabaseClient.create(connectionFactory);
+    return connectionFactory;
   }
 
   @EventListener(ApplicationReadyEvent.class)
   public void setUpData() {
     LOGGER.info("Setting up test table BOOK...");
-   int rowsUPdated = r2dbcClient.execute("CREATE TABLE BOOK ("
-        + "  ID STRING(36) NOT NULL,"
-        + "  TITLE STRING(MAX) NOT NULL"
-        + ") PRIMARY KEY (ID)")
-    .fetch().rowsUpdated().block();
+    try {
+      r2dbcClient.execute("CREATE TABLE BOOK ("
+          + "  ID STRING(36) NOT NULL,"
+          + "  TITLE STRING(MAX) NOT NULL"
+          + ") PRIMARY KEY (ID)")
+          .fetch().rowsUpdated().block();
+    } catch (Exception e) {
+      LOGGER.info("Failed to set up test table BOOK", e);
+      return;
+    }
     LOGGER.info("Finished setting up test table BOOK");
   }
 
-  @EventListener({ContextClosedEvent.class, ApplicationReadyEvent.class})
+  @EventListener({ContextClosedEvent.class})
   public void tearDownData() {
-    LOGGER.info("Tearing down test table BOOK...");
-   /* int rowsUPdated = r2dbcClient.execute("DROP TABLE BOOK")
-        .fetch().rowsUpdated().block();
+    LOGGER.info("Deleting test table BOOK...");
+    try {
+      r2dbcClient.execute("DROP TABLE BOOK")
+          .fetch().rowsUpdated().block();
+    } catch (Exception e) {
+      LOGGER.info("Failed to delete test table BOOK", e);
+      return;
+    }
 
-    */
-    LOGGER.info("Finished tearing down test table BOOK.");
-
+    LOGGER.info("Finished deleting test table BOOK.");
   }
 }
