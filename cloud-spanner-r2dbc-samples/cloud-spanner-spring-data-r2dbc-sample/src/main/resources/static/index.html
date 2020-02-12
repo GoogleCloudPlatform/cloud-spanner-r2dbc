@@ -83,14 +83,15 @@
   </div>
 
   <div class="buttonLink">
-  New Book Title: <input id="newBookTitle" name="title"/> <a class="buttonLink" href="/" onClick="return addBook();">Add Book</a>
+  New Book Title: <input id="newBookTitle" name="newBookTitle"/> <a class="buttonLink" href="/" onClick="return addBook();">Add Book</a>
   </div>
 
   <div class="buttonLink">
-    Search for: <input id="bookId"/> <a class="buttonLink" href="/" onClick="return findBookById();">Find Books</a>
+    Search for: <input id="bookId" name="bookId"/> <a class="buttonLink" href="/" onClick="return findBookById();">Find Books</a>
   </div>
 </div>
 
+<label for="result" style="display:block">Command Output</label>
 <textarea id="result" disabled="true" style="background-color: #DDEEFF; width: 80em; height: 30em;">
 
 
