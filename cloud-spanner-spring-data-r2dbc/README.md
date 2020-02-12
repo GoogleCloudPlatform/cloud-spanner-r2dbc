@@ -50,6 +50,3 @@ See the [Spring Data R2DBC documentation](https://github.com/spring-projects/spr
 
 We provide a [sample application](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/tree/master/cloud-spanner-r2dbc-samples/cloud-spanner-spring-data-r2dbc-sample)
 which demonstrates using the Spring Data R2DBC with Cloud Spanner in [Spring WebFlux](https://docs.spring.io/spring/docs/current/spring-framework-reference/web-reactive.html).
-
-
-
