@@ -35,7 +35,7 @@ To begin using Spring Data R2DBC with Cloud Spanner, add the following dependenc
 
 ## Overview
 
-Spring Data R2DBC allows you to use the convenient features of Spring Data in a Reactive environment.
+Spring Data R2DBC allows you to use the convenient features of Spring Data in a reactive application.
 These features include:
 
 * Spring configuration support using Java based `@Configuration` classes.
