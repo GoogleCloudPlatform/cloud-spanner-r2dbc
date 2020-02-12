@@ -1,6 +1,6 @@
 # Cloud Spanner Spring Data R2DBC
 
-The Spring Data R2DBC Dialect for Cloud Spanner enables the usage of [Spring Data R2DBC](https://github.com/spring-projects/spring-data-r2dbc) with Spanner.
+The Spring Data R2DBC Dialect for Cloud Spanner enables the usage of [Spring Data R2DBC](https://github.com/spring-projects/spring-data-r2dbc) with Cloud Spanner.
 
 The goal of the Spring Data project is to create easy and consistent ways of using data access technologies from Spring Framework applications.
 
@@ -31,7 +31,7 @@ To begin using Spring Data R2DBC with Cloud Spanner, add the following dependenc
 
 ## Overview
 
-Spring Data R2DBC allows you to use the convenient features of Spring Data in a Reactive environment.
+Spring Data R2DBC allows you to use the convenient features of Spring Data in a reactive application.
 These features include:
 
 * Spring configuration support using Java based `@Configuration` classes.
