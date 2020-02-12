@@ -10,21 +10,17 @@ To begin using Spring Data R2DBC with Cloud Spanner, add the following dependenc
 
 ```xml
 <dependencies>
-    <!-- The Spring Data R2DBC framework -->
+    <!-- The starter dependency for the Spring Data R2DBC framework. -->
     <dependency>
-          <groupId>org.springframework.data</groupId>
-          <artifactId>spring-data-r2dbc</artifactId>
-          <version>${spring-data-r2dbc.version}</version>
+        <groupId>org.springframework.boot.experimental</groupId>
+        <artifactId>spring-boot-starter-data-r2dbc</artifactId>
+        <version>${r2dbc-version}</version>
     </dependency>
 
-    <!-- R2DBC Driver for Cloud Spanner -->
-    <dependency>
-        <groupId>com.google.cloud</groupId>
-        <artifactId>cloud-spanner-r2dbc</artifactId>
-        <version>${cloud-spanner-r2dbc-version}</version>
-    </dependency>
-
-    <!-- Dialect to enable Spring Data R2DBC for Cloud Spanner -->
+    <!--
+        Dialect for Spring Data R2DBC Spanner; This includes the
+        Cloud Spanner R2DBC driver as a transitive dependency.
+    -->
     <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>cloud-spanner-spring-data-r2dbc</artifactId>
