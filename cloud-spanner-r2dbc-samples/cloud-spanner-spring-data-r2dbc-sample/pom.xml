@@ -7,11 +7,13 @@
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
     <version>2.2.3.RELEASE</version>
+    <relativePath/>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>cloud-spanner-spring-data-r2dbc-sample</artifactId>
+  <version>0.2.0-SNAPSHOT</version>
 
   <dependencyManagement>
     <dependencies>
@@ -30,13 +32,13 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>cloud-spanner-r2dbc</artifactId>
-      <version>0.1.0</version>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>cloud-spanner-spring-data-r2dbc</artifactId>
-      <version>0.2.0-SNAPSHOT</version>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
@@ -47,7 +49,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webflux</artifactId>
-      <version>2.2.4.RELEASE</version>
     </dependency>
 
   </dependencies>
