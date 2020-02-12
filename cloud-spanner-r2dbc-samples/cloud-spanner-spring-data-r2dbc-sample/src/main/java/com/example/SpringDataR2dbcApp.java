@@ -20,10 +20,14 @@ import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DR
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
+import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
+import static org.springframework.web.reactive.function.server.RouterFunctions.route;
+
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
+import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +40,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 import org.springframework.util.Assert;
+import org.springframework.web.reactive.function.server.RouterFunction;
+import org.springframework.web.reactive.function.server.ServerResponse;
 
 /**
  * Driver application showing Cloud Spanner R2DBC use with Spring Data.
@@ -104,5 +110,14 @@ public class SpringDataR2dbcApp {
     }
 
     LOGGER.info("Finished deleting test table BOOK.");
+  }
+
+
+  @Bean
+  public RouterFunction<ServerResponse> indexRouter() {
+    // Serve static index.html at root.
+    return route(
+        GET("/"),
+        req -> ServerResponse.permanentRedirect(URI.create("/index.html")).build());
   }
 }
