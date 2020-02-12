@@ -1,7 +1,6 @@
 # Cloud Spanner Spring Data R2DBC sample
 
-
-This sample creates a table called BOOK on application startup, and deletes it prior to application shutdown.
+This sample creates a table called `BOOK` on application startup, and deletes it prior to application shutdown.
 
 ## Running the Sample
 
