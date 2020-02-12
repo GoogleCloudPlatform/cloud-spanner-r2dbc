@@ -1,6 +1,6 @@
 # Cloud Spanner Spring Data R2DBC
 
-The Spring Data R2DBC Dialect for Cloud Spanner enables the usage of [Spring Data R2DBC](https://github.com/spring-projects/spring-data-r2dbc) with Spanner.
+The Spring Data R2DBC Dialect for Cloud Spanner enables the usage of [Spring Data R2DBC](https://github.com/spring-projects/spring-data-r2dbc) with Cloud Spanner.
 
 The goal of the Spring Data project is to create easy and consistent ways of using data access technologies from Spring Framework applications.
 
