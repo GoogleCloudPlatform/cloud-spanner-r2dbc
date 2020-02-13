@@ -1,6 +1,6 @@
 # Cloud Spanner R2DBC Driver
 
-An implementation of the [R2DBC](https://r2dbc.io/) driver and corresponding [Spring Data dialect](https://spring.io/projects/spring-data-r2dbc) for [Cloud Spanner](https://cloud.google.com/spanner/).
+An implementation of the [R2DBC](https://r2dbc.io/) driver and corresponding [Spring Data dialect](https://spring.io/projects/spring-data-r2dbc) for [Cloud Spanner](https://cloud.google.com/spanner/) distributed database.
 
 ## Setup Instructions
 
@@ -56,12 +56,12 @@ Instructions:
 1. Install the [Google Cloud SDK](https://cloud.google.com/sdk/) for command line and
     follow the [Cloud SDK quickstart](https://cloud.google.com/sdk/docs/quickstarts)
     for your operating system.
-    
+
 2. Once setup, run `gcloud auth application-default login` and login with your Google account
-    credentials. 
+    credentials.
 
 After completing the SDK configuration, the Spanner R2DBC driver will automatically pick up your
-credentials allowing you to access your Spanner database. 
+credentials allowing you to access your Spanner database.
 
 #### Using a Service Account
 
@@ -118,7 +118,7 @@ ConnectionFactory connectionFactory =
         .option(INSTANCE, "your-spanner-instance")
         .option(DATABASE, "your-database-name")
         .build());
-        
+
 // The R2DBC connection may now be created.
 Publisher<? extends Connection> connectionPublisher = connectionFactory.create();
 ```
@@ -189,7 +189,7 @@ thrown when you attempt to run queries using the connection, and you will have t
 connection in order to reattempt the query.
 
 If you definitely need to keep an idle connection alive, for example, if a significant near-term
-increase in database use is expected, you may keep a connection active by calling `validate(ValidationDepth.REMOTE)` on the `Connection` object and subscribing to the returned `Publisher`. Remote validation performs an inexpensive SQL query `SELECT 1` against the database. 
+increase in database use is expected, you may keep a connection active by calling `validate(ValidationDepth.REMOTE)` on the `Connection` object and subscribing to the returned `Publisher`. Remote validation performs an inexpensive SQL query `SELECT 1` against the database.
 
 ## Transactions
 
@@ -216,7 +216,7 @@ When you begin a transaction in the `Connection` object using `connection.beginT
 a read-write transaction is started.
 
 If you would like to begin a transaction and leverage the custom transaction types, you will have
-to cast the `Connection` object into `SpannerConnection` and call 
+to cast the `Connection` object into `SpannerConnection` and call
 `spannerConnection.beginTransaction(TransactionOptions options)`. The overloaded `beginTransaction`
 allows you to pass in custom `TransactionOptions` to customize your transaction.
 
@@ -240,7 +240,7 @@ TransactionOptions transactionOptions =
         .setReadOnly(
             ReadOnly.newBuilder().setStrong(true))
         .build();
-        
+
 // Create and cast the Connection to SpannerConnection.
 Mono<SpannerConnection> spannerConnection =
     Mono.from(this.connectionFactory.create())
@@ -266,7 +266,7 @@ Each statement will be executed as an independent unit of work.
 - DML statements are executed in a stand-alone read-write transaction.
 - Read queries are executed in a strongly consistent, read-only temporary transaction.
 
-## Statements 
+## Statements
 
 R2DBC statement objects are used to run statements on your Cloud Spanner database. Based on the type
 of statement, the Cloud Spanner R2DBC handles the treatment and execution of the statement
@@ -298,20 +298,20 @@ mySpannerConnection.createStatement(
     .bind("title", "Book Two")
     .execute()
     .flatMap(r -> r.getRowsUpdated());
-``` 
+```
 
-The parameter identifiers must be `String`. 
+The parameter identifiers must be `String`.
 
-The example above binds two sets of parameters to a single DML template. 
-It will produce a `Publisher` (implemented by a `Flux`) containing two `SpannerResult` objects for the two instances of the statement that are executed. 
+The example above binds two sets of parameters to a single DML template.
+It will produce a `Publisher` (implemented by a `Flux`) containing two `SpannerResult` objects for the two instances of the statement that are executed.
 
-Note that calling `execute` produces R2DBC `Result` objects, but this doesn't cause the query to be run on the database. 
+Note that calling `execute` produces R2DBC `Result` objects, but this doesn't cause the query to be run on the database.
 You must use the `map` or `getRowsUpdated` methods of the results to complete the underlying queries.
 
 ### DDL Statements
 
 DDL statements in Spanner receive special treatment by Cloud Spanner. Creating and
-dropping tables can take a long time (on the order of minutes). As a result, Cloud Spanner 
+dropping tables can take a long time (on the order of minutes). As a result, Cloud Spanner
 ordinarily requires that clients poll the service for the completion of these operations.
 
 The Cloud Spanner R2DBC driver automatically handles DDL statement status polling.
@@ -323,7 +323,7 @@ through the Spanner connection factory:
     before timing out.
 - `ddl_operation_poll_interval`: Duration in seconds to wait between each polling request
     for the completion of a DDL operation.
-    
+
 See the above section regarding `ConnectionFactory` options for more information.
 
 ## Back Pressure
@@ -353,11 +353,11 @@ are wrapped by and propagated through two exception classes:
 
 - `R2dbcTransientException`: Errors caused by network problems or causes outside of the
     user's control. The operations that fail due to these errors can be retried.
-    
+
 - `R2dbcNonTransientException`: Errors caused by invalid operations or user error.
     These include SQL syntax errors, invalid requests, performing invalid operations on the
     Spanner driver, etc. These errors should not be retried.
-    
+
 The user may leverage reactive methods to retry operations which throw `R2dbcTransientException`.
 
 Example using Project Reactor's [`Retry` utilities](https://projectreactor.io/docs/extra/snapshot/api/overview-summary.html):
@@ -383,8 +383,8 @@ Only DML statements are supported.
 The call to `execute()` produces a publisher that will publish results.
 The statements are executed in sequential order.
 For every successfully executed statement, there will be a result that contatins a number of updated rows.
-Execution stops after the first failed statement; the remaining statements are not executed. 
- 
+Execution stops after the first failed statement; the remaining statements are not executed.
+
 ```java
 Flux.from(connection.createBatch()
     .add("INSERT INTO books VALUES('Mark Twain', 'The Adventures of Tom Sawyer'")
@@ -394,11 +394,11 @@ Flux.from(connection.createBatch()
 ```
 
 ## Using Connection Pool
-For connection pooling, [r2dbc pool](https://github.com/r2dbc/r2dbc-pool) can be used. 
-Connection pools are used to cache and reuse database connections.  
+For connection pooling, [r2dbc pool](https://github.com/r2dbc/r2dbc-pool) can be used.
+Connection pools are used to cache and reuse database connections.
 R2DBC-pool manages an adjustable number of connections, keeping them alive and verifying that they are still active.
 If necessary, connections are dropped and re-established.
-Validation query can be provided by user.  
+Validation query can be provided by user.
 
 **Maven dependency**
 
@@ -425,7 +425,7 @@ private static final ConnectionPool pool =
         .validationQuery("SELECT 1")
         .maxIdleTime(Duration.ofSeconds(10))
         .maxSize(5)
-        .build());  
+        .build());
 
 Mono.from(pool.create())
     .delayUntil(c -> c.beginTransaction())
