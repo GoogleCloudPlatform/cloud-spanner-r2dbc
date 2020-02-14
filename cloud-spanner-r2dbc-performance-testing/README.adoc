@@ -20,6 +20,8 @@ If you are curious, this https://cloud.google.com/blog/products/gcp/when-art-mee
 == Run benchmarks:
 
 ```
+cd cloud-spanner-r2dbc-performance-testing/
+
 mvn clean install
 
 java -jar -Dspanner.instance=[INSTANCE] -Dspanner.database=[DATABASE] -Dgcp.project=[PROJECT] target/benchmarks.jar
