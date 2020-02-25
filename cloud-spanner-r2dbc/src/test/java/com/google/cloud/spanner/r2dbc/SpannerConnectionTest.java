@@ -402,9 +402,9 @@ public class SpannerConnectionTest {
 
   @Test
   public void getConnectionMetadata() {
-    SpannerConnection connection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
-    assertThat(connection.getMetadata().getDatabaseProductName()).isEqualTo("Cloud Spanner");
-    assertThat(connection.getMetadata().getDatabaseVersion()).isEqualTo("n/a");
+    SpannerConnection spannerConnection = new SpannerConnection(this.mockClient, TEST_SESSION, null);
+    assertThat(spannerConnection.getMetadata().getDatabaseProductName()).isEqualTo("Cloud Spanner");
+    assertThat(spannerConnection.getMetadata().getDatabaseVersion()).isEqualTo("n/a");
   }
 
   private PartialResultSet makeBookPrs(String bookName) {
