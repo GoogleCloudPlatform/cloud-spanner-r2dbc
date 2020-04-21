@@ -68,16 +68,17 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
 
+    <!-- Connection API from the Cloud Spanner client library -->
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-spanner</artifactId>
+      <version>1.52.1-SNAPSHOT</version>
+    </dependency>
+
     <!-- test dependencies -->
     <dependency>
       <groupId>io.r2dbc</groupId>
       <artifactId>r2dbc-spi-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.cloud</groupId>
-      <artifactId>google-cloud-spanner</artifactId>
       <scope>test</scope>
     </dependency>
 
