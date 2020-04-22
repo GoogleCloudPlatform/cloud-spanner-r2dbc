@@ -98,6 +98,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- override to snapshot until Connection API released -->
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>google-cloud-spanner</artifactId>
+        <version>1.52.1-SNAPSHOT</version>
+      </dependency>
+
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>libraries-bom</artifactId>
