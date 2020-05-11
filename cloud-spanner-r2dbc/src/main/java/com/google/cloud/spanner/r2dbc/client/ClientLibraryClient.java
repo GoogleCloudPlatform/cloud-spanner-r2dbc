@@ -16,6 +16,9 @@
 
 package com.google.cloud.spanner.r2dbc.client;
 
+import com.google.cloud.spanner.DatabaseId;
+import com.google.cloud.spanner.Spanner;
+import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.StatementExecutionContext;
 import com.google.longrunning.Operation;
 import com.google.protobuf.Struct;
@@ -37,6 +40,13 @@ import reactor.core.publisher.Mono;
  * Client-library-based {@link Client} implementation.
  */
 public class ClientLibraryClient implements Client {
+
+
+
+  public ClientLibraryClient() {
+
+
+  }
 
   @Override
   public Mono<Session> createSession(String databaseName) {

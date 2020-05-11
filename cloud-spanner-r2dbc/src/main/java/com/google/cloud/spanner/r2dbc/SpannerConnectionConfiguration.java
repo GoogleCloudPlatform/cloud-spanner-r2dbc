@@ -36,7 +36,14 @@ public class SpannerConnectionConfiguration {
   private static final String DB_NAME_VALIDATE_PATTERN =
       "projects\\/[\\w\\-]+\\/instances\\/[\\w\\-]+\\/databases\\/[\\w\\-]+$";
 
+  // TODO: check how to handle full URL (it gets parsed by SPI, we only get pieces)
   private final String fullyQualifiedDbName;
+
+  private String projectId;
+
+  private String instanceName;
+
+  private String databaseName;
 
   private final GoogleCredentials credentials;
 
@@ -45,6 +52,7 @@ public class SpannerConnectionConfiguration {
   private Duration ddlOperationTimeout;
 
   private Duration ddlOperationPollInterval;
+
 
   /**
    * Constructor which initializes the configuration from an Cloud Spanner R2DBC url.
@@ -83,9 +91,25 @@ public class SpannerConnectionConfiguration {
     Assert.requireNonNull(instanceName, "instanceName must not be null");
     Assert.requireNonNull(databaseName, "databaseName must not be null");
 
+    this.projectId = projectId;
+    this.instanceName = instanceName;
+    this.databaseName = databaseName;
+
     this.fullyQualifiedDbName = String.format(
         FULLY_QUALIFIED_DB_NAME_PATTERN, projectId, instanceName, databaseName);
     this.credentials = credentials;
+  }
+
+  public String getProjectId() {
+    return projectId;
+  }
+
+  public String getInstanceName() {
+    return instanceName;
+  }
+
+  public String getDatabaseName() {
+    return databaseName;
   }
 
   /**

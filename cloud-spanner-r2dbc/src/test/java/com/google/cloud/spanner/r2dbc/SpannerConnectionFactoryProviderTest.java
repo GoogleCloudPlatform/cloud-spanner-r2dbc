@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.client.Client;
-import com.google.cloud.spanner.r2dbc.client.ClientLibraryClient;
+import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryConnectionFactory;
 import com.google.protobuf.Value;
 import com.google.spanner.v1.PartialResultSet;
 import com.google.spanner.v1.ResultSetMetadata;
@@ -197,9 +197,8 @@ public class SpannerConnectionFactoryProviderTest {
     ConnectionFactory spannerConnectionFactory =
         customSpannerConnectionFactoryProvider.create(options);
     assertThat(spannerConnectionFactory).isNotNull();
-    assertThat(spannerConnectionFactory).isInstanceOf(SpannerConnectionFactory.class);
-    assertThat(((SpannerConnectionFactory)spannerConnectionFactory).getClientType())
-        .isEqualTo(ClientLibraryClient.class);
+    assertThat(spannerConnectionFactory).isInstanceOf(SpannerClientLibraryConnectionFactory.class);
+
   }
 
   private PartialResultSet makeBook(String odyssey) {

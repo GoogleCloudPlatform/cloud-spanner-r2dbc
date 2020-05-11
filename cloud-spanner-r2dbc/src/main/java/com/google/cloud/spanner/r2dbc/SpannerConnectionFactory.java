@@ -52,8 +52,4 @@ public class SpannerConnectionFactory implements ConnectionFactory {
     return SpannerConnectionFactoryMetadata.INSTANCE;
   }
 
-  @VisibleForTesting
-  public Class getClientType() {
-    return this.client.getClass();
-  }
 }

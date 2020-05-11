@@ -24,6 +24,7 @@ import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.client.ClientLibraryClient;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryConnectionFactory;
 import com.google.common.annotations.VisibleForTesting;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
@@ -77,19 +78,18 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 
     SpannerConnectionConfiguration config = createConfiguration(connectionFactoryOptions);
 
-    if (this.client == null) {
-
-      // TODO: if keeping this functionality, make it less hardcoded and hacky
-      if (connectionFactoryOptions.hasOption(Option.valueOf("client-implementation"))
-       && connectionFactoryOptions.getValue(Option.valueOf("client-implementation"))
-          .equals("client-library")) {
-        this.client = new ClientLibraryClient();
-      } else {
+    if (connectionFactoryOptions.hasOption(Option.valueOf("client-implementation"))
+        && connectionFactoryOptions.getValue(Option.valueOf("client-implementation"))
+        .equals("client-library")) {
+      return new SpannerClientLibraryConnectionFactory(config);
+    } else {
+      if (this.client == null) {
         // GrpcClient should only be instantiated if/when a SpannerConnectionFactory is needed.
         this.client = new GrpcClient(config.getCredentials());
       }
+      return new SpannerConnectionFactory(this.client, config);
     }
-    return new SpannerConnectionFactory(this.client, config);
+
   }
 
   @Override
