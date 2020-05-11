@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import com.google.common.annotations.VisibleForTesting;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryMetadata;
 import reactor.core.publisher.Mono;
@@ -51,4 +52,8 @@ public class SpannerConnectionFactory implements ConnectionFactory {
     return SpannerConnectionFactoryMetadata.INSTANCE;
   }
 
+  @VisibleForTesting
+  public Class getClientType() {
+    return this.client.getClass();
+  }
 }
