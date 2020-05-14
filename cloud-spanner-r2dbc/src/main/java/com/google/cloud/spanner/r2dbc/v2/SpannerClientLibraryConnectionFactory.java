@@ -26,10 +26,9 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory 
   public SpannerClientLibraryConnectionFactory(SpannerConnectionConfiguration config) {
     this.config = config;
 
-    SpannerOptions options =
-        SpannerOptions.newBuilder()
+    SpannerOptions options = SpannerOptions.newBuilder().build();
             // TODO: allow customizing project ID?
-            .build();
+
     this.client = options.getService();
     this.databaseClient = this.client.getDatabaseClient(
         DatabaseId.of(config.getProjectId(), config.getInstanceName(), config.getDatabaseName()));
@@ -37,8 +36,7 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory 
 
   @Override
   public Publisher<? extends Connection> create() {
-    // TODO: unplaceholder -- talk to Knut about how to asyncronously create session pool
-    return Mono.just(new SpannerClientLibraryConnection());
+    return Mono.just(new SpannerClientLibraryConnection(this.databaseClient));
   }
 
   @Override

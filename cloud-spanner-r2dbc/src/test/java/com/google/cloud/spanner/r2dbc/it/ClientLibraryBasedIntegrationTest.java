@@ -16,6 +16,7 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 public class ClientLibraryBasedIntegrationTest {
 
@@ -35,5 +36,27 @@ public class ClientLibraryBasedIntegrationTest {
         .block();
 
     assertThat(conn).isInstanceOf(SpannerClientLibraryConnection.class);
+  }
+
+  // TODO: refactor connection factory
+  @Test
+  public void testReadQuery() {
+    ConnectionFactory connectionFactory =
+        ConnectionFactories.get(ConnectionFactoryOptions.builder()
+            .option(Option.valueOf("project"), ServiceOptions.getDefaultProjectId())
+            .option(DRIVER, DRIVER_NAME)
+            .option(INSTANCE, DatabaseProperties.INSTANCE)
+            .option(DATABASE, DatabaseProperties.DATABASE)
+            .option(Option.valueOf("client-implementation"), "client-library")
+            .build());
+
+    Connection conn = Mono.from(connectionFactory.create())
+        .block();
+
+    StepVerifier.create(
+        Mono.from(conn.createStatement("SELECT 1").execute())
+          .flatMapMany(rs -> rs.map((row, rmeta) -> (Integer)row.get(1)))
+    ).expectNext(1)
+        .verifyComplete();
   }
 }

@@ -102,7 +102,9 @@
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>google-cloud-spanner</artifactId>
-        <version>1.53.0</version>
+        <version>1.54.0</version>
+<!--        <version>1.54.1-R2DBC</version> -->
+
       </dependency>
 
       <dependency>

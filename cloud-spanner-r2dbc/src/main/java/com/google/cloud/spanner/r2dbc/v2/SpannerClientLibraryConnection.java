@@ -1,5 +1,6 @@
 package com.google.cloud.spanner.r2dbc.v2;
 
+import com.google.cloud.spanner.DatabaseClient;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionMetadata;
@@ -9,6 +10,12 @@ import io.r2dbc.spi.ValidationDepth;
 import org.reactivestreams.Publisher;
 
 public class SpannerClientLibraryConnection implements Connection {
+
+  private DatabaseClient databaseClient;
+
+  public SpannerClientLibraryConnection(DatabaseClient databaseClient) {
+    this.databaseClient = databaseClient;
+  }
 
   @Override
   public Publisher<Void> beginTransaction() {
@@ -37,7 +44,7 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Statement createStatement(String sql) {
-    throw new UnsupportedOperationException();
+    return new SpannerClientLibraryStatement(this.databaseClient, sql);
   }
 
   @Override
