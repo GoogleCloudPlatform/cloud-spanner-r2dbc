@@ -15,6 +15,7 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -41,6 +42,8 @@ public class ClientLibraryBasedIntegrationTest {
   // TODO: refactor connection factory
   @Test
   public void testReadQuery() {
+
+    Hooks.onOperatorDebug();
     ConnectionFactory connectionFactory =
         ConnectionFactories.get(ConnectionFactoryOptions.builder()
             .option(Option.valueOf("project"), ServiceOptions.getDefaultProjectId())
@@ -55,8 +58,8 @@ public class ClientLibraryBasedIntegrationTest {
 
     StepVerifier.create(
         Mono.from(conn.createStatement("SELECT 1").execute())
-          .flatMapMany(rs -> rs.map((row, rmeta) -> (Integer)row.get(1)))
-    ).expectNext(1)
+          .flatMapMany(rs -> rs.map((row, rmeta) -> (Long)row.get(1)))
+    ).expectNext(Long.valueOf(1))
         .verifyComplete();
   }
 }

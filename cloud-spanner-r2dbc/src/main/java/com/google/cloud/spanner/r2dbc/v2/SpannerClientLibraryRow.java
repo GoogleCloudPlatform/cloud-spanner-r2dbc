@@ -12,11 +12,13 @@ public class SpannerClientLibraryRow implements Row {
 
   @Override
   public <T> T get(int index, Class<T> type) {
-    return null;
+    // TODO: remove the horrible hardcoding
+    return (T)((Long)rowFields.getLong(index - 1));
   }
 
   @Override
   public <T> T get(String name, Class<T> type) {
     return null;
   }
+
 }

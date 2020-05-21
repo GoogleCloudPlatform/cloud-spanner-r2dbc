@@ -5,6 +5,7 @@ import com.google.cloud.spanner.AsyncResultSet.CallbackResponse;
 import com.google.cloud.spanner.AsyncResultSet.CursorState;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.SpannerException;
+import com.google.cloud.spanner.r2dbc.SpannerResult;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +59,9 @@ public class SpannerClientLibraryStatement implements Statement {
     // TODO: unplaceholder singleUse, extract into member
     // make note -- timestamp bound passed here
 
-    return Flux.create(sink -> {
+    // TODO: handle rowsUpdated
+    return
+        Flux.<SpannerClientLibraryRow>create(sink -> {
       AsyncResultSet ars = this.databaseClient.singleUse().executeQueryAsync(
           com.google.cloud.spanner.Statement.of(this.query));
       sink.onCancel(ars::cancel);
@@ -66,7 +69,7 @@ public class SpannerClientLibraryStatement implements Statement {
       //sink.onRequest()
       // TODO: elastic vs processor-bounded parallel
       ars.setCallback(this.executorService, rs -> this.callback(sink, rs) );
-    });//.map(flux -> Mono.just(new R));
+    }).transform(rowFlux -> Mono.just(new SpannerClientLibraryResult(rowFlux, Mono.just(0))));
   }
 
 
