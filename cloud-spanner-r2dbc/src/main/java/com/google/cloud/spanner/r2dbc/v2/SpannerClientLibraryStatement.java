@@ -80,6 +80,7 @@ public class SpannerClientLibraryStatement implements Statement {
           sink.complete();
           return CallbackResponse.DONE;
         case NOT_READY:
+        default:
           return CallbackResponse.CONTINUE;
         case OK:
           // TODO un-null metadata
