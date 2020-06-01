@@ -1,6 +1,11 @@
 package com.google.cloud.spanner.r2dbc.v2;
 
+import com.google.cloud.spanner.DatabaseAdminClient;
 import com.google.cloud.spanner.DatabaseClient;
+import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
+import com.google.cloud.spanner.r2dbc.client.Client;
+import com.google.cloud.spanner.r2dbc.statement.StatementParser;
+import com.google.cloud.spanner.r2dbc.statement.StatementType;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionMetadata;
@@ -11,10 +16,23 @@ import org.reactivestreams.Publisher;
 
 public class SpannerClientLibraryConnection implements Connection {
 
-  private DatabaseClient databaseClient;
+  private DatabaseClient dbClient;
 
-  public SpannerClientLibraryConnection(DatabaseClient databaseClient) {
-    this.databaseClient = databaseClient;
+  private DatabaseAdminClient dbAdminClient;
+
+  // fall back to grpc for unsupported client library async functionality (DDL)
+  private Client grpcClient;
+
+  private SpannerConnectionConfiguration config;
+
+  public SpannerClientLibraryConnection(DatabaseClient dbClient,
+      DatabaseAdminClient dbAdminClient,
+      Client grpcClient,
+      SpannerConnectionConfiguration config) {
+    this.dbClient = dbClient;
+    this.dbAdminClient = dbAdminClient;
+    this.grpcClient = grpcClient;
+    this.config = config;
   }
 
   @Override
@@ -43,8 +61,16 @@ public class SpannerClientLibraryConnection implements Connection {
   }
 
   @Override
-  public Statement createStatement(String sql) {
-    return new SpannerClientLibraryStatement(this.databaseClient, sql);
+  public Statement createStatement(String query) {
+    StatementType type = StatementParser.getStatementType(query);
+    if (type == StatementType.DDL) {
+      System.out.println("DDL statement detected: " + query);
+      return new SpannerClientLibraryDdlStatement(query, this.grpcClient, this.config);
+    } else if (type == StatementType.DML) {
+      System.out.println("DML statement detected: " + query);
+      return new SpannerClientLibraryDmlStatement(this.dbClient, query);
+    }
+    return new SpannerClientLibraryStatement(this.dbClient, query);
   }
 
   @Override

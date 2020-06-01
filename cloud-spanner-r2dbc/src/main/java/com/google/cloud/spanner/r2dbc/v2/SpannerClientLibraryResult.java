@@ -23,7 +23,7 @@ public class SpannerClientLibraryResult implements Result {
 
   @Override
   public Publisher<Integer> getRowsUpdated() {
-    return null;
+    return this.rowsUpdated;
   }
 
   @Override

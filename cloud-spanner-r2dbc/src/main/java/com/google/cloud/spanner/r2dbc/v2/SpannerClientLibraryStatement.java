@@ -24,6 +24,7 @@ public class SpannerClientLibraryStatement implements Statement {
 
   private String query;
 
+  // TODO: accept a transaction
   public SpannerClientLibraryStatement(DatabaseClient databaseClient, String query) {
     this.databaseClient = databaseClient;
     this.query = query;
@@ -58,7 +59,6 @@ public class SpannerClientLibraryStatement implements Statement {
   public Publisher<? extends Result> execute() {
     // TODO: unplaceholder singleUse, extract into member
     // make note -- timestamp bound passed here
-
     // TODO: handle rowsUpdated
     return
         Flux.<SpannerClientLibraryRow>create(sink -> {

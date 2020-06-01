@@ -77,16 +77,16 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   public ConnectionFactory create(ConnectionFactoryOptions connectionFactoryOptions) {
 
     SpannerConnectionConfiguration config = createConfiguration(connectionFactoryOptions);
+    if (this.client == null) {
+      // GrpcClient should only be instantiated if/when a SpannerConnectionFactory is needed.
+      this.client = new GrpcClient(config.getCredentials());
+    }
 
     if (connectionFactoryOptions.hasOption(Option.valueOf("client-implementation"))
         && connectionFactoryOptions.getValue(Option.valueOf("client-implementation"))
         .equals("client-library")) {
-      return new SpannerClientLibraryConnectionFactory(config);
+      return new SpannerClientLibraryConnectionFactory(this.client, config);
     } else {
-      if (this.client == null) {
-        // GrpcClient should only be instantiated if/when a SpannerConnectionFactory is needed.
-        this.client = new GrpcClient(config.getCredentials());
-      }
       return new SpannerConnectionFactory(this.client, config);
     }
 
