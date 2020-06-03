@@ -86,10 +86,15 @@ public class ClientLibraryBasedIntegrationTest {
         .block();
 
     StepVerifier.create(
-        Mono.from(conn.createStatement("SELECT count(*) FROM BOOKS").execute())
+        Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
           .flatMapMany(rs -> rs.map((row, rmeta) -> (Long)row.get(1)))
     ).expectNext(Long.valueOf(0))
         .verifyComplete();
+	  StepVerifier.create(
+			  Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
+					  .flatMapMany(rs -> rs.map((row, rmeta) -> (Long)row.get("count")))
+	  ).expectNext(Long.valueOf(0))
+			  .verifyComplete();
   }
 
   @Test
