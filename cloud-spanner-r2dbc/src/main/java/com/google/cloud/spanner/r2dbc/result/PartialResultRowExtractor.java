@@ -101,14 +101,14 @@ public class PartialResultRowExtractor implements Function<PartialResultSet, Lis
     this.prevIsChunk = false;
   }
 
-	private Value processIncompletePiece() {
-		return this.incompletePieceKind == KindCase.STRING_VALUE
-				? Value.newBuilder().setStringValue((String) this.incompletePiece).build()
-				: Value.newBuilder().setListValue(
-						ListValue.newBuilder()
-								.addAllValues((List<Value>) this.incompletePiece))
-				.build();
-	}
+  private Value processIncompletePiece() {
+    return this.incompletePieceKind == KindCase.STRING_VALUE
+            ? Value.newBuilder().setStringValue((String) this.incompletePiece).build()
+            : Value.newBuilder().setListValue(
+            ListValue.newBuilder()
+                    .addAllValues((List<Value>) this.incompletePiece))
+            .build();
+  }
 
   private void emitMiddleWholePieces(PartialResultSet partialResultSet, List<SpannerRow> rows,
       int availableCount) {
