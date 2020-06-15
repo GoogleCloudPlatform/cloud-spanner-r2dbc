@@ -19,7 +19,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 
-class ClientLibraryBindersTest {
+class ClientLibraryTypeBindersTest {
   static ValueBinder valueBinder = Mockito.mock(ValueBinder.class);
 
   static Builder builder = Mockito.mock(Builder.class);
@@ -65,12 +65,16 @@ class ClientLibraryBindersTest {
   /** Validates that every supported type binds successfully. */
   @ParameterizedTest
   @MethodSource("data")
-  <T> void binderTest(Class<T> type, Object value, BiConsumer<ValueBinder, Object> to) {
-    ClientLibraryBinders.bind(builder, "a", value);
-    ClientLibraryBinders.bind(builder, "b", new TypedNull(type));
+  <T> void binderTest(Class<T> type, Object value, BiConsumer<ValueBinder, Object> verifyer) {
+    ClientLibraryBinder.bind(builder, "a", value);
+    ClientLibraryBinder.bind(builder, "b", new TypedNull(type));
 
-    to.accept(Mockito.verify(valueBinder, times(1)), value);
-    to.accept(Mockito.verify(valueBinder, times(1)), null);
+    ValueBinder instrumentedBinder = Mockito.verify(valueBinder, times(1));
+    verifyer.accept(instrumentedBinder, value);
+
+    instrumentedBinder = Mockito.verify(valueBinder, times(1));
+    verifyer.accept(instrumentedBinder, null);
+
     Mockito.verifyNoMoreInteractions(valueBinder);
   }
 }

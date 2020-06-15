@@ -38,7 +38,7 @@ public class ClientLibraryBasedIntegrationTest {
 
   // TODO: also clear table before each
   @BeforeAll
-  public static void setupSpannerTable() throws InterruptedException, ExecutionException {
+  public static void setupSpannerTable() {
 
     Hooks.onOperatorDebug();
 
@@ -83,12 +83,12 @@ public class ClientLibraryBasedIntegrationTest {
 
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
-                .flatMapMany(rs -> rs.map((row, rmeta) -> (Long) row.get(1))))
+                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))))
         .expectNext(Long.valueOf(0))
         .verifyComplete();
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
-                .flatMapMany(rs -> rs.map((row, rmeta) -> (Long) row.get("count"))))
+                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
         .expectNext(Long.valueOf(0))
         .verifyComplete();
   }
@@ -114,7 +114,7 @@ public class ClientLibraryBasedIntegrationTest {
 
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT count(*) FROM BOOKS").execute())
-                .flatMapMany(rs -> rs.map((row, rmeta) -> (Long) row.get(1))))
+                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))))
         .expectNext(Long.valueOf(1))
         .verifyComplete();
     StepVerifier.create(
@@ -124,7 +124,7 @@ public class ClientLibraryBasedIntegrationTest {
                                 + "WHERE UUID = @uuid")
                         .bind("uuid", "abc123")
                         .execute())
-                .flatMapMany(rs -> rs.map((row, rmeta) -> (Double) row.get(1))))
+                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Double.class))))
         .expectNext(20.8d)
         .verifyComplete();
   }

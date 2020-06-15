@@ -44,7 +44,7 @@ public class SpannerClientLibraryStatement implements Statement {
 
   @Override
   public Statement bind(String name, Object value) {
-    ClientLibraryBinders.bind(statementBuilder, name, value);
+    ClientLibraryBinder.bind(statementBuilder, name, value);
     return this;
   }
 
@@ -55,7 +55,7 @@ public class SpannerClientLibraryStatement implements Statement {
 
   @Override
   public Statement bindNull(String name, Class<?> type) {
-    ClientLibraryBinders.bind(statementBuilder, name, new TypedNull(type));
+    ClientLibraryBinder.bind(statementBuilder, name, new TypedNull(type));
     return this;
   }
 

@@ -1,9 +1,5 @@
 package com.google.cloud.spanner.r2dbc.v2;
 
-import com.google.cloud.spanner.AsyncResultSet;
-import com.google.cloud.spanner.AsyncResultSet.CallbackResponse;
-import com.google.cloud.spanner.DatabaseAdminClient;
-import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import com.google.cloud.spanner.r2dbc.SpannerResult;
 import com.google.cloud.spanner.r2dbc.client.Client;
@@ -14,7 +10,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 public class SpannerClientLibraryDdlStatement implements Statement {
