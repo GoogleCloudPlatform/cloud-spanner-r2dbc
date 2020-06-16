@@ -2,10 +2,9 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.AsyncResultSet;
 import com.google.cloud.spanner.AsyncResultSet.CallbackResponse;
-import com.google.cloud.spanner.AsyncResultSet.CursorState;
 import com.google.cloud.spanner.DatabaseClient;
-import com.google.cloud.spanner.SpannerException;
-import com.google.cloud.spanner.r2dbc.SpannerResult;
+import com.google.cloud.spanner.Statement.Builder;
+import com.google.cloud.spanner.r2dbc.statement.TypedNull;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import java.util.concurrent.ExecutorService;
@@ -16,6 +15,8 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 public class SpannerClientLibraryStatement implements Statement {
+
+  private final Builder statementBuilder;
 
   // YOLO; very temporary. TODO: manage disposal.
   private ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -28,6 +29,7 @@ public class SpannerClientLibraryStatement implements Statement {
   public SpannerClientLibraryStatement(DatabaseClient databaseClient, String query) {
     this.databaseClient = databaseClient;
     this.query = query;
+    this.statementBuilder = com.google.cloud.spanner.Statement.newBuilder(this.query);
   }
 
   @Override
@@ -42,7 +44,8 @@ public class SpannerClientLibraryStatement implements Statement {
 
   @Override
   public Statement bind(String name, Object value) {
-    throw new UnsupportedOperationException();
+    ClientLibraryBinder.bind(statementBuilder, name, value);
+    return this;
   }
 
   @Override
@@ -52,7 +55,8 @@ public class SpannerClientLibraryStatement implements Statement {
 
   @Override
   public Statement bindNull(String name, Class<?> type) {
-    throw new UnsupportedOperationException();
+    ClientLibraryBinder.bind(statementBuilder, name, new TypedNull(type));
+    return this;
   }
 
   @Override
@@ -60,24 +64,24 @@ public class SpannerClientLibraryStatement implements Statement {
     // TODO: unplaceholder singleUse, extract into member
     // make note -- timestamp bound passed here
     // TODO: handle rowsUpdated
-    return
-        Flux.<SpannerClientLibraryRow>create(sink -> {
-      AsyncResultSet ars = this.databaseClient.singleUse().executeQueryAsync(
-          com.google.cloud.spanner.Statement.of(this.query));
-      sink.onCancel(ars::cancel);
-      // TODO: handle backpressure
-      //sink.onRequest()
-      // TODO: elastic vs processor-bounded parallel
-      ars.setCallback(this.executorService, rs -> this.callback(sink, rs) );
-    }).transform(rowFlux -> Mono.just(new SpannerClientLibraryResult(rowFlux, Mono.just(0))));
+    return Flux.<SpannerClientLibraryRow>create(
+            sink -> {
+              AsyncResultSet ars =
+                  this.databaseClient.singleUse().executeQueryAsync(statementBuilder.build());
+              sink.onCancel(ars::cancel);
+              // TODO: handle backpressure
+              // sink.onRequest()
+              // TODO: elastic vs processor-bounded parallel
+              ars.setCallback(this.executorService, rs -> this.callback(sink, rs));
+            })
+        .transform(rowFlux -> Mono.just(new SpannerClientLibraryResult(rowFlux, Mono.just(0))));
   }
-
 
   private CallbackResponse callback(FluxSink sink, AsyncResultSet resultSet) {
     try {
       // TODO: ask Knut if the infinit-ish loop is needed, given that callback is guaranteed
       // to be called again if we return CallbackResponse.CONTINUE (check that first)
-      //while (true) {
+      // while (true) {
       switch (resultSet.tryNext()) {
         case DONE:
           sink.complete();
@@ -91,7 +95,7 @@ public class SpannerClientLibraryStatement implements Statement {
           sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
           return CallbackResponse.CONTINUE;
       }
-      //break;
+      // break;
     } catch (Throwable t) {
       sink.error(t);
       return CallbackResponse.DONE;
