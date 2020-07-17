@@ -18,7 +18,8 @@ public class SpannerClientLibraryStatement implements Statement {
 
   private final Builder statementBuilder;
 
-  // YOLO; very temporary. TODO: manage disposal.
+  // TODO: use a global Spanner R2DBC executor service for all these callbacks;
+  // see another one in SpannerClientLibraryConnection
   private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
   private DatabaseClient databaseClient;

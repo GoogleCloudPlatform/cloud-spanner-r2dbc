@@ -13,11 +13,15 @@ import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
+import java.time.LocalDate;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -46,12 +50,12 @@ public class ClientLibraryBasedIntegrationTest {
         Mono.from(connectionFactory.create()).cast(SpannerClientLibraryConnection.class).block();
 
     try {
-      Mono.from(con.createStatement("DROP TABLE BOOKS").execute()).block();
+      //Mono.from(con.createStatement("DROP TABLE BOOKS").execute()).block();
     } catch (Exception e) {
       LOGGER.info("The BOOKS table doesn't exist", e);
     }
 
-    Mono.from(
+   /* Mono.from(
             con.createStatement(
                     "CREATE TABLE BOOKS ("
                         + "  UUID STRING(36) NOT NULL,"
@@ -65,7 +69,7 @@ public class ClientLibraryBasedIntegrationTest {
                         + "  CATEGORY INT64 NOT NULL"
                         + ") PRIMARY KEY (UUID)")
                 .execute())
-        .block();
+        .block();*/
   }
 
   @Test
@@ -127,5 +131,46 @@ public class ClientLibraryBasedIntegrationTest {
                 .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Double.class))))
         .expectNext(20.8d)
         .verifyComplete();
+  }
+
+  @Test
+  public void testTransactionCommitted() {
+    String uuid = "transaction1-commit" + (new Random()).nextInt();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> Flux.concat(
+
+                c.beginTransaction(),
+                Flux.from(c.createStatement(
+                    "INSERT BOOKS "
+                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
+                        + "PUBLISHED, WORDS_PER_SENTENCE)"
+                        + " VALUES "
+                        + "('" + uuid + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
+                        + "'1952-06-28', 15.0);")
+                    .execute()
+                ).map(r -> r.getRowsUpdated()),
+                c.commitTransaction()
+
+            )
+
+    )).consumeNextWith(txn -> {
+      System.out.println("Began transaction " + txn);
+    }).expectNext(1)
+        .consumeNextWith(txn -> {
+          System.out.println("Committed transaction: " + txn);
+        })
+        .verifyComplete();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> c.createStatement("SELECT count(*) as count FROM BOOKS WHERE UUID=@uuid")
+                              .bind("uuid", uuid)
+                              .execute()
+            ).flatMap(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
+        .expectNext(Long.valueOf(1))
+        .verifyComplete();
+
   }
 }

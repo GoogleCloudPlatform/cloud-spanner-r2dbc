@@ -12,7 +12,10 @@ import io.r2dbc.spi.ConnectionMetadata;
 import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.ValidationDepth;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
 public class SpannerClientLibraryConnection implements Connection {
 
@@ -25,6 +28,11 @@ public class SpannerClientLibraryConnection implements Connection {
 
   private SpannerConnectionConfiguration config;
 
+  private ReactiveTransactionManager reactiveTransactionManager;
+
+  // TODO: make thread pool customizable
+  private ExecutorService executorService = Executors.newFixedThreadPool(4);
+
   public SpannerClientLibraryConnection(DatabaseClient dbClient,
       DatabaseAdminClient dbAdminClient,
       Client grpcClient,
@@ -33,21 +41,26 @@ public class SpannerClientLibraryConnection implements Connection {
     this.dbAdminClient = dbAdminClient;
     this.grpcClient = grpcClient;
     this.config = config;
+    this.reactiveTransactionManager = new ReactiveTransactionManager(dbClient.transactionManagerAsync(), executorService);
   }
 
   @Override
   public Publisher<Void> beginTransaction() {
-    throw new UnsupportedOperationException();
+    return this.reactiveTransactionManager.beginTransaction();
   }
 
   @Override
   public Publisher<Void> close() {
-    throw new UnsupportedOperationException();
+    // Close the executor service.
+    // TODO: manage the one in SpannerClientLibraryDdlStatement, too
+    this.executorService.shutdown();
+    // TODO: listen to shutdown?
+    return Mono.just(null);
   }
 
   @Override
   public Publisher<Void> commitTransaction() {
-    throw new UnsupportedOperationException();
+    return this.reactiveTransactionManager.commitTransaction();
   }
 
   @Override
@@ -60,6 +73,7 @@ public class SpannerClientLibraryConnection implements Connection {
     throw new UnsupportedOperationException();
   }
 
+  // TODO: select statements interspersed with update statements need to be handled as part of async flow
   @Override
   public Statement createStatement(String query) {
     StatementType type = StatementParser.getStatementType(query);
@@ -68,7 +82,7 @@ public class SpannerClientLibraryConnection implements Connection {
       return new SpannerClientLibraryDdlStatement(query, this.grpcClient, this.config);
     } else if (type == StatementType.DML) {
       System.out.println("DML statement detected: " + query);
-      return new SpannerClientLibraryDmlStatement(this.dbClient, query);
+      return new SpannerClientLibraryDmlStatement(this.dbClient, this.reactiveTransactionManager, query);
     }
     return new SpannerClientLibraryStatement(this.dbClient, query);
   }
