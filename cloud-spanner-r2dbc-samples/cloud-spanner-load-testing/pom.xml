@@ -3,9 +3,10 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <artifactId>cloud-spanner-r2dbc-parent</artifactId>
-    <groupId>com.google.cloud</groupId>
-    <version>0.3.0-SNAPSHOT</version>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>2.2.3.RELEASE</version>
+    <relativePath/>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -16,6 +17,12 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webflux</artifactId>
       <version>2.3.0.RELEASE</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>cloud-spanner-r2dbc</artifactId>
+      <version>0.3.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 
