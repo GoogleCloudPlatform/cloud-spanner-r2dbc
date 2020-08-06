@@ -59,19 +59,12 @@ public class ReactiveTransactionManager {
 
   // TODO: spanner allows read queries within the transaction. Right now, only update queries get passed here
   public synchronized AsyncTransactionStep chainStatement(Statement statement) {
-    AsyncTransactionFunction<Void, Long> firstStep = (TransactionContext transactionContext, Void aVoid) -> {
-      return transactionContext.executeUpdateAsync(statement);
-    };
 
-    AsyncTransactionFunction<Long, Long> nextStep = (TransactionContext transactionContext, Long aVoid) -> {
-      return transactionContext.executeUpdateAsync(statement);
-    };
-
-    if (this.asyncTransactionLastStep == null) {
-      this.asyncTransactionLastStep = this.currentTransactionFuture.<Long>then(firstStep, this.executorService);
-    } else {
-      this.asyncTransactionLastStep = this.asyncTransactionLastStep.<Long>then(nextStep, this.executorService);
-    }
+      // The first statement in a transaction has no input, hence Void input type.
+      // The subsequent statements take the previous statements' return (affected row count) as input.
+      this.asyncTransactionLastStep = this.asyncTransactionLastStep == null ?
+          this.currentTransactionFuture.<Long>then((ctx, aVoid) -> ctx.executeUpdateAsync(statement), this.executorService) :
+          this.asyncTransactionLastStep.<Long>then((ctx, previousRowCount) -> ctx.executeUpdateAsync(statement), this.executorService);
 
     return this.asyncTransactionLastStep;
   }
