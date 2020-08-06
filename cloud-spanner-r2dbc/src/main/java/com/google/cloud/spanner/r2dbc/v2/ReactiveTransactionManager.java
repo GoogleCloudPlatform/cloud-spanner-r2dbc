@@ -25,7 +25,7 @@ public class ReactiveTransactionManager {
 
   private TransactionContextFuture currentTransactionFuture;
 
-  private AsyncTransactionStep<?,?> asyncTransactionLastStep;
+  private AsyncTransactionStep<?,Long> asyncTransactionLastStep;
 
   // TODO: transaction managers are not reusable
   public ReactiveTransactionManager(AsyncTransactionManager transactionManager, ExecutorService executorService) {
@@ -58,14 +58,22 @@ public class ReactiveTransactionManager {
   }
 
   // TODO: spanner allows read queries within the transaction. Right now, only update queries get passed here
-  public synchronized void chainStatement(Statement statement) {
+  public synchronized AsyncTransactionStep chainStatement(Statement statement) {
+    AsyncTransactionFunction<Void, Long> firstStep = (TransactionContext transactionContext, Void aVoid) -> {
+      return transactionContext.executeUpdateAsync(statement);
+    };
+
+    AsyncTransactionFunction<Long, Long> nextStep = (TransactionContext transactionContext, Long aVoid) -> {
+      return transactionContext.executeUpdateAsync(statement);
+    };
+
     if (this.asyncTransactionLastStep == null) {
-      this.asyncTransactionLastStep = this.currentTransactionFuture.then(
-          (TransactionContext transactionContext, Void aVoid) -> {
-            return transactionContext.executeUpdateAsync(statement);
-          }
-    , this.executorService);
+      this.asyncTransactionLastStep = this.currentTransactionFuture.<Long>then(firstStep, this.executorService);
+    } else {
+      this.asyncTransactionLastStep = this.asyncTransactionLastStep.<Long>then(nextStep, this.executorService);
     }
+
+    return this.asyncTransactionLastStep;
   }
 
   public Publisher<Void> commitTransaction() {
@@ -85,6 +93,30 @@ public class ReactiveTransactionManager {
 
         @Override
         public void onSuccess(Timestamp result) {
+          // TODO: do we have a use for the commit timestamp?
+          sink.success();
+        }
+      }, this.executorService);
+    });
+  }
+
+  public Publisher<Void> rollback() {
+
+    // TODO: make a converter util for the apifuture-to-mono
+    return Mono.create(sink -> {
+      if (this.asyncTransactionLastStep == null) {
+        // TODO: replace by a better non-retryable; consider not throwing at all and no-oping with warning.
+        throw new RuntimeException("Nothing was executed in this transaction -- nothing to roll back");
+      }
+      ApiFuture<Void> future = this.transactionManager.rollbackAsync();
+      ApiFutures.addCallback(future, new ApiFutureCallback<Void>() {
+        @Override
+        public void onFailure(Throwable t) {
+          sink.error(t);
+        }
+
+        @Override
+        public void onSuccess(Void aVoid) {
           // TODO: do we have a use for the commit timestamp?
           sink.success();
         }

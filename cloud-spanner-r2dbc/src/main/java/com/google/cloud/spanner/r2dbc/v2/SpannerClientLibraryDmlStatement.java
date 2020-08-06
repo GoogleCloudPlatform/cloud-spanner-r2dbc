@@ -72,8 +72,30 @@ public class SpannerClientLibraryDmlStatement implements Statement {
 
   private void executeToMono(MonoSink sink) {
     if (reactiveTransactionManager.isInTransaction()) {
-      reactiveTransactionManager.chainStatement(com.google.cloud.spanner.Statement.of(this.query));
-      sink.success(25);
+      // TODO: It's long now because only update statements are supported for now.
+      AsyncTransactionStep<?, Long> step = reactiveTransactionManager.chainStatement(com.google.cloud.spanner.Statement.of(this.query));
+
+      sink.onCancel(() -> step.cancel(true));
+
+      ApiFutures.addCallback(step, new ApiFutureCallback<Long>() {
+        @Override
+        public void onFailure(Throwable t) {
+          sink.error(t);
+        }
+
+        @Override
+        public void onSuccess(Long result) {
+          if (result > Integer.MAX_VALUE) {
+            // TODO: better exception
+            sink.error(
+                new RuntimeException("Number of updated rows exceeds maximum integer value"));
+          } else {
+            sink.success(result.intValue());
+          }
+        }
+      }, executorService);
+
+
     } else {
       AsyncRunner runner = this.databaseClient.runAsync();
       ApiFuture<Long> updateCount = runner.runAsync(

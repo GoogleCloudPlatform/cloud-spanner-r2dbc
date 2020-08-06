@@ -109,7 +109,7 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Publisher<Void> rollbackTransaction() {
-    throw new UnsupportedOperationException();
+    return this.reactiveTransactionManager.rollback();
   }
 
   @Override

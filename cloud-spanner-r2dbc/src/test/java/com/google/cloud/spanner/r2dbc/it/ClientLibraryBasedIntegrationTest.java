@@ -73,7 +73,7 @@ public class ClientLibraryBasedIntegrationTest {
         .block();*/
   }
 
-  @AfterEach
+ // @AfterEach
   public void deleteData() {
 
     SpannerClientLibraryConnection con =
@@ -170,17 +170,12 @@ public class ClientLibraryBasedIntegrationTest {
                         + "('" + uuid + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
                         + "'1952-06-28', 15.0);")
                     .execute()
-                ).map(r -> r.getRowsUpdated()),
+                ).flatMap(r -> r.getRowsUpdated()),
                 c.commitTransaction()
 
             )
 
-    )).consumeNextWith(txn -> {
-      System.out.println("Began transaction " + txn);
-    }).expectNext(1)
-        .consumeNextWith(txn -> {
-          System.out.println("Committed transaction: " + txn);
-        })
+    )).expectNext(1)
         .verifyComplete();
 
     StepVerifier.create(
@@ -189,8 +184,44 @@ public class ClientLibraryBasedIntegrationTest {
                               .bind("uuid", uuid)
                               .execute()
             ).flatMap(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
+        // Expected row inserted
         .expectNext(Long.valueOf(1))
         .verifyComplete();
+  }
 
+  @Test
+  public void testTransactionRolledBack() {
+    String uuid = "transaction2-abort" + (new Random()).nextInt();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> Flux.concat(
+
+                c.beginTransaction(),
+                Flux.from(c.createStatement(
+                    "INSERT BOOKS "
+                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
+                        + "PUBLISHED, WORDS_PER_SENTENCE)"
+                        + " VALUES "
+                        + "('" + uuid + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
+                        + "'1952-06-28', 15.0);")
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
+                c.rollbackTransaction()
+
+                )
+
+            )).expectNext(1)
+        .verifyComplete();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> c.createStatement("SELECT count(*) as count FROM BOOKS WHERE UUID=@uuid")
+                .bind("uuid", uuid)
+                .execute()
+            ).flatMap(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
+        // Expect row not inserted
+        .expectNext(Long.valueOf(0))
+        .verifyComplete();
   }
 }
