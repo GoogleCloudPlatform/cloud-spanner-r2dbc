@@ -16,6 +16,7 @@ import io.r2dbc.spi.Option;
 import java.time.LocalDate;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -72,6 +73,21 @@ public class ClientLibraryBasedIntegrationTest {
         .block();*/
   }
 
+  @AfterEach
+  public void deleteData() {
+
+    SpannerClientLibraryConnection con =
+        Mono.from(connectionFactory.create()).cast(SpannerClientLibraryConnection.class).block();
+
+    Mono.from(
+            con.createStatement("DELETE FROM BOOKS WHERE true")
+                .execute())
+
+        .checkpoint("******** executing DELETE statement")
+        .flatMap(rs -> Mono.from(rs.getRowsUpdated()))
+        .block();
+  }
+
   @Test
   public void testSessionCreation() {
 
@@ -87,11 +103,13 @@ public class ClientLibraryBasedIntegrationTest {
 
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
+                .checkpoint("******** executing insert statement")
                 .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))))
         .expectNext(Long.valueOf(0))
         .verifyComplete();
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
+                .checkpoint("******** executing select statement")
                 .flatMapMany(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
         .expectNext(Long.valueOf(0))
         .verifyComplete();
@@ -101,6 +119,8 @@ public class ClientLibraryBasedIntegrationTest {
   public void testDmlInsert() {
     Connection conn = Mono.from(connectionFactory.create()).block();
 
+    String id = "abc123-" + new Random().nextInt();
+
     StepVerifier.create(
             Mono.from(
                     // TODO: replace hardcoded values with bind variables
@@ -109,7 +129,7 @@ public class ClientLibraryBasedIntegrationTest {
                                 + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
                                 + "PUBLISHED, WORDS_PER_SENTENCE)"
                                 + " VALUES "
-                                + "('abc123', 'White Fang', 'Jack London', 100, TRUE, "
+                                + "('" + id + "', 'White Fang', 'Jack London', 100, TRUE, "
                                 + "'1906-05-01', 20.8);")
                         .execute())
                 .flatMapMany(rs -> rs.getRowsUpdated()))
@@ -126,7 +146,7 @@ public class ClientLibraryBasedIntegrationTest {
                     conn.createStatement(
                             "SELECT WORDS_PER_SENTENCE FROM BOOKS "
                                 + "WHERE UUID = @uuid")
-                        .bind("uuid", "abc123")
+                        .bind("uuid", id)
                         .execute())
                 .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Double.class))))
         .expectNext(20.8d)

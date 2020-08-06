@@ -66,13 +66,14 @@ public class SpannerClientLibraryDmlStatement implements Statement {
   public Publisher<? extends Result> execute() {
 
     return Mono.<Integer>create(sink -> this.executeToMono(sink))
-        .transform(numRowsUpdated -> Mono.just(new SpannerClientLibraryResult(Flux.empty(), numRowsUpdated)));
+        .transform(numRowsUpdatedMono -> Mono.just(new SpannerClientLibraryResult(Flux.empty(), numRowsUpdatedMono)));
   }
 
 
   private void executeToMono(MonoSink sink) {
     if (reactiveTransactionManager.isInTransaction()) {
       reactiveTransactionManager.chainStatement(com.google.cloud.spanner.Statement.of(this.query));
+      sink.success(25);
     } else {
       AsyncRunner runner = this.databaseClient.runAsync();
       ApiFuture<Long> updateCount = runner.runAsync(
