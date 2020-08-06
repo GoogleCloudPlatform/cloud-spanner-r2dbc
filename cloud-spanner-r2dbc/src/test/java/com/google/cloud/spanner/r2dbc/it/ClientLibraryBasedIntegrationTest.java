@@ -73,7 +73,7 @@ public class ClientLibraryBasedIntegrationTest {
         .block();*/
   }
 
- // @AfterEach
+  @AfterEach
   public void deleteData() {
 
     SpannerClientLibraryConnection con =
@@ -155,6 +155,7 @@ public class ClientLibraryBasedIntegrationTest {
 
   @Test
   public void testTransactionCommitted() {
+    // TODO: introduce timeouts; when there is an issue in apifuture conversion, test never completes
     String uuid = "transaction1-commit" + (new Random()).nextInt();
 
     StepVerifier.create(

@@ -1,5 +1,7 @@
 package com.google.cloud.spanner.r2dbc.v2;
 
+import static com.google.cloud.spanner.r2dbc.util.ApiFutureUtil.convertFutureToMono;
+
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
@@ -11,10 +13,12 @@ import com.google.cloud.spanner.AsyncTransactionManager.CommitTimestampFuture;
 import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.TransactionContext;
+import com.google.cloud.spanner.r2dbc.util.ApiFutureUtil;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 
 /** Converts between R2DBC and client library transactional concepts.
  * Encapsulates useful state. */
@@ -41,19 +45,7 @@ public class ReactiveTransactionManager {
 
     return Mono.create(sink -> {
       this.currentTransactionFuture = this.transactionManager.beginAsync();
-      ApiFutures.addCallback(this.currentTransactionFuture,
-          new ApiFutureCallback<TransactionContext>() {
-            @Override
-            public void onFailure(Throwable t) {
-              sink.error(t);
-            }
-
-            @Override
-            public void onSuccess(TransactionContext ctx) {
-              // TODO: do we need to save unwrapped transaction context for anything?
-              sink.success();
-            }
-          }, this.executorService);
+      convertFutureToMono(sink, this.currentTransactionFuture, executorService);
     });
   }
 
@@ -78,19 +70,10 @@ public class ReactiveTransactionManager {
         throw new RuntimeException("Nothing was executed in this transaction");
       }
       CommitTimestampFuture future = this.asyncTransactionLastStep.commitAsync();
-      ApiFutures.addCallback(future, new ApiFutureCallback<Timestamp>() {
-        @Override
-        public void onFailure(Throwable t) {
-          sink.error(t);
-        }
-
-        @Override
-        public void onSuccess(Timestamp result) {
-          // TODO: do we have a use for the commit timestamp?
-          sink.success();
-        }
-      }, this.executorService);
+      convertFutureToMono(sink, future, executorService);
     });
+
+
   }
 
   public Publisher<Void> rollback() {
@@ -102,18 +85,7 @@ public class ReactiveTransactionManager {
         throw new RuntimeException("Nothing was executed in this transaction -- nothing to roll back");
       }
       ApiFuture<Void> future = this.transactionManager.rollbackAsync();
-      ApiFutures.addCallback(future, new ApiFutureCallback<Void>() {
-        @Override
-        public void onFailure(Throwable t) {
-          sink.error(t);
-        }
-
-        @Override
-        public void onSuccess(Void aVoid) {
-          // TODO: do we have a use for the commit timestamp?
-          sink.success();
-        }
-      }, this.executorService);
+      convertFutureToMono(sink, future, executorService);
     });
   }
 }

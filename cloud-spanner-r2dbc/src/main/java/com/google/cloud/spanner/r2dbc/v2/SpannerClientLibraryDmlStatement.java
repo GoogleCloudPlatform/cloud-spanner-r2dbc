@@ -1,5 +1,7 @@
 package com.google.cloud.spanner.r2dbc.v2;
 
+import static com.google.cloud.spanner.r2dbc.util.ApiFutureUtil.convertFutureToMono;
+
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
@@ -76,27 +78,18 @@ public class SpannerClientLibraryDmlStatement implements Statement {
       AsyncTransactionStep<?, Long> step = reactiveTransactionManager.chainStatement(com.google.cloud.spanner.Statement.of(this.query));
 
       sink.onCancel(() -> step.cancel(true));
-
-      ApiFutures.addCallback(step, new ApiFutureCallback<Long>() {
-        @Override
-        public void onFailure(Throwable t) {
-          sink.error(t);
+      convertFutureToMono(sink, step, executorService, (result) -> {
+        if (result > Integer.MAX_VALUE) {
+          // TODO: better exception
+          sink.error(
+              new RuntimeException("Number of updated rows exceeds maximum integer value"));
+        } else {
+          sink.success(result.intValue());
         }
-
-        @Override
-        public void onSuccess(Long result) {
-          if (result > Integer.MAX_VALUE) {
-            // TODO: better exception
-            sink.error(
-                new RuntimeException("Number of updated rows exceeds maximum integer value"));
-          } else {
-            sink.success(result.intValue());
-          }
-        }
-      }, executorService);
-
+      });
 
     } else {
+      // TODO: deduplicate with txn statement execute in chainStatement.
       AsyncRunner runner = this.databaseClient.runAsync();
       ApiFuture<Long> updateCount = runner.runAsync(
           txn -> txn.executeUpdateAsync(com.google.cloud.spanner.Statement.of(this.query)),

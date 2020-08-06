@@ -42,15 +42,19 @@ public class SpannerClientLibraryConnection implements Connection {
     this.grpcClient = grpcClient;
     this.config = config;
     this.reactiveTransactionManager = new ReactiveTransactionManager(dbClient.transactionManagerAsync(), executorService);
+
   }
 
   @Override
   public Publisher<Void> beginTransaction() {
+
+
     return this.reactiveTransactionManager.beginTransaction();
   }
 
   @Override
   public Publisher<Void> close() {
+    // TODO: VERY IMPORTANT -- close client library transaction manager
     // Close the executor service.
     // TODO: manage the one in SpannerClientLibraryDdlStatement, too
     this.executorService.shutdown();
@@ -60,7 +64,12 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Publisher<Void> commitTransaction() {
-    return this.reactiveTransactionManager.commitTransaction();
+    // TODO: there will be trouble. Statement is created outside of subscription flow, so:
+    // create statement 1 -> create statement 2 -> begin txn -> execute statement 1 ->
+    // commit txn -> begin txn -> execute statement 2 !!!! now statement 2 still has the transaction from the second step.
+    Publisher<Void> result = this.reactiveTransactionManager.commitTransaction();
+    this.reactiveTransactionManager = new ReactiveTransactionManager(dbClient.transactionManagerAsync(), executorService);
+    return result;
   }
 
   @Override
@@ -109,7 +118,9 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Publisher<Void> rollbackTransaction() {
-    return this.reactiveTransactionManager.rollback();
+    Publisher<Void> result = this.reactiveTransactionManager.rollback();
+    this.reactiveTransactionManager = new ReactiveTransactionManager(dbClient.transactionManagerAsync(), executorService);
+    return result;
   }
 
   @Override
