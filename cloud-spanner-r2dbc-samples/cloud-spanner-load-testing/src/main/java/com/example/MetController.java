@@ -106,7 +106,9 @@ public class MetController {
 
     return Flux.create(sink -> {
       while (resultSet.next()) {
-        sink.next(resultSet.getCurrentRowAsStruct().getString("title") + "\n<br/>");
+        sink.next(
+            resultSet.getCurrentRowAsStruct().getString("title") +
+                " (" + resultSet.getCurrentRowAsStruct().getString("object_name") + ")\n<br/>");
       }
       sink.complete();
     });
@@ -118,7 +120,8 @@ public class MetController {
     return Flux.from(this.connectionFactoryGrpc.create())
         .flatMap(conn -> conn.createStatement(generateQuery()).execute())
             .flatMap(spannerResult -> spannerResult.map(
-                (r, meta) -> r.get("title", String.class) + "\n<br/>"
+                (r, meta) -> r.get("title", String.class) + " (" +
+                    r.get("object_name", String.class) + ")\n<br/>"
             ));
   }
 
@@ -129,7 +132,8 @@ public class MetController {
         .flatMap(spannerResult -> spannerResult.map(
             (r, meta) -> {
               System.out.println("Got ROW: " + r);
-              return r.get("title", String.class) + "\n<br/>";
+              return r.get("title", String.class)
+                  + " (" + r.get("object_name", String.class) + ")\n<br/>";
             }
         ));
 

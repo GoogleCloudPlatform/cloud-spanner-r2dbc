@@ -59,6 +59,7 @@ public class ClientLibraryDecoder {
    * @return decoded value
    */
   public static <T> T decode(Struct struct, int index, Class<T> type) {
+    System.out.println("Index: " + index + "; decoder = " + decodersMap.get(struct.getColumnType(index)));
     Map<Type, BiFunction<Struct, Integer, Object>> selectedCodecsMap =
         type.isArray() ? arrayDecodersMap : decodersMap;
     Object value =
