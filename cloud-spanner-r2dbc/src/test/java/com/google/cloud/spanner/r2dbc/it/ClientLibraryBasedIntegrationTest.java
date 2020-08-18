@@ -13,13 +13,10 @@ import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
-import java.time.LocalDate;
 import java.util.Random;
-import java.util.concurrent.ExecutionException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -73,7 +70,7 @@ public class ClientLibraryBasedIntegrationTest {
         .block();*/
   }
 
-  @AfterEach
+  @BeforeEach
   public void deleteData() {
 
     SpannerClientLibraryConnection con =
@@ -82,8 +79,6 @@ public class ClientLibraryBasedIntegrationTest {
     Mono.from(
             con.createStatement("DELETE FROM BOOKS WHERE true")
                 .execute())
-
-        .checkpoint("******** executing DELETE statement")
         .flatMap(rs -> Mono.from(rs.getRowsUpdated()))
         .block();
   }
@@ -103,13 +98,11 @@ public class ClientLibraryBasedIntegrationTest {
 
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
-                .checkpoint("******** executing insert statement")
                 .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))))
         .expectNext(Long.valueOf(0))
         .verifyComplete();
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
-                .checkpoint("******** executing select statement")
                 .flatMapMany(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
         .expectNext(Long.valueOf(0))
         .verifyComplete();

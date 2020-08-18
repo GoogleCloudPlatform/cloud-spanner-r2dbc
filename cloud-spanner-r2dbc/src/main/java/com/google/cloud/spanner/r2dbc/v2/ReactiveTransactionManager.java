@@ -11,6 +11,8 @@ import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionFunction
 import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionStep;
 import com.google.cloud.spanner.AsyncTransactionManager.CommitTimestampFuture;
 import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture;
+import com.google.cloud.spanner.DatabaseAdminClient;
+import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.TransactionContext;
 import com.google.cloud.spanner.r2dbc.util.ApiFutureUtil;
@@ -23,6 +25,9 @@ import reactor.core.publisher.MonoSink;
 /** Converts between R2DBC and client library transactional concepts.
  * Encapsulates useful state. */
 public class ReactiveTransactionManager {
+
+  private final DatabaseClient dbClient;
+
   private AsyncTransactionManager transactionManager;
 
   private ExecutorService executorService;
@@ -31,9 +36,8 @@ public class ReactiveTransactionManager {
 
   private AsyncTransactionStep<?,Long> asyncTransactionLastStep;
 
-  // TODO (elfel): transaction managers are not reusable
-  public ReactiveTransactionManager(AsyncTransactionManager transactionManager, ExecutorService executorService) {
-    this.transactionManager = transactionManager;
+  public ReactiveTransactionManager(DatabaseClient dbClient, ExecutorService executorService) {
+    this.dbClient = dbClient;
     this.executorService = executorService;
   }
 
@@ -44,6 +48,7 @@ public class ReactiveTransactionManager {
   public Publisher<Void> beginTransaction() {
 
     return Mono.create(sink -> {
+      this.transactionManager = dbClient.transactionManagerAsync();
       this.currentTransactionFuture = this.transactionManager.beginAsync();
       convertFutureToMono(sink, this.currentTransactionFuture, executorService);
     });

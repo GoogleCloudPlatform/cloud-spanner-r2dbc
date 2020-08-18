@@ -28,7 +28,7 @@ public class SpannerClientLibraryConnection implements Connection {
 
   private SpannerConnectionConfiguration config;
 
-  private ReactiveTransactionManager reactiveTransactionManager;
+  private final ReactiveTransactionManager reactiveTransactionManager;
 
   // TODO: make thread pool customizable
   private ExecutorService executorService = Executors.newFixedThreadPool(4);
@@ -41,7 +41,7 @@ public class SpannerClientLibraryConnection implements Connection {
     this.dbAdminClient = dbAdminClient;
     this.grpcClient = grpcClient;
     this.config = config;
-    this.reactiveTransactionManager = new ReactiveTransactionManager(dbClient.transactionManagerAsync(), executorService);
+    this.reactiveTransactionManager = new ReactiveTransactionManager(dbClient, executorService);
 
   }
 
@@ -68,7 +68,6 @@ public class SpannerClientLibraryConnection implements Connection {
     // create statement 1 -> create statement 2 -> begin txn -> execute statement 1 ->
     // commit txn -> begin txn -> execute statement 2 !!!! now statement 2 still has the transaction from the second step.
     Publisher<Void> result = this.reactiveTransactionManager.commitTransaction();
-    this.reactiveTransactionManager = new ReactiveTransactionManager(dbClient.transactionManagerAsync(), executorService);
     return result;
   }
 
@@ -119,7 +118,6 @@ public class SpannerClientLibraryConnection implements Connection {
   @Override
   public Publisher<Void> rollbackTransaction() {
     Publisher<Void> result = this.reactiveTransactionManager.rollback();
-    this.reactiveTransactionManager = new ReactiveTransactionManager(dbClient.transactionManagerAsync(), executorService);
     return result;
   }
 
