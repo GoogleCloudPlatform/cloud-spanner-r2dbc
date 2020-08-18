@@ -68,13 +68,15 @@ public class ReactiveTransactionManager {
 
   public Publisher<Void> commitTransaction() {
 
-    return Mono.create(sink -> {
+    return Mono.<Void>create(sink -> {
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable; consider not throwing at all and no-oping with warning.
         throw new RuntimeException("Nothing was executed in this transaction");
       }
       CommitTimestampFuture future = this.asyncTransactionLastStep.commitAsync();
       convertFutureToMono(sink, future, executorService);
+    }).doFinally(unusedSignal -> {
+      this.transactionManager.close();
     });
 
 
@@ -82,13 +84,22 @@ public class ReactiveTransactionManager {
 
   public Publisher<Void> rollback() {
 
-    return Mono.create(sink -> {
+    return Mono.<Void>create(sink -> {
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable; consider not throwing at all and no-oping with warning.
         throw new RuntimeException("Nothing was executed in this transaction -- nothing to roll back");
       }
       ApiFuture<Void> future = this.transactionManager.rollbackAsync();
       convertFutureToMono(sink, future, executorService);
+    }).doFinally(unusedSignal -> {
+      this.transactionManager.close();
+    });
+  }
+
+  public Mono<Void> close() {
+    return Mono.<Void>fromSupplier(() -> {
+      this.transactionManager.close();
+      return null;
     });
   }
 }

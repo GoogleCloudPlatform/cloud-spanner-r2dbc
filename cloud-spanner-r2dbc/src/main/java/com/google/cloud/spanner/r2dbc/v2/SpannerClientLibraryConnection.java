@@ -54,21 +54,16 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Publisher<Void> close() {
-    // TODO (elfel): VERY IMPORTANT -- close client library transaction manager
-    // Close the executor service.
-    // TODO: manage the one in SpannerClientLibraryDdlStatement, too
-    this.executorService.shutdown();
-    // TODO: listen to shutdown?
-    return Mono.just(null);
+    return this.reactiveTransactionManager.close()
+        .then(Mono.fromSupplier(() -> {
+          this.executorService.shutdown();
+          return null;
+        }));
   }
 
   @Override
   public Publisher<Void> commitTransaction() {
-    // TODO (elfel): there will be trouble. Statement is created outside of subscription flow, so:
-    // create statement 1 -> create statement 2 -> begin txn -> execute statement 1 ->
-    // commit txn -> begin txn -> execute statement 2 !!!! now statement 2 still has the transaction from the second step.
-    Publisher<Void> result = this.reactiveTransactionManager.commitTransaction();
-    return result;
+    return this.reactiveTransactionManager.commitTransaction();
   }
 
   @Override
