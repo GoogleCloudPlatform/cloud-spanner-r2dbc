@@ -41,7 +41,7 @@ public class ClientLibraryBasedIntegrationTest {
               .option(Option.valueOf("client-implementation"), "client-library")
               .build());
 
-  // TODO: also clear table before each
+  // TODO: Don't drop/recreate tables; instead clear table before each test (right now it's in AfterEach).
   @BeforeAll
   public static void setupSpannerTable() {
 

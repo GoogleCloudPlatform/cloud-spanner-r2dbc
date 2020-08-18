@@ -31,7 +31,7 @@ public class ReactiveTransactionManager {
 
   private AsyncTransactionStep<?,Long> asyncTransactionLastStep;
 
-  // TODO: transaction managers are not reusable
+  // TODO (elfel): transaction managers are not reusable
   public ReactiveTransactionManager(AsyncTransactionManager transactionManager, ExecutorService executorService) {
     this.transactionManager = transactionManager;
     this.executorService = executorService;
@@ -63,7 +63,6 @@ public class ReactiveTransactionManager {
 
   public Publisher<Void> commitTransaction() {
 
-    // TODO: make a converter util for the apifuture-to-mono
     return Mono.create(sink -> {
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable; consider not throwing at all and no-oping with warning.
@@ -78,7 +77,6 @@ public class ReactiveTransactionManager {
 
   public Publisher<Void> rollback() {
 
-    // TODO: make a converter util for the apifuture-to-mono
     return Mono.create(sink -> {
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable; consider not throwing at all and no-oping with warning.

@@ -74,13 +74,13 @@ public class SpannerClientLibraryDmlStatement implements Statement {
 
   private void executeToMono(MonoSink sink) {
     if (reactiveTransactionManager.isInTransaction()) {
-      // TODO: It's long now because only update statements are supported for now.
+      // TODO: It's Long return type now because only update statements are supported for now. Test SELECT.
       AsyncTransactionStep<?, Long> step = reactiveTransactionManager.chainStatement(com.google.cloud.spanner.Statement.of(this.query));
 
       sink.onCancel(() -> step.cancel(true));
       convertFutureToMono(sink, step, executorService, (result) -> {
         if (result > Integer.MAX_VALUE) {
-          // TODO: better exception
+          // TODO: implement custom unretryable exception class.
           sink.error(
               new RuntimeException("Number of updated rows exceeds maximum integer value"));
         } else {
@@ -89,33 +89,23 @@ public class SpannerClientLibraryDmlStatement implements Statement {
       });
 
     } else {
-      // TODO: deduplicate with txn statement execute in chainStatement.
+      // TODO: deduplicate with if-block.
       AsyncRunner runner = this.databaseClient.runAsync();
       ApiFuture<Long> updateCount = runner.runAsync(
           txn -> txn.executeUpdateAsync(com.google.cloud.spanner.Statement.of(this.query)),
           this.executorService);
 
       sink.onCancel(() -> updateCount.cancel(true));
-      // TODO: handle backpressure
-      //sink.onRequest()
-      // TODO: elastic vs processor-bounded parallel
-      ApiFutures.addCallback(updateCount, new ApiFutureCallback<Long>() {
-        @Override
-        public void onFailure(Throwable t) {
-          sink.error(t);
-        }
 
-        @Override
-        public void onSuccess(Long result) {
-          if (result > Integer.MAX_VALUE) {
-            // TODO: better exception
-            sink.error(
-                new RuntimeException("Number of updated rows exceeds maximum integer value"));
-          } else {
-            sink.success(result.intValue());
-          }
+      convertFutureToMono(sink, updateCount, executorService, (result) -> {
+        if (result > Integer.MAX_VALUE) {
+          // TODO: implement custom unretryable exception class.
+          sink.error(
+              new RuntimeException("Number of updated rows exceeds maximum integer value"));
+        } else {
+          sink.success(result.intValue());
         }
-      }, executorService);
+      });
     }
   }
 

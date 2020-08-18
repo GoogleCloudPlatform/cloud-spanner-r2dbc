@@ -62,17 +62,16 @@ public class SpannerClientLibraryStatement implements Statement {
 
   @Override
   public Publisher<? extends Result> execute() {
-    // TODO: unplaceholder singleUse, extract into member
-    // make note -- timestamp bound passed here
-    // TODO: handle rowsUpdated
+    // TODO: unplaceholder singleUse, extract into member to allow transaction options customization.
+    // make note -- timestamp bound passed as part of transaction type
     return Flux.<SpannerClientLibraryRow>create(
             sink -> {
               AsyncResultSet ars =
                   this.databaseClient.singleUse().executeQueryAsync(statementBuilder.build());
               sink.onCancel(ars::cancel);
-              // TODO: handle backpressure
-              // sink.onRequest()
-              // TODO: elastic vs processor-bounded parallel
+
+              // TODO: handle backpressure by asking callback to signal CallbackResponse.PAUSE
+              //   Use sink.onRequest() to keep track of cumulative demand
               ars.setCallback(this.executorService, rs -> this.callback(sink, rs));
             })
         .transform(rowFlux -> Mono.just(new SpannerClientLibraryResult(rowFlux, Mono.just(0))));
@@ -80,9 +79,6 @@ public class SpannerClientLibraryStatement implements Statement {
 
   private CallbackResponse callback(FluxSink sink, AsyncResultSet resultSet) {
     try {
-      // TODO: ask Knut if the infinit-ish loop is needed, given that callback is guaranteed
-      // to be called again if we return CallbackResponse.CONTINUE (check that first)
-      // while (true) {
       switch (resultSet.tryNext()) {
         case DONE:
           sink.complete();
@@ -91,12 +87,9 @@ public class SpannerClientLibraryStatement implements Statement {
         default:
           return CallbackResponse.CONTINUE;
         case OK:
-          // TODO un-null metadata
-          // TODO: handle row count
           sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
           return CallbackResponse.CONTINUE;
       }
-      // break;
     } catch (Throwable t) {
       sink.error(t);
       return CallbackResponse.DONE;

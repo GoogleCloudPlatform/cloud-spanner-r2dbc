@@ -32,7 +32,9 @@ public class SpannerClientLibraryResult implements Result {
       return Flux.empty();
     }
 
-    return this.resultRows.map(row -> mappingFunction.apply(row, /* TODO: row.getRowMetadata() */ null ));
+    return this.resultRows.map(row -> mappingFunction.apply(
+        row,
+        /* TODO: Get metadata from row.getRowMetadata() and pass it to user-provided function */ null ));
 
   }
 }

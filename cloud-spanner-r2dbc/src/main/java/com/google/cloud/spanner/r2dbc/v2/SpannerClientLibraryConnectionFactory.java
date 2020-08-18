@@ -28,13 +28,13 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory 
   // fall back to grpc for unsupported client library async functionality (DDL)
   private Client grpcClient;
 
-  /** TODO: add comment. */
+  /** TODO: add proper javadoc. */
   public SpannerClientLibraryConnectionFactory(Client grpcClient, SpannerConnectionConfiguration config) {
     this.config = config;
     this.grpcClient = grpcClient;
 
     SpannerOptions options = SpannerOptions.newBuilder().build();
-            // TODO: allow customizing project ID?
+            // TODO: allow customizing project ID.
 
     this.client = options.getService();
     this.databaseClient = this.client.getDatabaseClient(
