@@ -16,6 +16,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -23,6 +25,8 @@ import reactor.core.publisher.MonoSink;
 
 public class SpannerClientLibraryDmlStatement implements Statement {
 
+  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  
   // YOLO; very temporary. TODO: use global one in SpannerClientLibraryConnection.
   private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -74,6 +78,7 @@ public class SpannerClientLibraryDmlStatement implements Statement {
 
   private void executeToMono(MonoSink sink) {
     if (reactiveTransactionManager.isInTransaction()) {
+      logger.info("   IN TRANSACTION");
       // TODO: It's Long return type now because only update statements are supported for now. Test SELECT.
       AsyncTransactionStep<?, Long> step = reactiveTransactionManager.chainStatement(com.google.cloud.spanner.Statement.of(this.query));
 
@@ -89,6 +94,7 @@ public class SpannerClientLibraryDmlStatement implements Statement {
       });
 
     } else {
+      logger.info("   NO TRANSACTION");
       // TODO: deduplicate with if-block.
       AsyncRunner runner = this.databaseClient.runAsync();
       ApiFuture<Long> updateCount = runner.runAsync(

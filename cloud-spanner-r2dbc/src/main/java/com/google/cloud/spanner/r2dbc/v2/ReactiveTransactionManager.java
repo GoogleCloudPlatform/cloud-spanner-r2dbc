@@ -19,12 +19,16 @@ import com.google.cloud.spanner.r2dbc.util.ApiFutureUtil;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
 /** Converts between R2DBC and client library transactional concepts.
  * Encapsulates useful state. */
 public class ReactiveTransactionManager {
+
+  private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
   private final DatabaseClient dbClient;
 
@@ -48,6 +52,7 @@ public class ReactiveTransactionManager {
   public Publisher<Void> beginTransaction() {
 
     return Mono.create(sink -> {
+      logger.info("  STARTING TRANSACTION");
       this.transactionManager = dbClient.transactionManagerAsync();
       this.currentTransactionFuture = this.transactionManager.beginAsync();
       convertFutureToMono(sink, this.currentTransactionFuture, executorService);
@@ -57,6 +62,8 @@ public class ReactiveTransactionManager {
   // TODO: spanner allows read queries within the transaction. Right now, only update queries get passed here
   public synchronized AsyncTransactionStep chainStatement(Statement statement) {
 
+    logger.info("  CHAINING STEP: " + statement.getSql());
+    logger.info("    " + (this.asyncTransactionLastStep == null ? "no last step" : "last step exists"));
       // The first statement in a transaction has no input, hence Void input type.
       // The subsequent statements take the previous statements' return (affected row count) as input.
       this.asyncTransactionLastStep = this.asyncTransactionLastStep == null ?
@@ -69,6 +76,7 @@ public class ReactiveTransactionManager {
   public Publisher<Void> commitTransaction() {
 
     return Mono.<Void>create(sink -> {
+      logger.info("  COMMITTING");
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable; consider not throwing at all and no-oping with warning.
         throw new RuntimeException("Nothing was executed in this transaction");
@@ -76,6 +84,7 @@ public class ReactiveTransactionManager {
       CommitTimestampFuture future = this.asyncTransactionLastStep.commitAsync();
       convertFutureToMono(sink, future, executorService);
     }).doFinally(unusedSignal -> {
+      logger.info("  closing transaction manager");
       this.transactionManager.close();
     });
 
@@ -85,6 +94,7 @@ public class ReactiveTransactionManager {
   public Publisher<Void> rollback() {
 
     return Mono.<Void>create(sink -> {
+      logger.info("  ROLLING BACK");
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable; consider not throwing at all and no-oping with warning.
         throw new RuntimeException("Nothing was executed in this transaction -- nothing to roll back");

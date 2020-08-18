@@ -147,9 +147,10 @@ public class ClientLibraryBasedIntegrationTest {
   }
 
   @Test
-  public void testTransactionCommitted() {
+  public void testTransactionSingleStatementCommitted() {
     // TODO: introduce timeouts; when there is an issue in apifuture conversion, test never completes
-    String uuid = "transaction1-commit" + (new Random()).nextInt();
+    Random random = new Random();
+    String uuid1 = "transaction1-commit1-" + random.nextInt();
 
     StepVerifier.create(
         Mono.from(connectionFactory.create())
@@ -161,25 +162,83 @@ public class ClientLibraryBasedIntegrationTest {
                         + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
                         + "PUBLISHED, WORDS_PER_SENTENCE)"
                         + " VALUES "
-                        + "('" + uuid + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
+                        + "('" + uuid1 + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
                         + "'1952-06-28', 15.0);")
                     .execute()
                 ).flatMap(r -> r.getRowsUpdated()),
                 c.commitTransaction()
 
-            )
+                )
 
-    )).expectNext(1)
+            )).expectNext(1)
         .verifyComplete();
 
     StepVerifier.create(
         Mono.from(connectionFactory.create())
-            .flatMapMany(c -> c.createStatement("SELECT count(*) as count FROM BOOKS WHERE UUID=@uuid")
-                              .bind("uuid", uuid)
-                              .execute()
-            ).flatMap(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
+            .flatMapMany(c -> c.createStatement(
+                "SELECT COUNT(*) as num_rows FROM BOOKS WHERE UUID = @uuid")
+                .bind("uuid", uuid1)
+                .execute()
+            ).flatMap(rs -> rs.map((row, rmeta) -> row.get("num_rows", Long.class))))
         // Expected row inserted
         .expectNext(Long.valueOf(1))
+        .verifyComplete();
+  }
+
+  @Test
+  public void testTransactionMultipleStatementsCommitted() {
+    // TODO: introduce timeouts; when there is an issue in apifuture conversion, test never completes
+    Random random = new Random();
+    String uuid1 = "transaction1-commit1-" + random.nextInt();
+    String uuid2 = "transaction1-commit2-" + random.nextInt();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .cast(SpannerClientLibraryConnection.class)
+            .flatMapMany(c -> Flux.concat(
+
+                c.beginTransaction(),
+                Flux.from(c.createStatement(
+                    "INSERT BOOKS "
+                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
+                        + "PUBLISHED, WORDS_PER_SENTENCE)"
+                        + " VALUES "
+                        + "('" + uuid1 + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
+                        + "'1952-06-28', 15.0);")
+                    .execute()).flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(
+                    "INSERT BOOKS "
+                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
+                        + "PUBLISHED, WORDS_PER_SENTENCE)"
+                        + " VALUES "
+                        + "('" + uuid2 + "', 'Fahrenheit 451', 'Ray Bradbury', 100, TRUE, "
+                        + "'1953-06-14', 15.0);")
+                    .execute()).flatMap(r -> r.getRowsUpdated()),
+
+                // TODO: garble SQL below and watch the publisher hang. Troubleshoot how to surface
+                // exception insead of hanging.
+                Flux.from(c.createStatement(
+                    "UPDATE BOOKS SET CATEGORY=200 WHERE CATEGORY = 100")
+                    .execute()).flatMap(r -> r.getRowsUpdated()),
+                c.commitTransaction()
+
+            ))
+
+    ).expectNext(1)
+        .expectNext(1)
+        .expectNext(2)
+        .verifyComplete();
+
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> c.createStatement(
+                "SELECT UUID FROM BOOKS WHERE CATEGORY = @category ORDER BY UUID")
+                              .bind("category", 200L)
+                              .execute()
+            ).flatMap(rs -> rs.map((row, rmeta) -> row.get("UUID", String.class))))
+        // Expected row inserted
+        .expectNext(uuid1, uuid2)
         .verifyComplete();
   }
 

@@ -15,9 +15,13 @@ import io.r2dbc.spi.ValidationDepth;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 public class SpannerClientLibraryConnection implements Connection {
+
+  private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
   private DatabaseClient dbClient;
 
@@ -56,6 +60,7 @@ public class SpannerClientLibraryConnection implements Connection {
   public Publisher<Void> close() {
     return this.reactiveTransactionManager.close()
         .then(Mono.fromSupplier(() -> {
+          logger.info("  shutting down executor service");
           this.executorService.shutdown();
           return null;
         }));
@@ -81,10 +86,10 @@ public class SpannerClientLibraryConnection implements Connection {
   public Statement createStatement(String query) {
     StatementType type = StatementParser.getStatementType(query);
     if (type == StatementType.DDL) {
-      System.out.println("DDL statement detected: " + query);
+      logger.info("DDL statement detected: " + query);
       return new SpannerClientLibraryDdlStatement(query, this.grpcClient, this.config);
     } else if (type == StatementType.DML) {
-      System.out.println("DML statement detected: " + query);
+      logger.info("DML statement detected: " + query);
       return new SpannerClientLibraryDmlStatement(this.dbClient, this.reactiveTransactionManager, query);
     }
     return new SpannerClientLibraryStatement(this.dbClient, query);
