@@ -229,7 +229,6 @@ public class ClientLibraryBasedIntegrationTest {
         .expectNext(2)
         .verifyComplete();
 
-
     StepVerifier.create(
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> c.createStatement(

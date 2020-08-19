@@ -70,49 +70,16 @@ public class SpannerClientLibraryDmlStatement implements Statement {
 
   @Override
   public Publisher<? extends Result> execute() {
-
-    return Mono.<Integer>create(sink -> this.executeToMono(sink))
-        .transform(numRowsUpdatedMono -> Mono.just(new SpannerClientLibraryResult(Flux.empty(), numRowsUpdatedMono)));
+    return this.reactiveTransactionManager.runDmlStatement(com.google.cloud.spanner.Statement.of(this.query))
+      .transform(numRowsUpdatedMono -> Mono.just(new SpannerClientLibraryResult(Flux.empty(), numRowsUpdatedMono.map(this::longToInt))));
   }
 
-
-  private void executeToMono(MonoSink sink) {
-    if (reactiveTransactionManager.isInTransaction()) {
-      logger.info("   IN TRANSACTION");
-      // TODO: It's Long return type now because only update statements are supported for now. Test SELECT.
-      AsyncTransactionStep<?, Long> step = reactiveTransactionManager.chainStatement(com.google.cloud.spanner.Statement.of(this.query));
-
-      sink.onCancel(() -> step.cancel(true));
-      convertFutureToMono(sink, step, executorService, (result) -> {
-        if (result > Integer.MAX_VALUE) {
-          // TODO: implement custom unretryable exception class.
-          sink.error(
-              new RuntimeException("Number of updated rows exceeds maximum integer value"));
-        } else {
-          sink.success(result.intValue());
-        }
-      });
-
-    } else {
-      logger.info("   NO TRANSACTION");
-      // TODO: deduplicate with if-block.
-      AsyncRunner runner = this.databaseClient.runAsync();
-      ApiFuture<Long> updateCount = runner.runAsync(
-          txn -> txn.executeUpdateAsync(com.google.cloud.spanner.Statement.of(this.query)),
-          this.executorService);
-
-      sink.onCancel(() -> updateCount.cancel(true));
-
-      convertFutureToMono(sink, updateCount, executorService, (result) -> {
-        if (result > Integer.MAX_VALUE) {
-          // TODO: implement custom unretryable exception class.
-          sink.error(
-              new RuntimeException("Number of updated rows exceeds maximum integer value"));
-        } else {
-          sink.success(result.intValue());
-        }
-      });
+  private int longToInt(Long numRows) {
+    if (numRows > Integer.MAX_VALUE) {
+      logger.warn("Number of updated rows exceeds maximum integer value; actual rows updated = %s; returning max int value", numRows);
+      return Integer.MAX_VALUE;
     }
+    return numRows.intValue();
   }
 
 }

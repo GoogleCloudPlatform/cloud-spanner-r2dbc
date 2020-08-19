@@ -3,26 +3,17 @@ package com.google.cloud.spanner.r2dbc.v2;
 import static com.google.cloud.spanner.r2dbc.util.ApiFutureUtil.convertFutureToMono;
 
 import com.google.api.core.ApiFuture;
-import com.google.api.core.ApiFutureCallback;
-import com.google.api.core.ApiFutures;
-import com.google.cloud.Timestamp;
+import com.google.cloud.spanner.AsyncRunner;
 import com.google.cloud.spanner.AsyncTransactionManager;
-import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionFunction;
 import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionStep;
-import com.google.cloud.spanner.AsyncTransactionManager.CommitTimestampFuture;
 import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture;
-import com.google.cloud.spanner.DatabaseAdminClient;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.Statement;
-import com.google.cloud.spanner.TransactionContext;
-import com.google.cloud.spanner.r2dbc.util.ApiFutureUtil;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoSink;
 
 /** Converts between R2DBC and client library transactional concepts.
  * Encapsulates useful state. */
@@ -50,13 +41,12 @@ public class ReactiveTransactionManager {
   }
 
   public Publisher<Void> beginTransaction() {
-
-    return Mono.create(sink -> {
+    return convertFutureToMono(() -> {
       logger.info("  STARTING TRANSACTION");
       this.transactionManager = dbClient.transactionManagerAsync();
       this.currentTransactionFuture = this.transactionManager.beginAsync();
-      convertFutureToMono(sink, this.currentTransactionFuture, executorService);
-    });
+      return this.currentTransactionFuture;
+    }, executorService).then();
   }
 
   // TODO: spanner allows read queries within the transaction. Right now, only update queries get passed here
@@ -75,35 +65,30 @@ public class ReactiveTransactionManager {
 
   public Publisher<Void> commitTransaction() {
 
-    return Mono.<Void>create(sink -> {
+    return convertFutureToMono(() -> {
       logger.info("  COMMITTING");
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable; consider not throwing at all and no-oping with warning.
         throw new RuntimeException("Nothing was executed in this transaction");
       }
-      CommitTimestampFuture future = this.asyncTransactionLastStep.commitAsync();
-      convertFutureToMono(sink, future, executorService);
-    }).doFinally(unusedSignal -> {
+      return this.asyncTransactionLastStep.commitAsync();
+
+    }, executorService).doFinally(unusedSignal -> {
       logger.info("  closing transaction manager");
       this.transactionManager.close();
-    });
-
+    }).then();
 
   }
 
   public Publisher<Void> rollback() {
-
-    return Mono.<Void>create(sink -> {
+    return convertFutureToMono(() -> {
       logger.info("  ROLLING BACK");
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable; consider not throwing at all and no-oping with warning.
         throw new RuntimeException("Nothing was executed in this transaction -- nothing to roll back");
       }
-      ApiFuture<Void> future = this.transactionManager.rollbackAsync();
-      convertFutureToMono(sink, future, executorService);
-    }).doFinally(unusedSignal -> {
-      this.transactionManager.close();
-    });
+      return this.transactionManager.rollbackAsync();
+    }, this.executorService);
   }
 
   public Mono<Void> close() {
@@ -112,4 +97,24 @@ public class ReactiveTransactionManager {
       return null;
     });
   }
+
+  public Mono<Long> runDmlStatement(com.google.cloud.spanner.Statement statement) {
+
+    return convertFutureToMono(() -> {
+      if (this.isInTransaction()) {
+        logger.info("   IN TRANSACTION");
+        AsyncTransactionStep<?, Long> step = this.chainStatement(statement);
+        return step;
+      } else {
+        logger.info("   NO TRANSACTION");
+        // TODO: deduplicate with if-block.
+        AsyncRunner runner = this.dbClient.runAsync();
+        ApiFuture<Long> updateCount = runner.runAsync(
+            txn -> txn.executeUpdateAsync(statement),
+            this.executorService);
+        return updateCount;
+      }
+    }, this.executorService);
+  }
+
 }
