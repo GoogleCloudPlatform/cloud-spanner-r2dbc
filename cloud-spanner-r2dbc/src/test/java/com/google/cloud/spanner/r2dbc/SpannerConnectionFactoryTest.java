@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.r2dbc.client.Client;
-import com.google.cloud.spanner.r2dbc.client.ClientLibraryClient;
 import com.google.spanner.v1.Session;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;

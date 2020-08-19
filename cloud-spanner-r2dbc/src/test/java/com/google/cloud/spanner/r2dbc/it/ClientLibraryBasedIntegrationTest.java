@@ -1,3 +1,19 @@
+/*
+ * Copyright 2019-2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.cloud.spanner.r2dbc.it;
 
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
@@ -38,7 +54,11 @@ public class ClientLibraryBasedIntegrationTest {
               .option(Option.valueOf("client-implementation"), "client-library")
               .build());
 
-  // TODO: Don't drop/recreate tables; instead clear table before each test (right now it's in AfterEach).
+  // TODO: Don't drop/recreate tables; instead clear table before each test.
+
+  /**
+   * Recreates test table.
+   */
   @BeforeAll
   public static void setupSpannerTable() {
 
@@ -53,7 +73,7 @@ public class ClientLibraryBasedIntegrationTest {
       LOGGER.info("The BOOKS table doesn't exist", e);
     }
 
-   /* Mono.from(
+    /* Mono.from(
             con.createStatement(
                     "CREATE TABLE BOOKS ("
                         + "  UUID STRING(36) NOT NULL,"
@@ -70,6 +90,9 @@ public class ClientLibraryBasedIntegrationTest {
         .block();*/
   }
 
+  /**
+   * Clears data before each test run.
+   */
   @BeforeEach
   public void deleteData() {
 
@@ -77,8 +100,8 @@ public class ClientLibraryBasedIntegrationTest {
         Mono.from(connectionFactory.create()).cast(SpannerClientLibraryConnection.class).block();
 
     Mono.from(
-            con.createStatement("DELETE FROM BOOKS WHERE true")
-                .execute())
+        con.createStatement("DELETE FROM BOOKS WHERE true")
+            .execute())
         .flatMap(rs -> Mono.from(rs.getRowsUpdated()))
         .block();
   }
@@ -97,13 +120,13 @@ public class ClientLibraryBasedIntegrationTest {
     Connection conn = Mono.from(connectionFactory.create()).block();
 
     StepVerifier.create(
-            Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
-                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))))
+        Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
+            .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))))
         .expectNext(Long.valueOf(0))
         .verifyComplete();
     StepVerifier.create(
-            Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
-                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
+        Mono.from(conn.createStatement("SELECT count(*) as count FROM BOOKS").execute())
+            .flatMapMany(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
         .expectNext(Long.valueOf(0))
         .verifyComplete();
   }
@@ -115,40 +138,41 @@ public class ClientLibraryBasedIntegrationTest {
     String id = "abc123-" + new Random().nextInt();
 
     StepVerifier.create(
-            Mono.from(
-                    // TODO: replace hardcoded values with bind variables
-                    conn.createStatement(
-                            "INSERT BOOKS "
-                                + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
-                                + "PUBLISHED, WORDS_PER_SENTENCE)"
-                                + " VALUES "
-                                + "('" + id + "', 'White Fang', 'Jack London', 100, TRUE, "
-                                + "'1906-05-01', 20.8);")
-                        .execute())
-                .flatMapMany(rs -> rs.getRowsUpdated()))
+        Mono.from(
+            // TODO: replace hardcoded values with bind variables
+            conn.createStatement(
+                "INSERT BOOKS "
+                    + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
+                    + "PUBLISHED, WORDS_PER_SENTENCE)"
+                    + " VALUES "
+                    + "('" + id + "', 'White Fang', 'Jack London', 100, TRUE, "
+                    + "'1906-05-01', 20.8);")
+                .execute())
+            .flatMapMany(rs -> rs.getRowsUpdated()))
         .expectNext(1)
         .verifyComplete();
 
     StepVerifier.create(
-            Mono.from(conn.createStatement("SELECT count(*) FROM BOOKS").execute())
-                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))))
+        Mono.from(conn.createStatement("SELECT count(*) FROM BOOKS").execute())
+            .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))))
         .expectNext(Long.valueOf(1))
         .verifyComplete();
     StepVerifier.create(
-            Mono.from(
-                    conn.createStatement(
-                            "SELECT WORDS_PER_SENTENCE FROM BOOKS "
-                                + "WHERE UUID = @uuid")
-                        .bind("uuid", id)
-                        .execute())
-                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Double.class))))
+        Mono.from(
+            conn.createStatement(
+                "SELECT WORDS_PER_SENTENCE FROM BOOKS "
+                    + "WHERE UUID = @uuid")
+                .bind("uuid", id)
+                .execute())
+            .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Double.class))))
         .expectNext(20.8d)
         .verifyComplete();
   }
 
   @Test
   public void testTransactionSingleStatementCommitted() {
-    // TODO: introduce timeouts; when there is an issue in apifuture conversion, test never completes
+    // TODO: introduce timeouts; when there is an issue in apifuture conversion,
+    // test never completes
     Random random = new Random();
     String uuid1 = "transaction1-commit1-" + random.nextInt();
 
@@ -187,7 +211,7 @@ public class ClientLibraryBasedIntegrationTest {
 
   @Test
   public void testTransactionMultipleStatementsCommitted() {
-    // TODO: introduce timeouts; when there is an issue in apifuture conversion, test never completes
+
     Random random = new Random();
     String uuid1 = "transaction1-commit1-" + random.nextInt();
     String uuid2 = "transaction1-commit2-" + random.nextInt();
@@ -233,8 +257,8 @@ public class ClientLibraryBasedIntegrationTest {
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> c.createStatement(
                 "SELECT UUID FROM BOOKS WHERE CATEGORY = @category ORDER BY UUID")
-                              .bind("category", 200L)
-                              .execute()
+                .bind("category", 200L)
+                .execute()
             ).flatMap(rs -> rs.map((row, rmeta) -> row.get("UUID", String.class))))
         // Expected row inserted
         .expectNext(uuid1, uuid2)
@@ -268,7 +292,8 @@ public class ClientLibraryBasedIntegrationTest {
 
     StepVerifier.create(
         Mono.from(connectionFactory.create())
-            .flatMapMany(c -> c.createStatement("SELECT count(*) as count FROM BOOKS WHERE UUID=@uuid")
+            .flatMapMany(c -> c.createStatement(
+                "SELECT count(*) as count FROM BOOKS WHERE UUID=@uuid")
                 .bind("uuid", uuid)
                 .execute()
             ).flatMap(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))

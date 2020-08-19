@@ -1,3 +1,19 @@
+/*
+ * Copyright 2019-2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.DatabaseAdminClient;
@@ -38,6 +54,13 @@ public class SpannerClientLibraryConnection implements Connection {
   // TODO: make thread pool customizable
   private ExecutorService executorService = Executors.newFixedThreadPool(4);
 
+  /**
+   * Cloud Spanner implementation of R2DBC Connection SPI.
+   * @param dbClient Cloud Spanner client library database client
+   * @param dbAdminClient  Cloud Spanner client library DDL operations client
+   * @param grpcClient TEMPORARY - this will go away
+   * @param config driver configuration extracted from URL or passed directly to connection factory.
+   */
   public SpannerClientLibraryConnection(DatabaseClient dbClient,
       DatabaseAdminClient dbAdminClient,
       Client grpcClient,
@@ -82,7 +105,8 @@ public class SpannerClientLibraryConnection implements Connection {
     throw new UnsupportedOperationException();
   }
 
-  // TODO: test whether select statements interspersed with update statements need to be handled as part of async flow
+  // TODO: test whether select statements interspersed with update statements need to be handled
+  // as part of async flow
   @Override
   public Statement createStatement(String query) {
     StatementType type = StatementParser.getStatementType(query);
