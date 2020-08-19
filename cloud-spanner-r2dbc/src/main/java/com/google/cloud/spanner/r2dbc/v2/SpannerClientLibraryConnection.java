@@ -6,6 +6,7 @@ import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.statement.StatementParser;
 import com.google.cloud.spanner.r2dbc.statement.StatementType;
+import com.google.cloud.spanner.r2dbc.v2.client.ClientLibraryReactiveAdapter;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionMetadata;
@@ -32,7 +33,7 @@ public class SpannerClientLibraryConnection implements Connection {
 
   private SpannerConnectionConfiguration config;
 
-  private final ReactiveTransactionManager reactiveTransactionManager;
+  private final ClientLibraryReactiveAdapter clientLibraryAdapter;
 
   // TODO: make thread pool customizable
   private ExecutorService executorService = Executors.newFixedThreadPool(4);
@@ -45,7 +46,7 @@ public class SpannerClientLibraryConnection implements Connection {
     this.dbAdminClient = dbAdminClient;
     this.grpcClient = grpcClient;
     this.config = config;
-    this.reactiveTransactionManager = new ReactiveTransactionManager(dbClient, executorService);
+    this.clientLibraryAdapter = new ClientLibraryReactiveAdapter(dbClient, executorService);
 
   }
 
@@ -53,12 +54,12 @@ public class SpannerClientLibraryConnection implements Connection {
   public Publisher<Void> beginTransaction() {
 
 
-    return this.reactiveTransactionManager.beginTransaction();
+    return this.clientLibraryAdapter.beginTransaction();
   }
 
   @Override
   public Publisher<Void> close() {
-    return this.reactiveTransactionManager.close()
+    return this.clientLibraryAdapter.close()
         .then(Mono.fromSupplier(() -> {
           logger.info("  shutting down executor service");
           this.executorService.shutdown();
@@ -68,7 +69,7 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Publisher<Void> commitTransaction() {
-    return this.reactiveTransactionManager.commitTransaction();
+    return this.clientLibraryAdapter.commitTransaction();
   }
 
   @Override
@@ -90,7 +91,7 @@ public class SpannerClientLibraryConnection implements Connection {
       return new SpannerClientLibraryDdlStatement(query, this.grpcClient, this.config);
     } else if (type == StatementType.DML) {
       logger.info("DML statement detected: " + query);
-      return new SpannerClientLibraryDmlStatement(this.dbClient, this.reactiveTransactionManager, query);
+      return new SpannerClientLibraryDmlStatement(this.dbClient, this.clientLibraryAdapter, query);
     }
     return new SpannerClientLibraryStatement(this.dbClient, query);
   }
@@ -117,7 +118,7 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Publisher<Void> rollbackTransaction() {
-    Publisher<Void> result = this.reactiveTransactionManager.rollback();
+    Publisher<Void> result = this.clientLibraryAdapter.rollback();
     return result;
   }
 

@@ -1,8 +1,8 @@
-package com.google.cloud.spanner.r2dbc.v2;
-
-import static com.google.cloud.spanner.r2dbc.util.ApiFutureUtil.convertFutureToMono;
+package com.google.cloud.spanner.r2dbc.v2.client;
 
 import com.google.api.core.ApiFuture;
+import com.google.api.core.ApiFutureCallback;
+import com.google.api.core.ApiFutures;
 import com.google.cloud.spanner.AsyncRunner;
 import com.google.cloud.spanner.AsyncTransactionManager;
 import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionStep;
@@ -10,14 +10,17 @@ import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.Statement;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 
 /** Converts between R2DBC and client library transactional concepts.
  * Encapsulates useful state. */
-public class ReactiveTransactionManager {
+public class ClientLibraryReactiveAdapter {
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -31,12 +34,12 @@ public class ReactiveTransactionManager {
 
   private AsyncTransactionStep<?,Long> asyncTransactionLastStep;
 
-  public ReactiveTransactionManager(DatabaseClient dbClient, ExecutorService executorService) {
+  public ClientLibraryReactiveAdapter(DatabaseClient dbClient, ExecutorService executorService) {
     this.dbClient = dbClient;
     this.executorService = executorService;
   }
 
-  public boolean isInTransaction() {
+  private boolean isInTransaction() {
     return this.currentTransactionFuture != null;
   }
 
@@ -115,6 +118,33 @@ public class ReactiveTransactionManager {
         return updateCount;
       }
     }, this.executorService);
+  }
+
+
+  private <T> Mono<T> convertFutureToMono(Supplier<ApiFuture<T>> futureSupplier, BiConsumer<MonoSink, T> successCallback) {
+
+    return Mono.create(sink -> {
+      ApiFuture future = futureSupplier.get();
+      sink.onCancel(() -> future.cancel(true));
+
+      ApiFutures.addCallback(future,
+          new ApiFutureCallback<T>() {
+            @Override
+            public void onFailure(Throwable t) {
+              sink.error(t);
+            }
+
+            @Override
+            public void onSuccess(T result) {
+              successCallback.accept(sink, result);
+            }
+          }, this.executorService);
+    });
+
+  }
+
+  private <T> Mono<T> convertFutureToMono(Supplier<ApiFuture<T>> future, ExecutorService executorService) {
+    return convertFutureToMono(future, (sink, result) -> { sink.success(result); });
   }
 
 }
