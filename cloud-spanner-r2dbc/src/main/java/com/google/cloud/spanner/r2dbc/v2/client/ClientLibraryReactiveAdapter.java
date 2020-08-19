@@ -77,7 +77,7 @@ public class ClientLibraryReactiveAdapter {
       this.transactionManager = this.dbClient.transactionManagerAsync();
       this.currentTransactionFuture = this.transactionManager.beginAsync();
       return this.currentTransactionFuture;
-    }, this.executorService).then();
+    }).then();
   }
 
   // TODO: spanner allows read queries within the transaction. Right now, only update queries
@@ -113,7 +113,7 @@ public class ClientLibraryReactiveAdapter {
       }
       return this.asyncTransactionLastStep.commitAsync();
 
-    }, this.executorService).doFinally(unusedSignal -> {
+    }).doFinally(unusedSignal -> {
       LOGGER.info("  closing transaction manager");
       this.transactionManager.close();
     }).then();
@@ -135,7 +135,7 @@ public class ClientLibraryReactiveAdapter {
             "No statements were executed in this transaction; no-op rollback");
       }
       return this.transactionManager.rollbackAsync();
-    }, this.executorService);
+    });
   }
 
   /**
@@ -174,7 +174,7 @@ public class ClientLibraryReactiveAdapter {
             this.executorService);
         return updateCount;
       }
-    }, this.executorService);
+    });
   }
 
 
@@ -201,8 +201,7 @@ public class ClientLibraryReactiveAdapter {
 
   }
 
-  private <T> Mono<T> convertFutureToMono(
-      Supplier<ApiFuture<T>> future, ExecutorService executorService) {
+  private <T> Mono<T> convertFutureToMono(Supplier<ApiFuture<T>> future) {
     return convertFutureToMono(future, (sink, result) -> {
       sink.success(result);
     });
