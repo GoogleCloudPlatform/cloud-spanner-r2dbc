@@ -115,7 +115,7 @@ public class SpannerClientLibraryConnection implements Connection {
       return new SpannerClientLibraryDdlStatement(query, this.grpcClient, this.config);
     } else if (type == StatementType.DML) {
       LOGGER.info("DML statement detected: " + query);
-      return new SpannerClientLibraryDmlStatement(this.dbClient, this.clientLibraryAdapter, query);
+      return new SpannerClientLibraryDmlStatement(this.clientLibraryAdapter, query);
     }
     return new SpannerClientLibraryStatement(this.dbClient, query);
   }

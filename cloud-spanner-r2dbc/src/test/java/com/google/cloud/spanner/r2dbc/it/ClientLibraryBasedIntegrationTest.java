@@ -100,8 +100,7 @@ public class ClientLibraryBasedIntegrationTest {
         Mono.from(connectionFactory.create()).cast(SpannerClientLibraryConnection.class).block();
 
     Mono.from(
-        con.createStatement("DELETE FROM BOOKS WHERE true")
-            .execute())
+        con.createStatement("DELETE FROM BOOKS WHERE true").execute())
         .flatMap(rs -> Mono.from(rs.getRowsUpdated()))
         .block();
   }
@@ -140,17 +139,9 @@ public class ClientLibraryBasedIntegrationTest {
     StepVerifier.create(
         Mono.from(
             // TODO: replace hardcoded values with bind variables
-            conn.createStatement(
-                "INSERT BOOKS "
-                    + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
-                    + "PUBLISHED, WORDS_PER_SENTENCE)"
-                    + " VALUES "
-                    + "('" + id + "', 'White Fang', 'Jack London', 100, TRUE, "
-                    + "'1906-05-01', 20.8);")
-                .execute())
-            .flatMapMany(rs -> rs.getRowsUpdated()))
-        .expectNext(1)
-        .verifyComplete();
+            conn.createStatement(makeInsertQuery(id, 100, 20.8)).execute())
+            .flatMapMany(rs -> rs.getRowsUpdated())
+    ).expectNext(1).verifyComplete();
 
     StepVerifier.create(
         Mono.from(conn.createStatement("SELECT count(*) FROM BOOKS").execute())
@@ -159,14 +150,11 @@ public class ClientLibraryBasedIntegrationTest {
         .verifyComplete();
     StepVerifier.create(
         Mono.from(
-            conn.createStatement(
-                "SELECT WORDS_PER_SENTENCE FROM BOOKS "
-                    + "WHERE UUID = @uuid")
+            conn.createStatement("SELECT WORDS_PER_SENTENCE FROM BOOKS WHERE UUID = @uuid")
                 .bind("uuid", id)
-                .execute())
-            .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Double.class))))
-        .expectNext(20.8d)
-        .verifyComplete();
+                .execute()
+        ).flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, Double.class))))
+        .expectNext(20.8d).verifyComplete();
   }
 
   @Test
@@ -179,23 +167,11 @@ public class ClientLibraryBasedIntegrationTest {
     StepVerifier.create(
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> Flux.concat(
-
                 c.beginTransaction(),
-                Flux.from(c.createStatement(
-                    "INSERT BOOKS "
-                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
-                        + "PUBLISHED, WORDS_PER_SENTENCE)"
-                        + " VALUES "
-                        + "('" + uuid1 + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
-                        + "'1952-06-28', 15.0);")
-                    .execute()
-                ).flatMap(r -> r.getRowsUpdated()),
-                c.commitTransaction()
-
-                )
-
-            )).expectNext(1)
-        .verifyComplete();
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
+                    .flatMap(r -> r.getRowsUpdated()),
+                c.commitTransaction()))
+    ).expectNext(1).verifyComplete();
 
     StepVerifier.create(
         Mono.from(connectionFactory.create())
@@ -221,36 +197,21 @@ public class ClientLibraryBasedIntegrationTest {
             .flatMapMany(c -> Flux.concat(
 
                 c.beginTransaction(),
-                Flux.from(c.createStatement(
-                    "INSERT BOOKS "
-                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
-                        + "PUBLISHED, WORDS_PER_SENTENCE)"
-                        + " VALUES "
-                        + "('" + uuid1 + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
-                        + "'1952-06-28', 15.0);")
-                    .execute()).flatMap(r -> r.getRowsUpdated()),
-                Flux.from(c.createStatement(
-                    "INSERT BOOKS "
-                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
-                        + "PUBLISHED, WORDS_PER_SENTENCE)"
-                        + " VALUES "
-                        + "('" + uuid2 + "', 'Fahrenheit 451', 'Ray Bradbury', 100, TRUE, "
-                        + "'1953-06-14', 15.0);")
-                    .execute()).flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
+                    .flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid2, 100, 15.0)).execute())
+                    .flatMap(r -> r.getRowsUpdated()),
 
                 // TODO: garble SQL below and watch the publisher hang. Troubleshoot how to surface
                 // exception insead of hanging.
                 Flux.from(c.createStatement(
-                    "UPDATE BOOKS SET CATEGORY=200 WHERE CATEGORY = 100")
-                    .execute()).flatMap(r -> r.getRowsUpdated()),
+                    "UPDATE BOOKS SET CATEGORY=200 WHERE CATEGORY = 100").execute())
+                    .flatMap(r -> r.getRowsUpdated()),
                 c.commitTransaction()
 
             ))
 
-    ).expectNext(1)
-        .expectNext(1)
-        .expectNext(2)
-        .verifyComplete();
+    ).expectNext(1, 1, 2).verifyComplete();
 
     StepVerifier.create(
         Mono.from(connectionFactory.create())
@@ -275,10 +236,10 @@ public class ClientLibraryBasedIntegrationTest {
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> Flux.concat(
                 c.beginTransaction(),
-                Flux.from(c.createStatement(makeInsertQuery(uuid1)).execute())
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
                     .flatMap(r -> r.getRowsUpdated()),
                 c.commitTransaction(),
-                Flux.from(c.createStatement(makeInsertQuery(uuid2)).execute())
+                Flux.from(c.createStatement(makeInsertQuery(uuid2, 100, 15.0)).execute())
                     .flatMap(r -> r.getRowsUpdated())
             ))
 
@@ -296,23 +257,11 @@ public class ClientLibraryBasedIntegrationTest {
     StepVerifier.create(
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> Flux.concat(
-
                 c.beginTransaction(),
-                Flux.from(c.createStatement(
-                    "INSERT BOOKS "
-                        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
-                        + "PUBLISHED, WORDS_PER_SENTENCE)"
-                        + " VALUES "
-                        + "('" + uuid + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
-                        + "'1952-06-28', 15.0);")
-                    .execute()
-                ).flatMap(r -> r.getRowsUpdated()),
-                c.rollbackTransaction()
-
-                )
-
-            )).expectNext(1)
-        .verifyComplete();
+                Flux.from(c.createStatement(makeInsertQuery(uuid, 100, 15.0)).execute())
+                    .flatMap(r -> r.getRowsUpdated()),
+                c.rollbackTransaction()))
+    ).expectNext(1).verifyComplete();
 
     StepVerifier.create(
         Mono.from(connectionFactory.create())
@@ -326,13 +275,14 @@ public class ClientLibraryBasedIntegrationTest {
         .verifyComplete();
   }
 
-  private String makeInsertQuery(String uuid) {
+  private String makeInsertQuery(String uuid, int category, double wordCount) {
     return "INSERT BOOKS "
         + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
         + "PUBLISHED, WORDS_PER_SENTENCE)"
         + " VALUES "
-        + "('" + uuid + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
-        + "'1952-06-28', 15.0);";
+        + "('" + uuid + "', 'A Sound of Thunder', 'Ray Bradbury', "
+        + category + ", TRUE, "
+        + "'1952-06-28', " + wordCount + ");";
   }
 
   private void verifyIds(String... uuids) {

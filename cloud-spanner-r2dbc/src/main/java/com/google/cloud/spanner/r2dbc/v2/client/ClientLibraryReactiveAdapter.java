@@ -19,7 +19,6 @@ package com.google.cloud.spanner.r2dbc.v2.client;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
-import com.google.cloud.spanner.AsyncRunner;
 import com.google.cloud.spanner.AsyncTransactionManager;
 import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionStep;
 import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture;
@@ -33,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
-import reactor.core.publisher.SignalType;
 
 /**
  * Converts gRPC/Cloud Spanner client library asyncronous abstractions into reactive ones.
@@ -79,23 +77,6 @@ public class ClientLibraryReactiveAdapter {
       this.currentTransactionFuture = this.transactionManager.beginAsync();
       return this.currentTransactionFuture;
     }).then();
-  }
-
-  // TODO: spanner allows read queries within the transaction. Right now, only update queries
-  //  get passed here
-  private synchronized AsyncTransactionStep chainStatement(Statement statement) {
-
-    LOGGER.info("  CHAINING STEP: " + statement.getSql());
-
-    // The first statement in a transaction has no input, hence Void input type.
-    // The subsequent statements take the previous statements' return (affected row count) as input.
-    this.asyncTransactionLastStep = this.asyncTransactionLastStep == null
-        ? this.currentTransactionFuture.<Long>then(
-            (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement), this.executorService)
-        : this.asyncTransactionLastStep.<Long>then(
-            (ctx, previousRowCount) -> ctx.executeUpdateAsync(statement), this.executorService);
-
-    return this.asyncTransactionLastStep;
   }
 
   /**
@@ -164,23 +145,29 @@ public class ClientLibraryReactiveAdapter {
    */
   public Mono<Long> runDmlStatement(com.google.cloud.spanner.Statement statement) {
 
-    return convertFutureToMono(() -> {
-      if (this.isInTransaction()) {
-        LOGGER.info("   IN TRANSACTION");
-        AsyncTransactionStep<?, Long> step = this.chainStatement(statement);
-        return step;
-      } else {
-        LOGGER.info("   NO TRANSACTION");
-        // TODO: deduplicate with if-block.
-        AsyncRunner runner = this.dbClient.runAsync();
-        ApiFuture<Long> updateCount = runner.runAsync(
-            txn -> txn.executeUpdateAsync(statement),
-            this.executorService);
-        return updateCount;
-      }
-    });
+    return convertFutureToMono(() -> this.isInTransaction()
+          ? this.chainStatementInTransaction(statement)
+          : this.dbClient.runAsync()
+              .runAsync(txn -> txn.executeUpdateAsync(statement), this.executorService));
+
   }
 
+  // TODO: spanner allows read queries within the transaction. Right now, only update queries
+  //  get passed here
+  private synchronized AsyncTransactionStep chainStatementInTransaction(Statement statement) {
+
+    LOGGER.info("  CHAINING STEP: " + statement.getSql());
+
+    // The first statement in a transaction has no input, hence Void input type.
+    // The subsequent statements take the previous statements' return (affected row count) as input.
+    this.asyncTransactionLastStep = this.asyncTransactionLastStep == null
+        ? this.currentTransactionFuture.<Long>then(
+        (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement), this.executorService)
+        : this.asyncTransactionLastStep.<Long>then(
+            (ctx, previousRowCount) -> ctx.executeUpdateAsync(statement), this.executorService);
+
+    return this.asyncTransactionLastStep;
+  }
 
   private <T> Mono<T> convertFutureToMono(
       Supplier<ApiFuture<T>> futureSupplier, BiConsumer<MonoSink, T> successCallback) {

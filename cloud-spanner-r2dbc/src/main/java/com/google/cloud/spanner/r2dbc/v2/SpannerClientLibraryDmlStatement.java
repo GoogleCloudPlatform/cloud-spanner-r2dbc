@@ -35,28 +35,19 @@ public class SpannerClientLibraryDmlStatement implements Statement {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(SpannerClientLibraryDmlStatement.class);
-  
-  // YOLO; very temporary. TODO: use global one in SpannerClientLibraryConnection.
-  private ExecutorService executorService = Executors.newSingleThreadExecutor();
-
-  private DatabaseClient databaseClient;
 
   private ClientLibraryReactiveAdapter clientLibraryAdapter;
 
   private String query;
 
-  // TODO (elfel): adapter has client; remove client from here
   /**
    * Creates a ready-to-run Cloud Spanner DML statement.
-   * @param databaseClient Cloud Spanner client library database client
-   * @param clientLibraryAdapter REMOVE THIS
+   * @param clientLibraryAdapter client library implementation of core functionality
    * @param query query to run
    */
   // TODO: accept a transaction
-  public SpannerClientLibraryDmlStatement(
-      DatabaseClient databaseClient, ClientLibraryReactiveAdapter clientLibraryAdapter,
+  public SpannerClientLibraryDmlStatement(ClientLibraryReactiveAdapter clientLibraryAdapter,
       String query) {
-    this.databaseClient = databaseClient;
     this.clientLibraryAdapter = clientLibraryAdapter;
     this.query = query;
   }
