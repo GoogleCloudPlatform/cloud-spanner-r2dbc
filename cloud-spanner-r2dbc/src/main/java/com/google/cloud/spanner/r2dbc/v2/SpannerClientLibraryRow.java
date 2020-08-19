@@ -28,11 +28,11 @@ public class SpannerClientLibraryRow implements Row {
 
   @Override
   public <T> T get(int index, Class<T> type) {
-    return ClientLibraryDecoder.decode(rowFields, index - 1, type);
+    return ClientLibraryDecoder.decode(this.rowFields, index - 1, type);
   }
 
   @Override
   public <T> T get(String name, Class<T> type) {
-    return ClientLibraryDecoder.decode(rowFields, rowFields.getColumnIndex(name), type);
+    return ClientLibraryDecoder.decode(this.rowFields, this.rowFields.getColumnIndex(name), type);
   }
 }

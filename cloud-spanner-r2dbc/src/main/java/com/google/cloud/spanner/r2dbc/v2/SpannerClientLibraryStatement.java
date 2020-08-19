@@ -69,7 +69,7 @@ public class SpannerClientLibraryStatement implements Statement {
 
   @Override
   public Statement bind(String name, Object value) {
-    ClientLibraryBinder.bind(statementBuilder, name, value);
+    ClientLibraryBinder.bind(this.statementBuilder, name, value);
     return this;
   }
 
@@ -80,7 +80,7 @@ public class SpannerClientLibraryStatement implements Statement {
 
   @Override
   public Statement bindNull(String name, Class<?> type) {
-    ClientLibraryBinder.bind(statementBuilder, name, new TypedNull(type));
+    ClientLibraryBinder.bind(this.statementBuilder, name, new TypedNull(type));
     return this;
   }
 
@@ -91,7 +91,7 @@ public class SpannerClientLibraryStatement implements Statement {
     return Flux.<SpannerClientLibraryRow>create(
         sink -> {
           AsyncResultSet ars =
-              this.databaseClient.singleUse().executeQueryAsync(statementBuilder.build());
+              this.databaseClient.singleUse().executeQueryAsync(this.statementBuilder.build());
           sink.onCancel(ars::cancel);
 
           // TODO: handle backpressure by asking callback to signal CallbackResponse.PAUSE

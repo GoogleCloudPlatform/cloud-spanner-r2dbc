@@ -33,7 +33,8 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerClientLibraryDmlStatement implements Statement {
 
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(SpannerClientLibraryDmlStatement.class);
   
   // YOLO; very temporary. TODO: use global one in SpannerClientLibraryConnection.
   private ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -95,7 +96,7 @@ public class SpannerClientLibraryDmlStatement implements Statement {
 
   private int longToInt(Long numRows) {
     if (numRows > Integer.MAX_VALUE) {
-      logger.warn("Number of updated rows exceeds maximum integer value; actual rows updated = %s; "
+      LOGGER.warn("Number of updated rows exceeds maximum integer value; actual rows updated = %s; "
           + "returning max int value", numRows);
       return Integer.MAX_VALUE;
     }

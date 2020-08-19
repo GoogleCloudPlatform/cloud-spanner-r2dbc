@@ -40,7 +40,7 @@ import reactor.core.publisher.MonoSink;
  */
 public class ClientLibraryReactiveAdapter {
 
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClientLibraryReactiveAdapter.class);
 
   private final DatabaseClient dbClient;
 
@@ -73,18 +73,18 @@ public class ClientLibraryReactiveAdapter {
    */
   public Mono<Void> beginTransaction() {
     return convertFutureToMono(() -> {
-      logger.info("  STARTING TRANSACTION");
-      this.transactionManager = dbClient.transactionManagerAsync();
+      LOGGER.info("  STARTING TRANSACTION");
+      this.transactionManager = this.dbClient.transactionManagerAsync();
       this.currentTransactionFuture = this.transactionManager.beginAsync();
       return this.currentTransactionFuture;
-    }, executorService).then();
+    }, this.executorService).then();
   }
 
   // TODO: spanner allows read queries within the transaction. Right now, only update queries
   //  get passed here
   private synchronized AsyncTransactionStep chainStatement(Statement statement) {
 
-    logger.info("  CHAINING STEP: " + statement.getSql());
+    LOGGER.info("  CHAINING STEP: " + statement.getSql());
 
     // The first statement in a transaction has no input, hence Void input type.
     // The subsequent statements take the previous statements' return (affected row count) as input.
@@ -105,7 +105,7 @@ public class ClientLibraryReactiveAdapter {
   public Publisher<Void> commitTransaction() {
 
     return convertFutureToMono(() -> {
-      logger.info("  COMMITTING");
+      LOGGER.info("  COMMITTING");
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable;
         //  consider not throwing at all and no-oping with warning.
@@ -113,8 +113,8 @@ public class ClientLibraryReactiveAdapter {
       }
       return this.asyncTransactionLastStep.commitAsync();
 
-    }, executorService).doFinally(unusedSignal -> {
-      logger.info("  closing transaction manager");
+    }, this.executorService).doFinally(unusedSignal -> {
+      LOGGER.info("  closing transaction manager");
       this.transactionManager.close();
     }).then();
 
@@ -127,7 +127,7 @@ public class ClientLibraryReactiveAdapter {
    */
   public Publisher<Void> rollback() {
     return convertFutureToMono(() -> {
-      logger.info("  ROLLING BACK");
+      LOGGER.info("  ROLLING BACK");
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable;
         //  consider not throwing at all and no-oping with warning.
@@ -162,11 +162,11 @@ public class ClientLibraryReactiveAdapter {
 
     return convertFutureToMono(() -> {
       if (this.isInTransaction()) {
-        logger.info("   IN TRANSACTION");
+        LOGGER.info("   IN TRANSACTION");
         AsyncTransactionStep<?, Long> step = this.chainStatement(statement);
         return step;
       } else {
-        logger.info("   NO TRANSACTION");
+        LOGGER.info("   NO TRANSACTION");
         // TODO: deduplicate with if-block.
         AsyncRunner runner = this.dbClient.runAsync();
         ApiFuture<Long> updateCount = runner.runAsync(

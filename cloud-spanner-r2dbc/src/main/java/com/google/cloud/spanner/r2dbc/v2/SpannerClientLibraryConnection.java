@@ -38,7 +38,8 @@ import reactor.core.publisher.Mono;
 
 public class SpannerClientLibraryConnection implements Connection {
 
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(SpannerClientLibraryConnection.class);
 
   private DatabaseClient dbClient;
 
@@ -69,7 +70,7 @@ public class SpannerClientLibraryConnection implements Connection {
     this.dbAdminClient = dbAdminClient;
     this.grpcClient = grpcClient;
     this.config = config;
-    this.clientLibraryAdapter = new ClientLibraryReactiveAdapter(dbClient, executorService);
+    this.clientLibraryAdapter = new ClientLibraryReactiveAdapter(dbClient, this.executorService);
 
   }
 
@@ -84,7 +85,7 @@ public class SpannerClientLibraryConnection implements Connection {
   public Publisher<Void> close() {
     return this.clientLibraryAdapter.close()
         .then(Mono.fromSupplier(() -> {
-          logger.info("  shutting down executor service");
+          LOGGER.info("  shutting down executor service");
           this.executorService.shutdown();
           return null;
         }));
@@ -111,10 +112,10 @@ public class SpannerClientLibraryConnection implements Connection {
   public Statement createStatement(String query) {
     StatementType type = StatementParser.getStatementType(query);
     if (type == StatementType.DDL) {
-      logger.info("DDL statement detected: " + query);
+      LOGGER.info("DDL statement detected: " + query);
       return new SpannerClientLibraryDdlStatement(query, this.grpcClient, this.config);
     } else if (type == StatementType.DML) {
-      logger.info("DML statement detected: " + query);
+      LOGGER.info("DML statement detected: " + query);
       return new SpannerClientLibraryDmlStatement(this.dbClient, this.clientLibraryAdapter, query);
     }
     return new SpannerClientLibraryStatement(this.dbClient, query);

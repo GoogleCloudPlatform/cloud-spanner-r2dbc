@@ -42,6 +42,6 @@ public class ClientLibraryTypeBinderImpl implements ClientLibraryTypeBinder {
 
   @Override
   public void bind(Builder builder, String name, Object value) {
-    bindingConsumer.accept(builder.bind(name), value);
+    this.bindingConsumer.accept(builder.bind(name), value);
   }
 }
