@@ -218,7 +218,6 @@ public class ClientLibraryBasedIntegrationTest {
 
     StepVerifier.create(
         Mono.from(connectionFactory.create())
-            .cast(SpannerClientLibraryConnection.class)
             .flatMapMany(c -> Flux.concat(
 
                 c.beginTransaction(),
@@ -266,6 +265,31 @@ public class ClientLibraryBasedIntegrationTest {
   }
 
   @Test
+  public void testTransactionFollowedByStandaloneStatementCommitted() {
+
+    Random random = new Random();
+    String uuid1 = "transaction1-commit1-" + random.nextInt();
+    String uuid2 = "transaction1-commit2-" + random.nextInt();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> Flux.concat(
+                c.beginTransaction(),
+                Flux.from(c.createStatement(makeInsertQuery(uuid1)).execute())
+                    .flatMap(r -> r.getRowsUpdated()),
+                c.commitTransaction(),
+                Flux.from(c.createStatement(makeInsertQuery(uuid2)).execute())
+                    .flatMap(r -> r.getRowsUpdated())
+            ))
+
+    ).expectNext(1, 1).verifyComplete();
+
+    verifyIds(uuid1, uuid2);
+  }
+
+
+
+  @Test
   public void testTransactionRolledBack() {
     String uuid = "transaction2-abort" + (new Random()).nextInt();
 
@@ -299,6 +323,27 @@ public class ClientLibraryBasedIntegrationTest {
             ).flatMap(rs -> rs.map((row, rmeta) -> row.get("count", Long.class))))
         // Expect row not inserted
         .expectNext(Long.valueOf(0))
+        .verifyComplete();
+  }
+
+  private String makeInsertQuery(String uuid) {
+    return "INSERT BOOKS "
+        + "(UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
+        + "PUBLISHED, WORDS_PER_SENTENCE)"
+        + " VALUES "
+        + "('" + uuid + "', 'A Sound of Thunder', 'Ray Bradbury', 100, TRUE, "
+        + "'1952-06-28', 15.0);";
+  }
+
+  private void verifyIds(String... uuids) {
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> c.createStatement(
+                "SELECT UUID FROM BOOKS ORDER BY UUID")
+                .execute()
+            ).flatMap(rs -> rs.map((row, rmeta) -> row.get("UUID", String.class))))
+        // Expected row inserted
+        .expectNext(uuids)
         .verifyComplete();
   }
 }

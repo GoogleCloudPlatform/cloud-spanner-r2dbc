@@ -77,7 +77,6 @@ public class SpannerClientLibraryConnection implements Connection {
   @Override
   public Publisher<Void> beginTransaction() {
 
-
     return this.clientLibraryAdapter.beginTransaction();
   }
 

@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
+import reactor.core.publisher.SignalType;
 
 /**
  * Converts gRPC/Cloud Spanner client library asyncronous abstractions into reactive ones.
@@ -113,11 +114,14 @@ public class ClientLibraryReactiveAdapter {
       }
       return this.asyncTransactionLastStep.commitAsync();
 
-    }).doFinally(unusedSignal -> {
-      LOGGER.info("  closing transaction manager");
-      this.transactionManager.close();
-    }).then();
+    }).doOnTerminate(this::clearTransactionManager).then();
 
+  }
+
+  private void clearTransactionManager() {
+    LOGGER.info("  closing transaction manager");
+    this.currentTransactionFuture = null;
+    this.transactionManager.close();
   }
 
   /**
@@ -135,7 +139,7 @@ public class ClientLibraryReactiveAdapter {
             "No statements were executed in this transaction; no-op rollback");
       }
       return this.transactionManager.rollbackAsync();
-    });
+    }).doOnTerminate(this::clearTransactionManager);
   }
 
   /**
