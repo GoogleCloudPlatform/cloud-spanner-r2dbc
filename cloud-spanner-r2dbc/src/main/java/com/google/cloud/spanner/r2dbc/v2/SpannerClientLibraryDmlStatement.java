@@ -16,7 +16,6 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
-import com.google.cloud.spanner.r2dbc.v2.client.ClientLibraryReactiveAdapter;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import org.reactivestreams.Publisher;
@@ -33,7 +32,7 @@ public class SpannerClientLibraryDmlStatement implements Statement {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(SpannerClientLibraryDmlStatement.class);
 
-  private ClientLibraryReactiveAdapter clientLibraryAdapter;
+  private DatabaseClientReactiveAdapter clientLibraryAdapter;
 
   private String query;
 
@@ -43,7 +42,7 @@ public class SpannerClientLibraryDmlStatement implements Statement {
    * @param query query to run
    */
   // TODO: accept a transaction
-  public SpannerClientLibraryDmlStatement(ClientLibraryReactiveAdapter clientLibraryAdapter,
+  public SpannerClientLibraryDmlStatement(DatabaseClientReactiveAdapter clientLibraryAdapter,
       String query) {
     this.clientLibraryAdapter = clientLibraryAdapter;
     this.query = query;

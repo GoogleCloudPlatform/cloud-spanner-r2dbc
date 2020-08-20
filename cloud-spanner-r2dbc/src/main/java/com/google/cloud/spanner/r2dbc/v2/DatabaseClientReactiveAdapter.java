@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc.v2.client;
+package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
@@ -35,11 +35,11 @@ import reactor.core.publisher.MonoSink;
 
 /**
  * Converts gRPC/Cloud Spanner client library asyncronous abstractions into reactive ones.
- * Encapsulates useful state.
+ * Encapsulates useful per-connection state.
  */
-public class ClientLibraryReactiveAdapter {
+class DatabaseClientReactiveAdapter {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ClientLibraryReactiveAdapter.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseClientReactiveAdapter.class);
 
   private final DatabaseClient dbClient;
 
@@ -56,7 +56,7 @@ public class ClientLibraryReactiveAdapter {
    * @param dbClient Cloud Spanner DatabaseClient used to run queries and manage transactions.
    * @param executorService executor to be used for future callbacks.
    */
-  public ClientLibraryReactiveAdapter(DatabaseClient dbClient, ExecutorService executorService) {
+  public DatabaseClientReactiveAdapter(DatabaseClient dbClient, ExecutorService executorService) {
     this.dbClient = dbClient;
     this.executorService = executorService;
   }
@@ -154,7 +154,7 @@ public class ClientLibraryReactiveAdapter {
 
   // TODO: spanner allows read queries within the transaction. Right now, only update queries
   //  get passed here
-  private synchronized AsyncTransactionStep chainStatementInTransaction(Statement statement) {
+  private AsyncTransactionStep chainStatementInTransaction(Statement statement) {
 
     LOGGER.debug("  CHAINING STEP: " + statement.getSql());
 
@@ -169,9 +169,7 @@ public class ClientLibraryReactiveAdapter {
     return this.asyncTransactionLastStep;
   }
 
-  private <T> Mono<T> convertFutureToMono(
-      Supplier<ApiFuture<T>> futureSupplier, BiConsumer<MonoSink, T> successCallback) {
-
+  private <T> Mono<T> convertFutureToMono(Supplier<ApiFuture<T>> futureSupplier) {
     return Mono.create(sink -> {
       ApiFuture future = futureSupplier.get();
       sink.onCancel(() -> future.cancel(true));
@@ -185,16 +183,9 @@ public class ClientLibraryReactiveAdapter {
 
             @Override
             public void onSuccess(T result) {
-              successCallback.accept(sink, result);
+              sink.success(result);
             }
           }, this.executorService);
-    });
-
-  }
-
-  private <T> Mono<T> convertFutureToMono(Supplier<ApiFuture<T>> future) {
-    return convertFutureToMono(future, (sink, result) -> {
-      sink.success(result);
     });
   }
 

@@ -22,7 +22,6 @@ import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.statement.StatementParser;
 import com.google.cloud.spanner.r2dbc.statement.StatementType;
-import com.google.cloud.spanner.r2dbc.v2.client.ClientLibraryReactiveAdapter;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionMetadata;
@@ -50,7 +49,7 @@ public class SpannerClientLibraryConnection implements Connection {
 
   private SpannerConnectionConfiguration config;
 
-  private final ClientLibraryReactiveAdapter clientLibraryAdapter;
+  private final DatabaseClientReactiveAdapter clientLibraryAdapter;
 
   // TODO: make thread pool customizable
   private ExecutorService executorService = Executors.newFixedThreadPool(4);
@@ -70,7 +69,7 @@ public class SpannerClientLibraryConnection implements Connection {
     this.dbAdminClient = dbAdminClient;
     this.grpcClient = grpcClient;
     this.config = config;
-    this.clientLibraryAdapter = new ClientLibraryReactiveAdapter(dbClient, this.executorService);
+    this.clientLibraryAdapter = new DatabaseClientReactiveAdapter(dbClient, this.executorService);
 
   }
 
@@ -78,16 +77,6 @@ public class SpannerClientLibraryConnection implements Connection {
   public Publisher<Void> beginTransaction() {
 
     return this.clientLibraryAdapter.beginTransaction();
-  }
-
-  @Override
-  public Publisher<Void> close() {
-    return this.clientLibraryAdapter.close()
-        .then(Mono.fromSupplier(() -> {
-          LOGGER.debug("  shutting down executor service");
-          this.executorService.shutdown();
-          return null;
-        }));
   }
 
   @Override
@@ -142,8 +131,7 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Publisher<Void> rollbackTransaction() {
-    Publisher<Void> result = this.clientLibraryAdapter.rollback();
-    return result;
+    return this.clientLibraryAdapter.rollback();
   }
 
   @Override
@@ -165,4 +153,14 @@ public class SpannerClientLibraryConnection implements Connection {
   public Publisher<Boolean> validate(ValidationDepth depth) {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  public Publisher<Void> close() {
+    return this.clientLibraryAdapter.close()
+        .then(Mono.fromRunnable(() -> {
+          LOGGER.debug("  shutting down executor service");
+          this.executorService.shutdown();
+        }));
+  }
+
 }

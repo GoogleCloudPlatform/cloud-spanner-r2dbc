@@ -68,12 +68,12 @@ public class ClientLibraryBasedIntegrationTest {
         Mono.from(connectionFactory.create()).cast(SpannerClientLibraryConnection.class).block();
 
     try {
-      //Mono.from(con.createStatement("DROP TABLE BOOKS").execute()).block();
+      Mono.from(con.createStatement("DROP TABLE BOOKS").execute()).block();
     } catch (Exception e) {
       LOGGER.info("The BOOKS table doesn't exist", e);
     }
 
-    /* Mono.from(
+    Mono.from(
             con.createStatement(
                     "CREATE TABLE BOOKS ("
                         + "  UUID STRING(36) NOT NULL,"
@@ -87,7 +87,7 @@ public class ClientLibraryBasedIntegrationTest {
                         + "  CATEGORY INT64 NOT NULL"
                         + ") PRIMARY KEY (UUID)")
                 .execute())
-        .block();*/
+        .block();
   }
 
   /**
