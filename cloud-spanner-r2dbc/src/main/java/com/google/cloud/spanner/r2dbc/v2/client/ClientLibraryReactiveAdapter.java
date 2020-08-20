@@ -72,7 +72,7 @@ public class ClientLibraryReactiveAdapter {
    */
   public Mono<Void> beginTransaction() {
     return convertFutureToMono(() -> {
-      LOGGER.info("  STARTING TRANSACTION");
+      LOGGER.debug("  STARTING TRANSACTION");
       this.transactionManager = this.dbClient.transactionManagerAsync();
       this.currentTransactionFuture = this.transactionManager.beginAsync();
       return this.currentTransactionFuture;
@@ -87,7 +87,7 @@ public class ClientLibraryReactiveAdapter {
   public Publisher<Void> commitTransaction() {
 
     return convertFutureToMono(() -> {
-      LOGGER.info("  COMMITTING");
+      LOGGER.debug("  COMMITTING");
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable;
         //  consider not throwing at all and no-oping with warning.
@@ -100,7 +100,7 @@ public class ClientLibraryReactiveAdapter {
   }
 
   private void clearTransactionManager() {
-    LOGGER.info("  closing transaction manager");
+    LOGGER.debug("  closing transaction manager");
     this.currentTransactionFuture = null;
     this.transactionManager.close();
   }
@@ -112,7 +112,7 @@ public class ClientLibraryReactiveAdapter {
    */
   public Publisher<Void> rollback() {
     return convertFutureToMono(() -> {
-      LOGGER.info("  ROLLING BACK");
+      LOGGER.debug("  ROLLING BACK");
       if (this.asyncTransactionLastStep == null) {
         // TODO: replace by a better non-retryable;
         //  consider not throwing at all and no-oping with warning.
@@ -156,15 +156,15 @@ public class ClientLibraryReactiveAdapter {
   //  get passed here
   private synchronized AsyncTransactionStep chainStatementInTransaction(Statement statement) {
 
-    LOGGER.info("  CHAINING STEP: " + statement.getSql());
+    LOGGER.debug("  CHAINING STEP: " + statement.getSql());
 
     // The first statement in a transaction has no input, hence Void input type.
     // The subsequent statements take the previous statements' return (affected row count) as input.
     this.asyncTransactionLastStep = this.asyncTransactionLastStep == null
         ? this.currentTransactionFuture.<Long>then(
-        (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement), this.executorService)
+          (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement), this.executorService)
         : this.asyncTransactionLastStep.<Long>then(
-            (ctx, previousRowCount) -> ctx.executeUpdateAsync(statement), this.executorService);
+          (ctx, previousRowCount) -> ctx.executeUpdateAsync(statement), this.executorService);
 
     return this.asyncTransactionLastStep;
   }

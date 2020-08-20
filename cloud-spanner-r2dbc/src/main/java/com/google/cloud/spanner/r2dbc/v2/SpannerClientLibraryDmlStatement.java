@@ -16,12 +16,9 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
-import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.r2dbc.v2.client.ClientLibraryReactiveAdapter;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
