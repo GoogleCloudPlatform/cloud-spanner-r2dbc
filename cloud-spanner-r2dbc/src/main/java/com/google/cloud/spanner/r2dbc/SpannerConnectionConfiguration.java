@@ -53,7 +53,6 @@ public class SpannerConnectionConfiguration {
 
   private Duration ddlOperationPollInterval;
 
-
   /**
    * Constructor which initializes the configuration from an Cloud Spanner R2DBC url.
    */

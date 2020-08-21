@@ -88,7 +88,6 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
     } else {
       return new SpannerConnectionFactory(this.client, config);
     }
-
   }
 
   @Override
