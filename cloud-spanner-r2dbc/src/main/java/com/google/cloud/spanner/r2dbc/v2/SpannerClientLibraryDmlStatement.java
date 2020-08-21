@@ -1,34 +1,50 @@
+/*
+ * Copyright 2019-2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.cloud.spanner.r2dbc.v2;
 
-import com.google.api.core.ApiFuture;
-import com.google.api.core.ApiFutureCallback;
-import com.google.api.core.ApiFutures;
-import com.google.cloud.spanner.AsyncResultSet;
-import com.google.cloud.spanner.AsyncResultSet.CallbackResponse;
-import com.google.cloud.spanner.AsyncRunner;
-import com.google.cloud.spanner.DatabaseClient;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoSink;
 
+/**
+ * Cloud Spanner implementation of R2DBC SPI for DML statements.
+ */
 public class SpannerClientLibraryDmlStatement implements Statement {
 
-  // YOLO; very temporary. TODO: manage disposal.
-  private ExecutorService executorService = Executors.newSingleThreadExecutor();
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(SpannerClientLibraryDmlStatement.class);
 
-  private DatabaseClient databaseClient;
+  private DatabaseClientReactiveAdapter clientLibraryAdapter;
 
   private String query;
 
+  /**
+   * Creates a ready-to-run Cloud Spanner DML statement.
+   * @param clientLibraryAdapter client library implementation of core functionality
+   * @param query query to run
+   */
   // TODO: accept a transaction
-  public SpannerClientLibraryDmlStatement(DatabaseClient databaseClient, String query) {
-    this.databaseClient = databaseClient;
+  public SpannerClientLibraryDmlStatement(DatabaseClientReactiveAdapter clientLibraryAdapter,
+      String query) {
+    this.clientLibraryAdapter = clientLibraryAdapter;
     this.query = query;
   }
 
@@ -59,38 +75,19 @@ public class SpannerClientLibraryDmlStatement implements Statement {
 
   @Override
   public Publisher<? extends Result> execute() {
-
-    return Mono.<Integer>create(sink -> this.callback(sink))
-        .transform(numRowsUpdated -> Mono.just(new SpannerClientLibraryResult(Flux.empty(), numRowsUpdated)));
+    return this.clientLibraryAdapter
+        .runDmlStatement(com.google.cloud.spanner.Statement.of(this.query))
+        .transform(numRowsUpdatedMono -> Mono.just(
+            new SpannerClientLibraryResult(Flux.empty(), numRowsUpdatedMono.map(this::longToInt))));
   }
 
-
-  private void callback(MonoSink sink) {
-      AsyncRunner runner = this.databaseClient.runAsync();
-      ApiFuture<Long> updateCount = runner.runAsync(
-          txn -> txn.executeUpdateAsync(com.google.cloud.spanner.Statement.of(this.query)),
-          this.executorService);
-
-      sink.onCancel(() -> updateCount.cancel(true));
-      // TODO: handle backpressure
-      //sink.onRequest()
-      // TODO: elastic vs processor-bounded parallel
-      ApiFutures.addCallback(updateCount, new ApiFutureCallback<Long>() {
-        @Override
-        public void onFailure(Throwable t) {
-          sink.error(t);
-        }
-
-        @Override
-        public void onSuccess(Long result) {
-          if (result > Integer.MAX_VALUE) {
-            // TODO: better exception
-            sink.error(new RuntimeException("Number of updated rows exceeds maximum integer value"));
-          } else {
-            sink.success(result.intValue());
-          }
-        }
-      }, executorService);
+  private int longToInt(Long numRows) {
+    if (numRows > Integer.MAX_VALUE) {
+      LOGGER.warn("Number of updated rows exceeds maximum integer value; actual rows updated = %s; "
+          + "returning max int value", numRows);
+      return Integer.MAX_VALUE;
+    }
+    return numRows.intValue();
   }
 
 }

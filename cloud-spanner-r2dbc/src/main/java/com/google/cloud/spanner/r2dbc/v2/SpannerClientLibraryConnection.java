@@ -1,3 +1,19 @@
+/*
+ * Copyright 2019-2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.DatabaseAdminClient;
@@ -12,9 +28,17 @@ import io.r2dbc.spi.ConnectionMetadata;
 import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.ValidationDepth;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 public class SpannerClientLibraryConnection implements Connection {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(SpannerClientLibraryConnection.class);
 
   private DatabaseClient dbClient;
 
@@ -25,6 +49,18 @@ public class SpannerClientLibraryConnection implements Connection {
 
   private SpannerConnectionConfiguration config;
 
+  private final DatabaseClientReactiveAdapter clientLibraryAdapter;
+
+  // TODO: make thread pool customizable
+  private ExecutorService executorService = Executors.newFixedThreadPool(4);
+
+  /**
+   * Cloud Spanner implementation of R2DBC Connection SPI.
+   * @param dbClient Cloud Spanner client library database client
+   * @param dbAdminClient  Cloud Spanner client library DDL operations client
+   * @param grpcClient TEMPORARY - this will go away
+   * @param config driver configuration extracted from URL or passed directly to connection factory.
+   */
   public SpannerClientLibraryConnection(DatabaseClient dbClient,
       DatabaseAdminClient dbAdminClient,
       Client grpcClient,
@@ -33,21 +69,19 @@ public class SpannerClientLibraryConnection implements Connection {
     this.dbAdminClient = dbAdminClient;
     this.grpcClient = grpcClient;
     this.config = config;
+    this.clientLibraryAdapter = new DatabaseClientReactiveAdapter(dbClient, this.executorService);
+
   }
 
   @Override
   public Publisher<Void> beginTransaction() {
-    throw new UnsupportedOperationException();
-  }
 
-  @Override
-  public Publisher<Void> close() {
-    throw new UnsupportedOperationException();
+    return this.clientLibraryAdapter.beginTransaction();
   }
 
   @Override
   public Publisher<Void> commitTransaction() {
-    throw new UnsupportedOperationException();
+    return this.clientLibraryAdapter.commitTransaction();
   }
 
   @Override
@@ -60,15 +94,17 @@ public class SpannerClientLibraryConnection implements Connection {
     throw new UnsupportedOperationException();
   }
 
+  // TODO: test whether select statements interspersed with update statements need to be handled
+  // as part of async flow
   @Override
   public Statement createStatement(String query) {
     StatementType type = StatementParser.getStatementType(query);
     if (type == StatementType.DDL) {
-      System.out.println("DDL statement detected: " + query);
+      LOGGER.debug("DDL statement detected: " + query);
       return new SpannerClientLibraryDdlStatement(query, this.grpcClient, this.config);
     } else if (type == StatementType.DML) {
-      System.out.println("DML statement detected: " + query);
-      return new SpannerClientLibraryDmlStatement(this.dbClient, query);
+      LOGGER.debug("DML statement detected: " + query);
+      return new SpannerClientLibraryDmlStatement(this.clientLibraryAdapter, query);
     }
     return new SpannerClientLibraryStatement(this.dbClient, query);
   }
@@ -95,7 +131,7 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Publisher<Void> rollbackTransaction() {
-    throw new UnsupportedOperationException();
+    return this.clientLibraryAdapter.rollback();
   }
 
   @Override
@@ -117,4 +153,14 @@ public class SpannerClientLibraryConnection implements Connection {
   public Publisher<Boolean> validate(ValidationDepth depth) {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  public Publisher<Void> close() {
+    return this.clientLibraryAdapter.close()
+        .then(Mono.fromRunnable(() -> {
+          LOGGER.debug("  shutting down executor service");
+          this.executorService.shutdown();
+        }));
+  }
+
 }

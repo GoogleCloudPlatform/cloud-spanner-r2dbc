@@ -21,7 +21,6 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.r2dbc.client.Client;
-import com.google.cloud.spanner.r2dbc.client.ClientLibraryClient;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryConnectionFactory;

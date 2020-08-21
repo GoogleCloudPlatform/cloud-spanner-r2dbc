@@ -101,15 +101,15 @@ public class SpannerConnectionConfiguration {
   }
 
   public String getProjectId() {
-    return projectId;
+    return this.projectId;
   }
 
   public String getInstanceName() {
-    return instanceName;
+    return this.instanceName;
   }
 
   public String getDatabaseName() {
-    return databaseName;
+    return this.databaseName;
   }
 
   /**
