@@ -117,6 +117,28 @@ public class SpannerConnectionConfigurationTest {
   }
 
   @Test
+  public void partialResultSetExecutorThreads() {
+    SpannerConnectionConfiguration config = this.configurationBuilder
+        .setExecutorThreads(16)
+        .setProjectId("project1")
+        .setInstanceName("an-instance")
+        .setDatabaseName("db")
+        .build();
+    assertThat(config.getExecutorThreads()).isEqualTo(16);
+  }
+
+  @Test
+  public void partialResultSetExecutorThreadsNotSet() {
+    SpannerConnectionConfiguration config = this.configurationBuilder
+        .setProjectId("project1")
+        .setInstanceName("an-instance")
+        .setDatabaseName("db")
+        .build();
+    assertThat(config.getExecutorThreads())
+        .isEqualTo(Runtime.getRuntime().availableProcessors());
+  }
+
+  @Test
   public void ddlOperationWaitSettings() {
     SpannerConnectionConfiguration config = this.configurationBuilder
         .setProjectId("project1")
