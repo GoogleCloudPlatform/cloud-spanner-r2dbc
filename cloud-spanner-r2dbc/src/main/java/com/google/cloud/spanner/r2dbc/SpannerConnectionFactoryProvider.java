@@ -52,7 +52,7 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
    */
   public static final Option<String> URL = Option.valueOf("url");
 
-  public static final Option<Integer> POOL_SIZE = Option.valueOf("thread_pool_size");
+  public static final Option<Integer> THREAD_POOL_SIZE = Option.valueOf("thread_pool_size");
 
   /** Number of partial result sets to buffer during a read query operation. */
   public static final Option<Integer> PARTIAL_RESULT_SET_FETCH_SIZE =
@@ -137,8 +137,8 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
       config.setDdlOperationPollInterval(options.getValue(DDL_OPERATION_POLL_INTERVAL));
     }
 
-    if (options.hasOption(POOL_SIZE)) {
-      config.setThreadPoolSize(options.getValue(POOL_SIZE));
+    if (options.hasOption(THREAD_POOL_SIZE)) {
+      config.setThreadPoolSize(options.getValue(THREAD_POOL_SIZE));
     }
 
     return config.build();
