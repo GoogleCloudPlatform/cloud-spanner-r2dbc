@@ -68,7 +68,7 @@ public class SpannerClientLibraryConnection implements Connection {
     this.dbAdminClient = dbAdminClient;
     this.grpcClient = grpcClient;
     this.config = config;
-    this.executorService = Executors.newFixedThreadPool(config.getExecutorThreads());
+    this.executorService = Executors.newFixedThreadPool(config.getThreadPoolSize());
     this.clientLibraryAdapter = new DatabaseClientReactiveAdapter(dbClient, this.executorService);
 
   }

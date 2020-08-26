@@ -117,24 +117,24 @@ public class SpannerConnectionConfigurationTest {
   }
 
   @Test
-  public void partialResultSetExecutorThreads() {
+  public void executorThreads() {
     SpannerConnectionConfiguration config = this.configurationBuilder
-        .setExecutorThreads(16)
+        .setThreadPoolSize(42)
         .setProjectId("project1")
         .setInstanceName("an-instance")
         .setDatabaseName("db")
         .build();
-    assertThat(config.getExecutorThreads()).isEqualTo(16);
+    assertThat(config.getThreadPoolSize()).isEqualTo(42);
   }
 
   @Test
-  public void partialResultSetExecutorThreadsNotSet() {
+  public void executorThreadsNotSet() {
     SpannerConnectionConfiguration config = this.configurationBuilder
         .setProjectId("project1")
         .setInstanceName("an-instance")
         .setDatabaseName("db")
         .build();
-    assertThat(config.getExecutorThreads())
+    assertThat(config.getThreadPoolSize())
         .isEqualTo(Runtime.getRuntime().availableProcessors());
   }
 
