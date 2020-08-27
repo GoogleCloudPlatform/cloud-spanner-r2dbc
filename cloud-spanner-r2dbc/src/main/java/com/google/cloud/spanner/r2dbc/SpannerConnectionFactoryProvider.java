@@ -143,5 +143,4 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 
     return config.build();
   }
-
 }
