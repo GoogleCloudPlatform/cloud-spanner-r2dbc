@@ -67,7 +67,7 @@ public class ClientLibraryBasedIntegrationTest {
     SpannerClientLibraryConnection con =
         Mono.from(connectionFactory.create()).cast(SpannerClientLibraryConnection.class).block();
 
-    try {
+   /* try {
       Mono.from(con.createStatement("DROP TABLE BOOKS").execute()).block();
     } catch (Exception e) {
       LOGGER.info("The BOOKS table doesn't exist", e);
@@ -87,7 +87,9 @@ public class ClientLibraryBasedIntegrationTest {
                         + "  CATEGORY INT64 NOT NULL"
                         + ") PRIMARY KEY (UUID)")
                 .execute())
-        .block();
+        .block();*/
+
+
   }
 
   /**
@@ -249,7 +251,6 @@ public class ClientLibraryBasedIntegrationTest {
   }
 
 
-
   @Test
   public void testTransactionRolledBack() {
     String uuid = "transaction2-abort" + (new Random()).nextInt();
@@ -273,6 +274,53 @@ public class ClientLibraryBasedIntegrationTest {
         // Expect row not inserted
         .expectNext(Long.valueOf(0))
         .verifyComplete();
+  }
+
+  @Test
+  public void selectQueryReturnsUpdatedDataDuringAndAfterTransactionCommit() {
+
+    Random random = new Random();
+    String uuid1 = "transaction1-commit1-" + random.nextInt();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> Flux.concat(
+                c.beginTransaction(),
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
+                    .flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement("SELECT UUID FROM BOOKS WHERE UUID = @uuid")
+                  .bind("uuid", uuid1).execute()
+                ).flatMap(r -> r.map((row, rmeta) -> row.get("UUID", String.class))),
+                c.commitTransaction()
+            ))
+
+    ).expectNext(1, uuid1).verifyComplete();
+
+    verifyIds(uuid1);
+  }
+
+  @Test
+  public void selectQueryReturnsUpdatedDataDuringTransactionButNotAfterTransactionRollback() {
+
+    Random random = new Random();
+    String uuid1 = "transaction1-commit1-" + random.nextInt();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> Flux.concat(
+                c.beginTransaction(),
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
+                    .flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement("SELECT UUID FROM BOOKS WHERE UUID = @uuid")
+                    .bind("uuid", uuid1).execute()
+                ).flatMap(r -> r.map((row, rmeta) -> row.get("UUID", String.class))),
+                c.rollbackTransaction()
+            ))
+
+    ).expectNext(1, uuid1).verifyComplete();
+
+    // no data
+    verifyIds();
   }
 
   private String makeInsertQuery(String uuid, int category, double wordCount) {

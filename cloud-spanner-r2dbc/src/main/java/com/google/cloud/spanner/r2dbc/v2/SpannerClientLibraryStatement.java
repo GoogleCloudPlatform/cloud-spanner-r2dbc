@@ -25,6 +25,8 @@ import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import java.util.concurrent.ExecutorService;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -34,29 +36,26 @@ import reactor.core.publisher.Mono;
  */
 public class SpannerClientLibraryStatement implements Statement {
 
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(SpannerClientLibraryStatement.class);
+
+  private DatabaseClientReactiveAdapter clientLibraryAdapter;
+
   private final Builder statementBuilder;
-
-  private ExecutorService executorService;
-
-  private DatabaseClient databaseClient;
-
-  private String query;
 
   /**
    * Creates a ready-to-run Cloud Spanner statement.
-   * @param databaseClient Cloud Spanner client library database client
+   * @param clientLibraryAdapter client library implementation of core functionality
    * @param query query to run, with `@` placeholders expected as parameters.
-   * @param executorService to use for AsyncResultSet callback
    */
   // TODO: accept a transaction
-  public SpannerClientLibraryStatement(DatabaseClient databaseClient, String query,
-      ExecutorService executorService) {
-    this.databaseClient = databaseClient;
-    this.query = query;
-    this.statementBuilder = com.google.cloud.spanner.Statement.newBuilder(this.query);
-    this.executorService = executorService;
+  public SpannerClientLibraryStatement(DatabaseClientReactiveAdapter clientLibraryAdapter, String query) {
+    this.clientLibraryAdapter = clientLibraryAdapter;
+    //this.query = query;
+    this.statementBuilder = com.google.cloud.spanner.Statement.newBuilder(query);
   }
 
+  // TODO (elfel): remind me about adding batched parameters -- supported in only DML?
   @Override
   public Statement add() {
     throw new UnsupportedOperationException();
@@ -86,6 +85,10 @@ public class SpannerClientLibraryStatement implements Statement {
 
   @Override
   public Publisher<? extends Result> execute() {
+    return this.clientLibraryAdapter
+        .runSelectStatement(this.statementBuilder.build())
+        .transform(rows -> Mono.just(new SpannerClientLibraryResult(rows, Mono.empty())));
+        /*
     // TODO: unplaceholder singleUse, extract into member to allow transaction options customization
     // make note -- timestamp bound passed as part of transaction type
     return Flux.<SpannerClientLibraryRow>create(
@@ -99,24 +102,9 @@ public class SpannerClientLibraryStatement implements Statement {
           ars.setCallback(this.executorService, rs -> this.callback(sink, rs));
         })
         .transform(rowFlux -> Mono.just(new SpannerClientLibraryResult(rowFlux, Mono.just(0))));
+
+         */
   }
 
-  private CallbackResponse callback(FluxSink sink, AsyncResultSet resultSet) {
-    try {
-      switch (resultSet.tryNext()) {
-        case DONE:
-          sink.complete();
-          return CallbackResponse.DONE;
-        case NOT_READY:
-        default:
-          return CallbackResponse.CONTINUE;
-        case OK:
-          sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
-          return CallbackResponse.CONTINUE;
-      }
-    } catch (Throwable t) {
-      sink.error(t);
-      return CallbackResponse.DONE;
-    }
-  }
+
 }
