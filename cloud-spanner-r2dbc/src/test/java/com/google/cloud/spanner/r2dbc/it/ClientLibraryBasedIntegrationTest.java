@@ -44,6 +44,10 @@ public class ClientLibraryBasedIntegrationTest {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(ClientLibraryBasedIntegrationTest.class);
 
+  static final String INSERT_QUERY = "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, " +
+    "PUBLISHED, WORDS_PER_SENTENCE) VALUES (@uuid, 'A Sound of Thunder', 'Ray Bradbury', " +
+    "@category, TRUE, '1952-06-28', @wordCount)";
+
   private static final ConnectionFactory connectionFactory =
       ConnectionFactories.get(
           ConnectionFactoryOptions.builder()
@@ -141,7 +145,11 @@ public class ClientLibraryBasedIntegrationTest {
     StepVerifier.create(
         Mono.from(
             // TODO: replace hardcoded values with bind variables
-            conn.createStatement(makeInsertQuery(id, 100, 20.8)).execute())
+            conn.createStatement(INSERT_QUERY)
+                .bind("uuid", id)
+                .bind("category", 100L)
+                .bind("wordCount", 20.8)
+                .execute())
             .flatMapMany(rs -> rs.getRowsUpdated())
     ).expectNext(1).verifyComplete();
 
