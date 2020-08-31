@@ -26,7 +26,7 @@ import com.google.cloud.spanner.AsyncTransactionManager;
 import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionStep;
 import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture;
 import com.google.cloud.spanner.DatabaseClient;
-import com.google.cloud.spanner.Statement;
+import com.google.cloud.spanner.ReadContext;
 import com.google.cloud.spanner.TransactionContext;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -52,14 +52,15 @@ class DatabaseClientReactiveAdapter {
 
   private ExecutorService executorService;
 
-  private TransactionContextFuture currentTransactionFuture;
+  private TransactionContextFuture txnContext;
 
-  private AsyncTransactionStep<?,? extends Object> asyncTransactionLastStep;
+  private AsyncTransactionStep<?, ? extends Object> lastStep;
 
   /**
    * Instantiates the adapter with given client library {@code DatabaseClient} and executor.
-   * @param dbClient Cloud Spanner DatabaseClient used to run queries and manage transactions.
-   * @param executorService executor to be used for future callbacks.
+   *
+   * @param dbClient Cloud Spanner client used to run queries and manage transactions.
+   * @param executorService executor to be used for running callbacks.
    */
   public DatabaseClientReactiveAdapter(DatabaseClient dbClient, ExecutorService executorService) {
     this.dbClient = dbClient;
@@ -67,7 +68,7 @@ class DatabaseClientReactiveAdapter {
   }
 
   private boolean isInTransaction() {
-    return this.currentTransactionFuture != null;
+    return this.txnContext != null;
   }
 
   /**
@@ -76,12 +77,11 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for starting a transaction
    */
   public Mono<Void> beginTransaction() {
-    // TODO (elfel): consider creating a toVoidSink variant that would take care of removing type right there
     return Mono.<TransactionContext>create(sink -> {
-      LOGGER.debug("  STARTING TRANSACTION");
+      LOGGER.debug("begin transaction");
       this.transactionManager = this.dbClient.transactionManagerAsync();
-      this.currentTransactionFuture = this.transactionManager.beginAsync();
-      this.adaptFutureToMono(this.currentTransactionFuture, sink);
+      this.txnContext = this.transactionManager.beginAsync();
+      this.adaptFutureToMono(this.txnContext, sink);
     }).then();
   }
 
@@ -93,21 +93,22 @@ class DatabaseClientReactiveAdapter {
   public Publisher<Void> commitTransaction() {
 
     return Mono.<Timestamp>create(sink -> {
-      LOGGER.debug("  COMMITTING");
-      if (this.asyncTransactionLastStep == null) {
+      LOGGER.debug("commit transaction");
+      if (this.lastStep == null) {
         // TODO: replace by a better non-retryable;
         //  consider not throwing at all and no-oping with warning.
         throw new RuntimeException("Nothing was executed in this transaction");
       }
-      this.adaptFutureToMono(this.asyncTransactionLastStep.commitAsync(), sink);
-
-    }).doOnTerminate(this::clearTransactionManager).then();
-
+      this.adaptFutureToMono(this.lastStep.commitAsync(), sink);
+    })
+        .doOnTerminate(this::clearTransactionManager)
+        .then();
   }
 
   private void clearTransactionManager() {
-    LOGGER.debug("  closing transaction manager");
-    this.currentTransactionFuture = null;
+    LOGGER.debug("close transaction manager");
+    this.txnContext = null;
+    //this.lastStep = null;
     this.transactionManager.close();
   }
 
@@ -118,109 +119,133 @@ class DatabaseClientReactiveAdapter {
    */
   public Publisher<Void> rollback() {
     return Mono.<Void>create(sink -> {
-      LOGGER.debug("  ROLLING BACK");
-      if (this.asyncTransactionLastStep == null) {
+      LOGGER.debug("roll back");
+      if (this.lastStep == null) {
         // TODO: replace by a better non-retryable;
         //  consider not throwing at all and no-oping with warning.
         throw new RuntimeException(
             "No statements were executed in this transaction; no-op rollback");
       }
       adaptFutureToMono(this.transactionManager.rollbackAsync(), sink);
-    }).doOnTerminate(this::clearTransactionManager);
+    })
+        .doOnTerminate(this::clearTransactionManager);
   }
 
   /**
-   * Allows cleaning up used resources.
+   * Allows cleaning up resources.
    *
    * <p>Closes client library objects.
    *
-   * @return reactive pipeline for starting a transaction
+   * @return reactive pipeline for closing the connection.
    */
   public Mono<Void> close() {
-    return Mono.<Void>fromSupplier(() -> {
-      this.transactionManager.close();
-      return null;
-    });
+    return Mono.<Void>fromSupplier(
+        () -> {
+          this.transactionManager.close();
+          return null;
+        });
   }
 
-  // TODO (elfel): extend to Query statements
   /**
    * Allows running a DML statement.
    *
-   * @return reactive pipeline for starting a transaction
+   * <p>If no transaction is active, a single-use transaction will be used.
+   *
+   * @return reactive pipeline for running a DML statement
    */
   public Mono<Long> runDmlStatement(com.google.cloud.spanner.Statement statement) {
-    System.out.println("************ Running DML statement: " + statement.getSql());
-    return  Mono.create(sink -> {
+    return Mono.create(
+        sink -> {
+          if (this.isInTransaction()) {
+            LOGGER.debug("  chaining DML statement in transaction: " + statement.getSql());
 
-      ApiFuture<Long> future = this.isInTransaction()
-          ? this.chainStatementInTransaction(statement)
-          : this.dbClient.runAsync()
-              .runAsync(txn -> txn.executeUpdateAsync(statement), this.executorService);
+            // The first statement in a transaction has no input, hence Void input type.
+            // The subsequent statements take the previous statements' return (affected row count)
+            // as input.
+            AsyncTransactionStep<? extends Object, Long> updateStatementFuture =
+                this.lastStep == null
+                    ? this.txnContext.then(
+                        (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement),
+                        this.executorService)
+                    : this.lastStep.then(
+                        (ctx, previousRowCount) -> ctx.executeUpdateAsync(statement),
+                        this.executorService);
 
-      adaptFutureToMono(future, sink);
-    });
+            this.lastStep = updateStatementFuture;
+            adaptFutureToMono(updateStatementFuture, sink);
+
+          } else {
+            LOGGER.debug("  running standalone DML statement: " + statement.getSql());
+            ApiFuture<Long> rowCountFuture =
+                this.dbClient
+                    .runAsync()
+                    .runAsync(txn -> txn.executeUpdateAsync(statement), this.executorService);
+            adaptFutureToMono(rowCountFuture, sink);
+          }
+        });
   }
 
-  public Flux<SpannerClientLibraryRow> runSelectStatement(com.google.cloud.spanner.Statement statement) {
-    System.out.println("********************* running select statement");
-    return Flux.create(sink -> {
-        if (this.isInTransaction()) {
-          this.chainQueryStatementInTransaction(sink, statement);
-        } else {
-          AsyncResultSet ars = this.dbClient.singleUse().executeQueryAsync(statement);
-          ars.setCallback(this.executorService, rs -> this.callback(sink, rs));
-          sink.onCancel(ars::cancel);
-        }
-    });
+  public Flux<SpannerClientLibraryRow> runSelectStatement(
+      com.google.cloud.spanner.Statement statement) {
+    return Flux.create(
+        sink -> {
+          if (this.isInTransaction()) {
 
+            LOGGER.debug("  chainingSELECT statement in transaction: " + statement.getSql());
+            // The first statement in a transaction has no input, hence Void input type.
+            // The subsequent statements take the previous statement's return value as input.
+            this.lastStep =
+                this.lastStep == null
+                    ? this.txnContext.then(
+                        (ctx, unusedVoid) -> runSelectStatement(() -> ctx, statement, sink),
+                        this.executorService)
+                    : this.lastStep.then(
+                        (ctx, unusedPreviousResult) ->
+                            runSelectStatement(() -> ctx, statement, sink),
+                        this.executorService);
+
+          } else {
+            LOGGER.debug("  running standalone SELECT statement: " + statement.getSql());
+            runSelectStatement(() -> this.dbClient.singleUse(), statement, sink);
+          }
+        });
   }
 
-  // TODO: spanner allows read queries within the transaction. Right now, only update queries
-  //  get passed here
-  private void chainQueryStatementInTransaction(FluxSink<SpannerClientLibraryRow> sink, Statement statement) {
+  private ApiFuture<Void> runSelectStatement(
+      Supplier<ReadContext> ctxSupplier,
+      com.google.cloud.spanner.Statement statement,
+      FluxSink<SpannerClientLibraryRow> sink) {
+    AsyncResultSet ars = ctxSupplier.get().executeQueryAsync(statement);
+    sink.onCancel(ars::cancel);
 
-    LOGGER.debug("  CHAINING STEP: " + statement.getSql());
-
-    // The first statement in a transaction has no input, hence Void input type.
-    // The subsequent statements take the previous statements' return (affected row count) as input.
-    //this.asyncTransactionLastStep =
-    if (this.asyncTransactionLastStep == null) {
-      this.asyncTransactionLastStep = this.currentTransactionFuture.then(
-          (ctx, unusedVoid) ->
-              ctx.executeQueryAsync(statement).setCallback(this.executorService, rs -> this.callback(sink, rs))
-          , this.executorService);
-
-    } else {
-      this.asyncTransactionLastStep = this.asyncTransactionLastStep.then(
-          (ctx, unusedPreviousResult) ->
-              ctx.executeQueryAsync(statement).setCallback(executorService, rs -> this.callback(sink, rs)),
-          this.executorService);
-
-    }
-
-  }
-
-
-  private AsyncTransactionStep chainStatementInTransaction(Statement statement) {
-
-    LOGGER.debug("  CHAINING STEP: " + statement.getSql());
-
-    // The first statement in a transaction has no input, hence Void input type.
-    // The subsequent statements take the previous statements' return (affected row count) as input.
-    this.asyncTransactionLastStep = this.asyncTransactionLastStep == null
-        ? this.currentTransactionFuture.then(
-        (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement), this.executorService)
-        : this.asyncTransactionLastStep.<Long>then(
-            (ctx, previousRowCount) -> ctx.executeUpdateAsync(statement), this.executorService);
-
-    return this.asyncTransactionLastStep;
+    return ars.setCallback(
+        this.executorService,
+        resultSet -> {
+          // TODO: handle backpressure by asking callback to signal CallbackResponse.PAUSE
+          try {
+            switch (resultSet.tryNext()) {
+              case DONE:
+                sink.complete();
+                return CallbackResponse.DONE;
+              case NOT_READY:
+              default:
+                return CallbackResponse.CONTINUE;
+              case OK:
+                sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
+                return CallbackResponse.CONTINUE;
+            }
+          } catch (Throwable t) {
+            sink.error(t);
+            return CallbackResponse.DONE;
+          }
+        });
   }
 
   private <T> void adaptFutureToMono(ApiFuture<T> future, MonoSink<T> sink) {
     sink.onCancel(() -> future.cancel(true));
 
-    ApiFutures.addCallback(future,
+    ApiFutures.addCallback(
+        future,
         new ApiFutureCallback<T>() {
           @Override
           public void onFailure(Throwable t) {
@@ -231,36 +256,7 @@ class DatabaseClientReactiveAdapter {
           public void onSuccess(T result) {
             sink.success(result);
           }
-        }, this.executorService);
-  }
-
-  private <T> Flux<T> convertAsyncResultSetToFlux(Supplier<AsyncResultSet> arsSupplier) {
-    return Flux.create(sink -> {
-      AsyncResultSet ars = arsSupplier.get();
-      sink.onCancel(ars::cancel);
-
-      ars.setCallback(this.executorService, rs -> this.callback(sink, rs));
-    });
-  }
-
-  private CallbackResponse callback(FluxSink sink, AsyncResultSet resultSet) {
-    // TODO: handle backpressure by asking callback to signal CallbackResponse.PAUSE
-
-    try {
-      switch (resultSet.tryNext()) {
-        case DONE:
-          sink.complete();
-          return CallbackResponse.DONE;
-        case NOT_READY:
-        default:
-          return CallbackResponse.CONTINUE;
-        case OK:
-          sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
-          return CallbackResponse.CONTINUE;
-      }
-    } catch (Throwable t) {
-      sink.error(t);
-      return CallbackResponse.DONE;
-    }
+        },
+        this.executorService);
   }
 }

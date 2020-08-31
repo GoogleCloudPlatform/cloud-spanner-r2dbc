@@ -44,9 +44,9 @@ public class ClientLibraryBasedIntegrationTest {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(ClientLibraryBasedIntegrationTest.class);
 
-  static final String INSERT_QUERY = "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, " +
-    "PUBLISHED, WORDS_PER_SENTENCE) VALUES (@uuid, 'A Sound of Thunder', 'Ray Bradbury', " +
-    "@category, TRUE, '1952-06-28', @wordCount)";
+  static final String INSERT_QUERY = "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
+      + "PUBLISHED, WORDS_PER_SENTENCE) VALUES (@uuid, 'A Sound of Thunder', 'Ray Bradbury', "
+      + "@category, TRUE, '1952-06-28', @wordCount)";
 
   private static final ConnectionFactory connectionFactory =
       ConnectionFactories.get(
@@ -71,7 +71,7 @@ public class ClientLibraryBasedIntegrationTest {
     SpannerClientLibraryConnection con =
         Mono.from(connectionFactory.create()).cast(SpannerClientLibraryConnection.class).block();
 
-   /* try {
+    try {
       Mono.from(con.createStatement("DROP TABLE BOOKS").execute()).block();
     } catch (Exception e) {
       LOGGER.info("The BOOKS table doesn't exist", e);
@@ -91,9 +91,7 @@ public class ClientLibraryBasedIntegrationTest {
                         + "  CATEGORY INT64 NOT NULL"
                         + ") PRIMARY KEY (UUID)")
                 .execute())
-        .block();*/
-
-
+        .block();
   }
 
   /**

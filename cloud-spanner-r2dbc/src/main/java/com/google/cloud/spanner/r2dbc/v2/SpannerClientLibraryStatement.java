@@ -23,19 +23,20 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 /**
- * Cloud Spanner implementation of R2DBC SPI for query statements.
+ * Cloud Spanner implementation of R2DBC SPI for SELECT query statements.
  */
 public class SpannerClientLibraryStatement extends AbstractSpannerClientLibraryStatement {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(SpannerClientLibraryStatement.class);
 
-   /**
+  /**
    * Creates a ready-to-run Cloud Spanner statement.
    * @param clientLibraryAdapter client library implementation of core functionality
    * @param query query to run, with `@` placeholders expected as parameters.
    */
-  public SpannerClientLibraryStatement(DatabaseClientReactiveAdapter clientLibraryAdapter, String query) {
+  public SpannerClientLibraryStatement(
+      DatabaseClientReactiveAdapter clientLibraryAdapter, String query) {
     super(clientLibraryAdapter, query);
   }
 
@@ -45,6 +46,5 @@ public class SpannerClientLibraryStatement extends AbstractSpannerClientLibraryS
         .runSelectStatement(this.statementBuilder.build())
         .transform(rows -> Mono.just(new SpannerClientLibraryResult(rows, Mono.empty())));
   }
-
 
 }

@@ -18,15 +18,14 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.Statement.Builder;
 import com.google.cloud.spanner.r2dbc.statement.TypedNull;
-import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
 /**
- * Cloud Spanner implementation of R2DBC SPI for query statements.
+ * Cloud Spanner base implementation of R2DBC SPI for query and DML statements.
+ *
+ * <p>Supports parameter binding.
  */
 abstract class AbstractSpannerClientLibraryStatement implements Statement {
 
@@ -42,7 +41,8 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
    * @param clientLibraryAdapter client library implementation of core functionality
    * @param query query to run, with `@` placeholders expected as parameters.
    */
-  public AbstractSpannerClientLibraryStatement(DatabaseClientReactiveAdapter clientLibraryAdapter, String query) {
+  public AbstractSpannerClientLibraryStatement(
+      DatabaseClientReactiveAdapter clientLibraryAdapter, String query) {
     this.clientLibraryAdapter = clientLibraryAdapter;
     this.statementBuilder = com.google.cloud.spanner.Statement.newBuilder(query);
   }
