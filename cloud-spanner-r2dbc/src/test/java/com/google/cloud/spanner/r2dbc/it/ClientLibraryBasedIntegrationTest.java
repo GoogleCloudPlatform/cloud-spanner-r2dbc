@@ -178,7 +178,8 @@ public class ClientLibraryBasedIntegrationTest {
                 c.beginTransaction(),
                 Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
                     .flatMap(r -> r.getRowsUpdated()),
-                c.commitTransaction()))
+                c.commitTransaction(),
+                c.close()))
     ).expectNext(1).verifyComplete();
 
     StepVerifier.create(

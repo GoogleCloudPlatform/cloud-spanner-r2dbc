@@ -139,11 +139,9 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for closing the connection.
    */
   public Mono<Void> close() {
-    return Mono.<Void>fromSupplier(
-        () -> {
-          this.transactionManager.close();
-          return null;
-        });
+    // TODO: if txn is committed/rolled back and then connection closed, clearTransactionManager
+    // will run twice, causing trace span to be closed twice. Introduce `closed` field.
+    return Mono.<Void>fromRunnable(this::clearTransactionManager);
   }
 
   /**
@@ -191,7 +189,7 @@ class DatabaseClientReactiveAdapter {
         sink -> {
           if (this.isInTransaction()) {
 
-            LOGGER.debug("  chainingSELECT statement in transaction: " + statement.getSql());
+            LOGGER.debug("  chaining SELECT statement in transaction: " + statement.getSql());
             // The first statement in a transaction has no input, hence Void input type.
             // The subsequent statements take the previous statement's return value as input.
             this.lastStep =
