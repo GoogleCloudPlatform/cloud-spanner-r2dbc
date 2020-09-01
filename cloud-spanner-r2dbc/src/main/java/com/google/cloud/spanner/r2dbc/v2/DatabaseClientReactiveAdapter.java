@@ -108,7 +108,7 @@ class DatabaseClientReactiveAdapter {
   private void clearTransactionManager() {
     LOGGER.debug("close transaction manager");
     this.txnContext = null;
-    //this.lastStep = null;
+    this.lastStep = null;
     this.transactionManager.close();
   }
 
