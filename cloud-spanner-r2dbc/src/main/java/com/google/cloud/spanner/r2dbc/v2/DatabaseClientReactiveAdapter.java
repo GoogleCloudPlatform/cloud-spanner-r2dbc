@@ -19,7 +19,6 @@ package com.google.cloud.spanner.r2dbc.v2;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
-import com.google.cloud.Timestamp;
 import com.google.cloud.spanner.AsyncResultSet;
 import com.google.cloud.spanner.AsyncResultSet.CallbackResponse;
 import com.google.cloud.spanner.AsyncTransactionManager;
@@ -27,7 +26,6 @@ import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionStep;
 import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.ReadContext;
-import com.google.cloud.spanner.TransactionContext;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
@@ -36,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoSink;
 
 /**
  * Converts gRPC/Cloud Spanner client library asyncronous abstractions into reactive ones.
@@ -77,11 +74,11 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for starting a transaction
    */
   public Mono<Void> beginTransaction() {
-    return Mono.<TransactionContext>create(sink -> {
+    return convertFutureToMono(() -> {
       LOGGER.debug("begin transaction");
       this.transactionManager = this.dbClient.transactionManagerAsync();
       this.txnContext = this.transactionManager.beginAsync();
-      this.adaptFutureToMono(this.txnContext, sink);
+      return this.txnContext;
     }).then();
   }
 
@@ -92,17 +89,16 @@ class DatabaseClientReactiveAdapter {
    */
   public Publisher<Void> commitTransaction() {
 
-    return Mono.<Timestamp>create(sink -> {
+    return convertFutureToMono(() -> {
       LOGGER.debug("commit transaction");
       if (this.lastStep == null) {
         // TODO: replace by a better non-retryable;
         //  consider not throwing at all and no-oping with warning.
         throw new RuntimeException("Nothing was executed in this transaction");
       }
-      this.adaptFutureToMono(this.lastStep.commitAsync(), sink);
-    })
-        .doOnTerminate(this::clearTransactionManager)
-        .then();
+      return this.lastStep.commitAsync();
+
+    }).doOnTerminate(this::clearTransactionManager).then();
   }
 
   private void clearTransactionManager() {
@@ -118,7 +114,7 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for rolling back a transaction
    */
   public Publisher<Void> rollback() {
-    return Mono.<Void>create(sink -> {
+    return convertFutureToMono(() -> {
       LOGGER.debug("roll back");
       if (this.lastStep == null) {
         // TODO: replace by a better non-retryable;
@@ -126,9 +122,9 @@ class DatabaseClientReactiveAdapter {
         throw new RuntimeException(
             "No statements were executed in this transaction; no-op rollback");
       }
-      adaptFutureToMono(this.transactionManager.rollbackAsync(), sink);
-    })
-        .doOnTerminate(this::clearTransactionManager);
+      return this.transactionManager.rollbackAsync();
+
+    }).doOnTerminate(this::clearTransactionManager);
   }
 
   /**
@@ -152,35 +148,34 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for running a DML statement
    */
   public Mono<Long> runDmlStatement(com.google.cloud.spanner.Statement statement) {
-    return Mono.create(
-        sink -> {
-          if (this.isInTransaction()) {
-            LOGGER.debug("  chaining DML statement in transaction: " + statement.getSql());
+    return convertFutureToMono(() -> {
+      if (this.isInTransaction()) {
+        LOGGER.debug("  chaining DML statement in transaction: " + statement.getSql());
 
-            // The first statement in a transaction has no input, hence Void input type.
-            // The subsequent statements take the previous statements' return (affected row count)
-            // as input.
-            AsyncTransactionStep<? extends Object, Long> updateStatementFuture =
-                this.lastStep == null
-                    ? this.txnContext.then(
-                        (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement),
-                        this.executorService)
-                    : this.lastStep.then(
-                        (ctx, previousRowCount) -> ctx.executeUpdateAsync(statement),
-                        this.executorService);
+        // The first statement in a transaction has no input, hence Void input type.
+        // The subsequent statements take the previous statements' return (affected row count)
+        // as input.
+        AsyncTransactionStep<? extends Object, Long> updateStatementFuture =
+            this.lastStep == null
+                ? this.txnContext.then(
+                    (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement),
+                    this.executorService)
+                : this.lastStep.then(
+                    (ctx, previousRowCount) -> ctx.executeUpdateAsync(statement),
+                    this.executorService);
 
-            this.lastStep = updateStatementFuture;
-            adaptFutureToMono(updateStatementFuture, sink);
+        this.lastStep = updateStatementFuture;
+        return updateStatementFuture;
 
-          } else {
-            LOGGER.debug("  running standalone DML statement: " + statement.getSql());
-            ApiFuture<Long> rowCountFuture =
-                this.dbClient
-                    .runAsync()
-                    .runAsync(txn -> txn.executeUpdateAsync(statement), this.executorService);
-            adaptFutureToMono(rowCountFuture, sink);
-          }
-        });
+      } else {
+        LOGGER.debug("  running standalone DML statement: " + statement.getSql());
+        ApiFuture<Long> rowCountFuture =
+            this.dbClient
+                .runAsync()
+                .runAsync(txn -> txn.executeUpdateAsync(statement), this.executorService);
+        return rowCountFuture;
+      }
+    });
   }
 
   public Flux<SpannerClientLibraryRow> runSelectStatement(
@@ -239,22 +234,26 @@ class DatabaseClientReactiveAdapter {
         });
   }
 
-  private <T> void adaptFutureToMono(ApiFuture<T> future, MonoSink<T> sink) {
-    sink.onCancel(() -> future.cancel(true));
+  private <T> Mono<T> convertFutureToMono(Supplier<ApiFuture<T>> futureSupplier) {
+    return Mono.create(
+        sink -> {
+          ApiFuture future = futureSupplier.get();
+          sink.onCancel(() -> future.cancel(true));
 
-    ApiFutures.addCallback(
-        future,
-        new ApiFutureCallback<T>() {
-          @Override
-          public void onFailure(Throwable t) {
-            sink.error(t);
-          }
+          ApiFutures.addCallback(future,
+              new ApiFutureCallback<T>() {
+                @Override
+                public void onFailure(Throwable t) {
+                  sink.error(t);
+                }
 
-          @Override
-          public void onSuccess(T result) {
-            sink.success(result);
-          }
-        },
-        this.executorService);
+                @Override
+                public void onSuccess(T result) {
+                  sink.success(result);
+                }
+              },
+              this.executorService);
+        });
   }
+
 }
