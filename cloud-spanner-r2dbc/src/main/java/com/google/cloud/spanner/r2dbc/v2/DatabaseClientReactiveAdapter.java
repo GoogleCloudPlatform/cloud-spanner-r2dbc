@@ -161,7 +161,7 @@ class DatabaseClientReactiveAdapter {
                     (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement),
                     this.executorService)
                 : this.lastStep.then(
-                    (ctx, previousRowCount) -> ctx.executeUpdateAsync(statement),
+                    (ctx, unusedPreviousResult) -> ctx.executeUpdateAsync(statement),
                     this.executorService);
 
         this.lastStep = updateStatementFuture;
@@ -204,6 +204,18 @@ class DatabaseClientReactiveAdapter {
         });
   }
 
+  /**
+   * Adapts SELECT query output from an {@link AsyncResultSet} to a {@link FluxSink}.
+   *
+   * <p>Make sure that if run from a transactional context, this method is called after {@link
+   * ApiFuture} returned by `transactionManager.beginAsync()` resolves. In practice, this means
+   * always invoking this method in a chained `.then()` lambda * when running in transaction.
+   *
+   * @param ctxSupplier Non-blocking supplier of read context (transactional or not).
+   * @param statement query to run
+   * @param sink output Flux sink
+   * @return future suitable for transactional step chaining
+   */
   private ApiFuture<Void> runSelectStatement(
       Supplier<ReadContext> ctxSupplier,
       com.google.cloud.spanner.Statement statement,
