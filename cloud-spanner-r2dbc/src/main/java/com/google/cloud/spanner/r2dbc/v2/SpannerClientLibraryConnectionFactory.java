@@ -38,31 +38,21 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory 
   private SpannerConnectionConfiguration config;
 
   private Spanner client;
-  private DatabaseClient databaseClient;
-  private DatabaseAdminClient databaseAdminClient;
-
-  // fall back to grpc for unsupported client library async functionality (DDL)
-  private Client grpcClient;
 
   /** TODO: add proper javadoc. */
   public SpannerClientLibraryConnectionFactory(
       Client grpcClient, SpannerConnectionConfiguration config) {
     this.config = config;
-    this.grpcClient = grpcClient;
 
     SpannerOptions options = SpannerOptions.newBuilder().build();
     // TODO: allow customizing project ID.
 
     this.client = options.getService();
-    this.databaseClient = this.client.getDatabaseClient(
-        DatabaseId.of(config.getProjectId(), config.getInstanceName(), config.getDatabaseName()));
-    this.databaseAdminClient = this.client.getDatabaseAdminClient();
   }
 
   @Override
   public Publisher<? extends Connection> create() {
-    return Mono.just(new SpannerClientLibraryConnection(
-        this.databaseClient, this.databaseAdminClient, this.grpcClient, this.config));
+    return Mono.just(new SpannerClientLibraryConnection(this.client, this.config));
   }
 
   @Override

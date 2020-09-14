@@ -19,13 +19,20 @@ package com.google.cloud.spanner.r2dbc.v2;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
+import com.google.api.gax.longrunning.OperationFuture;
 import com.google.cloud.spanner.AsyncResultSet;
 import com.google.cloud.spanner.AsyncResultSet.CallbackResponse;
 import com.google.cloud.spanner.AsyncTransactionManager;
 import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionStep;
 import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture;
+import com.google.cloud.spanner.DatabaseAdminClient;
 import com.google.cloud.spanner.DatabaseClient;
+import com.google.cloud.spanner.DatabaseId;
 import com.google.cloud.spanner.ReadContext;
+import com.google.cloud.spanner.Spanner;
+import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
+import com.google.spanner.admin.database.v1.UpdateDatabaseDdlMetadata;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
@@ -43,7 +50,12 @@ class DatabaseClientReactiveAdapter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseClientReactiveAdapter.class);
 
+  // used for DDL operations
+  private final SpannerConnectionConfiguration config;
+
   private final DatabaseClient dbClient;
+
+  private final DatabaseAdminClient dbAdminClient;
 
   private AsyncTransactionManager transactionManager;
 
@@ -56,12 +68,16 @@ class DatabaseClientReactiveAdapter {
   /**
    * Instantiates the adapter with given client library {@code DatabaseClient} and executor.
    *
-   * @param dbClient Cloud Spanner client used to run queries and manage transactions.
+   * @param spannerClient Cloud Spanner client used to run queries and manage transactions.
    * @param executorService executor to be used for running callbacks.
    */
-  public DatabaseClientReactiveAdapter(DatabaseClient dbClient, ExecutorService executorService) {
-    this.dbClient = dbClient;
+  public DatabaseClientReactiveAdapter(Spanner spannerClient, ExecutorService executorService, SpannerConnectionConfiguration config) {
+    this.dbClient = spannerClient.getDatabaseClient(
+        DatabaseId.of(config.getProjectId(), config.getInstanceName(), config.getDatabaseName()));
+    this.dbAdminClient = spannerClient.getDatabaseAdminClient();
+
     this.executorService = executorService;
+    this.config = config;
   }
 
   private boolean isInTransaction() {
@@ -202,6 +218,15 @@ class DatabaseClientReactiveAdapter {
             runSelectStatement(() -> this.dbClient.singleUse(), statement, sink);
           }
         });
+  }
+
+  public Mono<Void> runDdlStatement(String query) {
+
+    return convertFutureToMono(() -> dbAdminClient.updateDatabaseDdl(
+        this.config.getInstanceName(),
+        this.config.getDatabaseName(),
+        Collections.singletonList(query),
+        null));
   }
 
   /**
