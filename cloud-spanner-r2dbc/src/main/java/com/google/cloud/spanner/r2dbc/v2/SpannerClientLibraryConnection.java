@@ -16,11 +16,8 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
-import com.google.cloud.spanner.DatabaseAdminClient;
-import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
-import com.google.cloud.spanner.r2dbc.client.Client;
 import com.google.cloud.spanner.r2dbc.statement.StatementParser;
 import com.google.cloud.spanner.r2dbc.statement.StatementType;
 import io.r2dbc.spi.Batch;
@@ -47,13 +44,14 @@ public class SpannerClientLibraryConnection implements Connection {
 
   /**
    * Cloud Spanner implementation of R2DBC Connection SPI.
-   * @param client Cloud Spanner client library database client
+   * @param spanner Cloud Spanner spanner library database client
    * @param config driver configuration extracted from URL or passed directly to connection factory.
    */
-  public SpannerClientLibraryConnection(Spanner client, SpannerConnectionConfiguration config) {
+  public SpannerClientLibraryConnection(Spanner spanner, SpannerConnectionConfiguration config) {
 
     this.executorService = Executors.newFixedThreadPool(config.getThreadPoolSize());
-    this.clientLibraryAdapter = new DatabaseClientReactiveAdapter(client, this.executorService, config);
+    this.clientLibraryAdapter =
+        new DatabaseClientReactiveAdapter(spanner, this.executorService, config);
 
   }
 
@@ -78,8 +76,6 @@ public class SpannerClientLibraryConnection implements Connection {
     throw new UnsupportedOperationException();
   }
 
-  // TODO: test whether select statements interspersed with update statements need to be handled
-  // as part of async flow
   @Override
   public Statement createStatement(String query) {
     StatementType type = StatementParser.getStatementType(query);

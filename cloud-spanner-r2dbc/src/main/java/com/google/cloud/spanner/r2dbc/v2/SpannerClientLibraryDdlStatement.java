@@ -19,7 +19,6 @@ package com.google.cloud.spanner.r2dbc.v2;
 import com.google.cloud.spanner.r2dbc.SpannerResult;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -33,6 +32,7 @@ public class SpannerClientLibraryDdlStatement implements Statement {
    * Creates a ready-to-run Cloud Spanner DDL statement.
    *
    * @param query query to execute; does not support placeholders
+   * @param clientLibraryAdapter client library implementation of core functionality
    */
   public SpannerClientLibraryDdlStatement(
       String query,
@@ -67,17 +67,8 @@ public class SpannerClientLibraryDdlStatement implements Statement {
   }
 
   @Override
-  public Publisher<? extends Result> execute() {
+  public Mono<? extends Result> execute() {
     return this.clientLibraryAdapter.runDdlStatement(this.query)
         .map(unusedVoid -> new SpannerResult(Flux.empty(), Mono.just(0)));
-
-    /*return this.grpcClient
-        .executeDdl(
-            this.config.getFullyQualifiedDatabaseName(),
-            Collections.singletonList(this.query),
-            this.config.getDdlOperationTimeout(),
-            this.config.getDdlOperationPollInterval())
-        .map(operation -> new SpannerResult(Flux.empty(), Mono.just(0)));*/
-
   }
 }

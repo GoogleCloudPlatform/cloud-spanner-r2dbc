@@ -16,13 +16,9 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
-import com.google.cloud.spanner.DatabaseAdminClient;
-import com.google.cloud.spanner.DatabaseClient;
-import com.google.cloud.spanner.DatabaseId;
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
-import com.google.cloud.spanner.r2dbc.client.Client;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryMetadata;
@@ -37,22 +33,21 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory 
 
   private SpannerConnectionConfiguration config;
 
-  private Spanner client;
+  private Spanner spannerClient;
 
   /** TODO: add proper javadoc. */
-  public SpannerClientLibraryConnectionFactory(
-      Client grpcClient, SpannerConnectionConfiguration config) {
+  public SpannerClientLibraryConnectionFactory(SpannerConnectionConfiguration config) {
     this.config = config;
 
     SpannerOptions options = SpannerOptions.newBuilder().build();
     // TODO: allow customizing project ID.
 
-    this.client = options.getService();
+    this.spannerClient = options.getService();
   }
 
   @Override
   public Publisher<? extends Connection> create() {
-    return Mono.just(new SpannerClientLibraryConnection(this.client, this.config));
+    return Mono.just(new SpannerClientLibraryConnection(this.spannerClient, this.config));
   }
 
   @Override

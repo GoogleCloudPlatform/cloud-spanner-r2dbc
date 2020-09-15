@@ -19,7 +19,6 @@ package com.google.cloud.spanner.r2dbc.v2;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
-import com.google.api.gax.longrunning.OperationFuture;
 import com.google.cloud.spanner.AsyncResultSet;
 import com.google.cloud.spanner.AsyncResultSet.CallbackResponse;
 import com.google.cloud.spanner.AsyncTransactionManager;
@@ -31,7 +30,6 @@ import com.google.cloud.spanner.DatabaseId;
 import com.google.cloud.spanner.ReadContext;
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
-import com.google.spanner.admin.database.v1.UpdateDatabaseDdlMetadata;
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -71,7 +69,8 @@ class DatabaseClientReactiveAdapter {
    * @param spannerClient Cloud Spanner client used to run queries and manage transactions.
    * @param executorService executor to be used for running callbacks.
    */
-  public DatabaseClientReactiveAdapter(Spanner spannerClient, ExecutorService executorService, SpannerConnectionConfiguration config) {
+  public DatabaseClientReactiveAdapter(Spanner spannerClient, ExecutorService executorService,
+      SpannerConnectionConfiguration config) {
     this.dbClient = spannerClient.getDatabaseClient(
         DatabaseId.of(config.getProjectId(), config.getInstanceName(), config.getDatabaseName()));
     this.dbAdminClient = spannerClient.getDatabaseAdminClient();
@@ -206,23 +205,23 @@ class DatabaseClientReactiveAdapter {
             this.lastStep =
                 this.lastStep == null
                     ? this.txnContext.then(
-                        (ctx, unusedVoid) -> runSelectStatement(() -> ctx, statement, sink),
+                        (ctx, unusedVoid) -> runSelectStatementAsFlux(() -> ctx, statement, sink),
                         this.executorService)
                     : this.lastStep.then(
                         (ctx, unusedPreviousResult) ->
-                            runSelectStatement(() -> ctx, statement, sink),
+                            runSelectStatementAsFlux(() -> ctx, statement, sink),
                         this.executorService);
 
           } else {
             LOGGER.debug("  running standalone SELECT statement: " + statement.getSql());
-            runSelectStatement(() -> this.dbClient.singleUse(), statement, sink);
+            runSelectStatementAsFlux(() -> this.dbClient.singleUse(), statement, sink);
           }
         });
   }
 
   public Mono<Void> runDdlStatement(String query) {
 
-    return convertFutureToMono(() -> dbAdminClient.updateDatabaseDdl(
+    return convertFutureToMono(() -> this.dbAdminClient.updateDatabaseDdl(
         this.config.getInstanceName(),
         this.config.getDatabaseName(),
         Collections.singletonList(query),
@@ -230,7 +229,7 @@ class DatabaseClientReactiveAdapter {
   }
 
   /**
-   * Adapts SELECT query output from an {@link AsyncResultSet} to a {@link FluxSink}.
+   * Runs SELECT query, adapting its output from {@link AsyncResultSet} to {@link FluxSink}.
    *
    * <p>Make sure that if run from a transactional context, this method is called after {@link
    * ApiFuture} returned by `transactionManager.beginAsync()` resolves. In practice, this means
@@ -241,7 +240,7 @@ class DatabaseClientReactiveAdapter {
    * @param sink output Flux sink
    * @return future suitable for transactional step chaining
    */
-  private ApiFuture<Void> runSelectStatement(
+  private ApiFuture<Void> runSelectStatementAsFlux(
       Supplier<ReadContext> ctxSupplier,
       com.google.cloud.spanner.Statement statement,
       FluxSink<SpannerClientLibraryRow> sink) {
