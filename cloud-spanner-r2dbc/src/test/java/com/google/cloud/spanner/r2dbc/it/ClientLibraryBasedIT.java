@@ -48,8 +48,8 @@ public class ClientLibraryBasedIT {
       LoggerFactory.getLogger(ClientLibraryBasedIT.class);
 
   static final String INSERT_QUERY = "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
-      + "PUBLISHED, WORDS_PER_SENTENCE, PRICE) VALUES (@uuid, 'A Sound of Thunder', 'Ray Bradbury', "
-      + "@category, TRUE, '1952-06-28', @wordCount, @price)";
+      + "PUBLISHED, WORDS_PER_SENTENCE, PRICE) VALUES (@uuid, 'A Sound of Thunder', "
+      + "'Ray Bradbury', @category, TRUE, '1952-06-28', @wordCount, @price)";
 
   private static final ConnectionFactory connectionFactory =
       ConnectionFactories.get(
