@@ -63,8 +63,6 @@ public class ClientLibraryBasedIT {
 
   Random random = new Random();
 
-  // TODO: Don't drop/recreate tables; instead clear table before each test.
-
   /**
    * Recreates test table.
    * Call with {@code it.recreate-ddl=true} to drop and create test tables.
