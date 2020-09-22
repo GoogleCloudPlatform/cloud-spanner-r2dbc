@@ -50,6 +50,10 @@ class ClientLibraryTypeBindersTest {
   static Stream<Arguments> data() {
     return Stream.of(
         arguments(
+            Integer.class,
+            1L,
+            (BiConsumer<ValueBinder, Object>) (binder, val) -> binder.to((Integer) val)),
+        arguments(
             Long.class,
             1L,
             (BiConsumer<ValueBinder, Object>) (binder, val) -> binder.to((Long) val)),

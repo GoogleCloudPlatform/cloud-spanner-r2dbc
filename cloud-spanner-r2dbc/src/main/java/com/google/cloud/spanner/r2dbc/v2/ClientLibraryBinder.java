@@ -32,6 +32,8 @@ class ClientLibraryBinder {
   private static List<ClientLibraryTypeBinder> buildBinders() {
     List<ClientLibraryTypeBinder> binders = new ArrayList<>();
     binders.add(
+        new ClientLibraryTypeBinderImpl(Integer.class, (binder, val) -> binder.to(Long.valueOf( (Integer) val) )));
+    binders.add(
         new ClientLibraryTypeBinderImpl(Long.class, (binder, val) -> binder.to((Long) val)));
     binders.add(
         new ClientLibraryTypeBinderImpl(Double.class, (binder, val) -> binder.to((Double) val)));
