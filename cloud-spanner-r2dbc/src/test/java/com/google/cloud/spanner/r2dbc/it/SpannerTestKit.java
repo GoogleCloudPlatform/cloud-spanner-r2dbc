@@ -20,16 +20,17 @@ import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DR
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
+import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_BLOB_VALUE_PLACEHOLDER;
+import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_CLOB_VALUE_PLACEHOLDER;
 import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_TWO_COLUMNS;
 import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_VALUE100;
 import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_VALUE200;
 import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_VALUE_PLACEHOLDER;
+import static io.r2dbc.spi.test.TestKit.TestStatement.SELECT_VALUE;
 import static io.r2dbc.spi.test.TestKit.TestStatement.SELECT_VALUE_TWO_COLUMNS;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.DatabaseAdminClient;
@@ -44,14 +45,12 @@ import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.test.TestKit;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,13 +59,12 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.jdbc.core.PreparedStatementCallback;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 /**
- * R2DBC TCK test implementation.
+ * Cloud Spanner R2DBC TCK test implementation.
  */
 public class SpannerTestKit implements TestKit<String> {
 
@@ -77,6 +75,10 @@ public class SpannerTestKit implements TestKit<String> {
     STATEMENTS.put(INSERT_VALUE200, args -> "INSERT INTO test (value) VALUES (200)");
     STATEMENTS.put(INSERT_TWO_COLUMNS,
         args -> "INSERT INTO test_two_column (col1,col2) VALUES (100, 'hello')");
+    STATEMENTS.put(INSERT_BLOB_VALUE_PLACEHOLDER, args ->
+        String.format("INSERT INTO blob_test VALUES (?)", args));
+    STATEMENTS.put(INSERT_CLOB_VALUE_PLACEHOLDER, args ->
+        String.format("INSERT INTO clob_test VALUES (?)", args));
     STATEMENTS.put(INSERT_VALUE_PLACEHOLDER,
         args -> String.format("INSERT INTO test (value) VALUES (%s)", args));
 
@@ -109,22 +111,6 @@ public class SpannerTestKit implements TestKit<String> {
       executeDml(c -> c.createStatement(invocation.getArgument(0)));
       return null;
     }).when(jdbcOperations).execute((String) any());
-
-    doAnswer(invocation -> {
-      String query = invocation.getArgument(0);
-
-      // The TCK uses java.sql JDBC classes that we have no implemented, but only in two cases
-      // that we can detect and substitute here.
-      if (query.equalsIgnoreCase("INSERT INTO clob_test VALUES (?)")) {
-        executeDml(c -> c.createStatement("INSERT INTO clob_test (value) VALUES (@val)")
-            .bind("val", "test-value"));
-      } else if (query.equalsIgnoreCase("INSERT INTO blob_test VALUES (?)")) {
-        executeDml(c -> c.createStatement("INSERT INTO blob_test (value) VALUES (@val)").bind("val",
-            StandardCharsets.UTF_8.encode("test-value").array()));
-      }
-
-      return null;
-    }).when(jdbcOperations).execute((String) any(), (PreparedStatementCallback) any());
 
     SpannerOptions options = SpannerOptions.newBuilder().build();
     Spanner spanner = options.getService();
@@ -246,31 +232,9 @@ public class SpannerTestKit implements TestKit<String> {
      */
   }
 
-  // override to fix DDL for Spanner.
-  @Override
-  @Test
-  public void prepareStatement() {
-    Mono.from(getConnectionFactory().create())
-        .delayUntil(c -> c.beginTransaction())
-        .flatMapMany(connection -> {
-          Statement statement = connection.createStatement(
-              String.format("INSERT INTO test (value) VALUES(%s)", getPlaceholder(0)));
-
-          IntStream.range(0, 10)
-              .forEach(i -> statement.bind(getIdentifier(0), i).add());
-
-          return Flux.from(statement
-              .execute())
-              .concatWith(close(connection));
-        })
-        .as(StepVerifier::create)
-        .expectNextCount(10).as("values from insertions")
-        .verifyComplete();
-  }
-
   /* Overrides parent test because
    * 1) column names are case-sensitive in Spanner
-   * 2) Spanner has Long instead of Integer
+   * 2) Spanner returns Long instead of Integer
    */
   @Override
   @Test
@@ -423,6 +387,7 @@ public class SpannerTestKit implements TestKit<String> {
      */
   }
 
+  /* Overrides parent test because Spanner returns Long instead of Integer */
   @Override
   @Test
   public void changeAutoCommitCommitsTransaction() {
@@ -433,7 +398,7 @@ public class SpannerTestKit implements TestKit<String> {
                 .thenMany(connection.createStatement(expand(INSERT_VALUE200)).execute())
                 .flatMap(Result::getRowsUpdated)
                 .thenMany(connection.setAutoCommit(true))
-                .thenMany(connection.createStatement("SELECT value FROM test").execute())
+                .thenMany(connection.createStatement(expand(SELECT_VALUE)).execute())
                 .flatMap(it -> it.map((row, metadata) -> row.get("value")))
                 .concatWith(close(connection))
         )
