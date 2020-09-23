@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -39,20 +40,16 @@ import org.mockito.Mockito;
 class ClientLibraryTypeBindersTest {
   static ValueBinder valueBinder = Mockito.mock(ValueBinder.class);
 
-  static Builder builder = Mockito.mock(Builder.class);
+  static Builder statementBuilder = Mockito.mock(Builder.class);
 
   @BeforeAll
   static void setUp() {
-    when(builder.bind(anyString())).thenReturn(valueBinder);
+    when(statementBuilder.bind(anyString())).thenReturn(valueBinder);
   }
 
   /** Prepare parameters for parametrized test. */
   static Stream<Arguments> data() {
     return Stream.of(
-        arguments(
-            Integer.class,
-            1L,
-            (BiConsumer<ValueBinder, Object>) (binder, val) -> binder.to((Integer) val)),
         arguments(
             Long.class,
             1L,
@@ -92,8 +89,8 @@ class ClientLibraryTypeBindersTest {
   @ParameterizedTest
   @MethodSource("data")
   <T> void binderTest(Class<T> type, Object value, BiConsumer<ValueBinder, Object> verifyer) {
-    ClientLibraryBinder.bind(builder, "a", value);
-    ClientLibraryBinder.bind(builder, "b", new TypedNull(type));
+    ClientLibraryBinder.bind(statementBuilder, "a", value);
+    ClientLibraryBinder.bind(statementBuilder, "b", new TypedNull(type));
 
     ValueBinder instrumentedBinder = Mockito.verify(valueBinder, times(1));
     verifyer.accept(instrumentedBinder, value);
@@ -103,4 +100,22 @@ class ClientLibraryTypeBindersTest {
 
     Mockito.verifyNoMoreInteractions(valueBinder);
   }
+
+  @Test
+  public void integerBindsAsLong() {
+
+    ClientLibraryBinder.bind(statementBuilder, "a", 123);
+    Mockito.verify(valueBinder).to((Long) 123L);
+    Mockito.verifyNoMoreInteractions(valueBinder);
+  }
+
+  @Test
+  public void integerNullBindsAsLong() {
+
+    ClientLibraryBinder.bind(statementBuilder, "b", new TypedNull(Integer.class));
+    Mockito.verify(valueBinder).to((Long) null);
+    Mockito.verifyNoMoreInteractions(valueBinder);
+
+  }
+
 }

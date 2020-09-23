@@ -81,7 +81,6 @@ public class DefaultCodecsTest {
             Type.newBuilder().setCode(TypeCode.DATE).build()),
         arguments(2.0d, Double.class, Type.newBuilder().setCode(TypeCode.FLOAT64).build()),
         arguments(12345L, Long.class, Type.newBuilder().setCode(TypeCode.INT64).build()),
-        arguments(12345, Integer.class, Type.newBuilder().setCode(TypeCode.INT64).build()),
         arguments(LocalDateTime.parse("1999-06-05T10:12:51"), LocalDateTime.class,
             Type.newBuilder().setCode(TypeCode.TIMESTAMP).build()),
         arguments("abc", String.class, Type.newBuilder().setCode(TypeCode.STRING).build())

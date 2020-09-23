@@ -32,7 +32,8 @@ class ClientLibraryBinder {
   private static List<ClientLibraryTypeBinder> buildBinders() {
     List<ClientLibraryTypeBinder> binders = new ArrayList<>();
     binders.add(
-        new ClientLibraryTypeBinderImpl(Integer.class, (binder, val) -> binder.to(Long.valueOf( (Integer) val) )));
+        new ClientLibraryTypeBinderImpl(Integer.class,
+            (binder, val) -> binder.to(longFromInteger((Integer) val))));
     binders.add(
         new ClientLibraryTypeBinderImpl(Long.class, (binder, val) -> binder.to((Long) val)));
     binders.add(
@@ -72,5 +73,9 @@ class ClientLibraryBinder {
 
   private static boolean isTypedNull(Object value) {
     return value.getClass().equals(TypedNull.class);
+  }
+
+  private static Long longFromInteger(Integer intValue) {
+    return intValue == null ? null : intValue.longValue();
   }
 }
