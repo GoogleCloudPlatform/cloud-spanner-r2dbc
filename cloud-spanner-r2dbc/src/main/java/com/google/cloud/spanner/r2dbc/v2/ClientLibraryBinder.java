@@ -32,27 +32,19 @@ class ClientLibraryBinder {
   private static List<ClientLibraryTypeBinder> buildBinders() {
     List<ClientLibraryTypeBinder> binders = new ArrayList<>();
     binders.add(
-        new ClientLibraryTypeBinderImpl(Integer.class,
-            (binder, val) -> binder.to(longFromInteger((Integer) val))));
+        new ClientLibraryTypeBinderImpl<>(Integer.class,
+            (binder, val) -> binder.to(longFromInteger(val))));
+    binders.add(new ClientLibraryTypeBinderImpl<>(Long.class, (binder, val) -> binder.to(val)));
+    binders.add(new ClientLibraryTypeBinderImpl<>(Double.class, (binder, val) -> binder.to(val)));
+    binders.add(new ClientLibraryTypeBinderImpl<>(Boolean.class, (binder, val) -> binder.to(val)));
     binders.add(
-        new ClientLibraryTypeBinderImpl(Long.class, (binder, val) -> binder.to((Long) val)));
+        new ClientLibraryTypeBinderImpl<>(ByteArray.class, (binder, val) -> binder.to(val)));
+    binders.add(new ClientLibraryTypeBinderImpl<>(Date.class, (binder, val) -> binder.to(val)));
+    binders.add(new ClientLibraryTypeBinderImpl<>(String.class, (binder, val) -> binder.to(val)));
     binders.add(
-        new ClientLibraryTypeBinderImpl(Double.class, (binder, val) -> binder.to((Double) val)));
+        new ClientLibraryTypeBinderImpl<>(Timestamp.class, (binder, val) -> binder.to(val)));
     binders.add(
-        new ClientLibraryTypeBinderImpl(Boolean.class, (binder, val) -> binder.to((Boolean) val)));
-    binders.add(
-        new ClientLibraryTypeBinderImpl(ByteArray.class,
-            (binder, val) -> binder.to((ByteArray) val)));
-    binders.add(
-        new ClientLibraryTypeBinderImpl(Date.class, (binder, val) -> binder.to((Date) val)));
-    binders.add(
-        new ClientLibraryTypeBinderImpl(String.class, (binder, val) -> binder.to((String) val)));
-    binders.add(
-        new ClientLibraryTypeBinderImpl(Timestamp.class,
-            (binder, val) -> binder.to((Timestamp) val)));
-    binders.add(
-        new ClientLibraryTypeBinderImpl(BigDecimal.class,
-            (binder, val) -> binder.to((BigDecimal) val)));
+        new ClientLibraryTypeBinderImpl<>(BigDecimal.class, (binder, val) -> binder.to(val)));
 
     // There is technically one more supported type -  binder.to(Type type, @Nullable Struct value),
     // but it is not clear how r2dbc could pass both the type and the value
