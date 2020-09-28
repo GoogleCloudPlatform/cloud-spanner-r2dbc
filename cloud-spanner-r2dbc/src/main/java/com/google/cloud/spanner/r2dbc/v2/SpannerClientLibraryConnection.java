@@ -79,7 +79,7 @@ public class SpannerClientLibraryConnection implements Connection {
   @Override
   public Statement createStatement(String query) {
     if (query == null) {
-      throw new IllegalArgumentException("no nulls in queries");
+      throw new IllegalArgumentException("Invalid null query.");
     }
     StatementType type = StatementParser.getStatementType(query);
     if (type == StatementType.DDL) {

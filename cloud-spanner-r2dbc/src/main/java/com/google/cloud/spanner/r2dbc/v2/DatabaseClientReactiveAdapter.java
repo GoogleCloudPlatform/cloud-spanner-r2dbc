@@ -122,6 +122,7 @@ class DatabaseClientReactiveAdapter {
     this.lastStep = null;
     if (this.transactionManager != null) {
       this.transactionManager.close();
+      this.transactionManager = null;
     }
   }
 
