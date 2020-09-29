@@ -42,9 +42,9 @@ public class SpannerClientLibraryDmlStatement extends AbstractSpannerClientLibra
   }
 
   @Override
-  public Publisher<? extends Result> execute() {
+  public Publisher<? extends Result> executeInternal() {
     return this.clientLibraryAdapter
-        .runDmlStatement(this.statementBuilder.build())
+        .runDmlStatement(this.currentStatementBuilder.build())
         .transform(numRowsUpdatedMono -> Mono.just(
             new SpannerClientLibraryResult(Flux.empty(), numRowsUpdatedMono.map(this::longToInt))));
   }

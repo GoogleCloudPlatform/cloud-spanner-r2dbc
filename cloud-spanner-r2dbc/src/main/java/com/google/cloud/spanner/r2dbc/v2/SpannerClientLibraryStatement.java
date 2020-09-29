@@ -41,9 +41,9 @@ public class SpannerClientLibraryStatement extends AbstractSpannerClientLibraryS
   }
 
   @Override
-  public Publisher<? extends Result> execute() {
+  public Publisher<? extends Result> executeInternal() {
     return this.clientLibraryAdapter
-        .runSelectStatement(this.statementBuilder.build())
+        .runSelectStatement(this.currentStatementBuilder.build())
         .transform(rows -> Mono.just(new SpannerClientLibraryResult(rows, Mono.empty())));
   }
 

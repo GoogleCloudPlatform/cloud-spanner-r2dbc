@@ -16,9 +16,12 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
-import com.google.cloud.spanner.Statement.Builder;
 import com.google.cloud.spanner.r2dbc.statement.TypedNull;
+import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +37,10 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
 
   protected final DatabaseClientReactiveAdapter clientLibraryAdapter;
 
-  protected final Builder statementBuilder;
+  protected final com.google.cloud.spanner.Statement.Builder currentStatementBuilder;
+
+  private List<com.google.cloud.spanner.Statement> statements;
+
 
   /**
    * Creates a ready-to-run Cloud Spanner statement.
@@ -44,13 +50,24 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
   public AbstractSpannerClientLibraryStatement(
       DatabaseClientReactiveAdapter clientLibraryAdapter, String query) {
     this.clientLibraryAdapter = clientLibraryAdapter;
-    this.statementBuilder = com.google.cloud.spanner.Statement.newBuilder(query);
+    this.currentStatementBuilder = com.google.cloud.spanner.Statement.newBuilder(query);
   }
 
   @Override
   public Statement add() {
-    throw new UnsupportedOperationException();
+    if (this.statements == null) {
+      this.statements = new ArrayList<>();
+      this.statements.add(this.currentStatementBuilder.build());
+    }
+    return this;
   }
+
+  @Override
+  public Publisher<? extends Result> execute() {
+    return executeInternal();
+  }
+
+  public abstract Publisher<? extends Result> executeInternal();
 
   @Override
   public Statement bind(int index, Object value) {
@@ -59,8 +76,7 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
 
   @Override
   public Statement bind(String name, Object value) {
-
-    ClientLibraryBinder.bind(this.statementBuilder, name, value);
+    ClientLibraryBinder.bind(this.currentStatementBuilder, name, value);
     return this;
   }
 
@@ -71,7 +87,7 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
 
   @Override
   public Statement bindNull(String name, Class<?> type) {
-    ClientLibraryBinder.bind(this.statementBuilder, name, new TypedNull(type));
+    ClientLibraryBinder.bind(this.currentStatementBuilder, name, new TypedNull(type));
     return this;
   }
 
