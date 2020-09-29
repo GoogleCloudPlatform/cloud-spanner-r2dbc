@@ -24,6 +24,8 @@ import java.util.List;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Cloud Spanner base implementation of R2DBC SPI for query and DML statements.
@@ -37,10 +39,13 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
 
   protected final DatabaseClientReactiveAdapter clientLibraryAdapter;
 
-  protected final com.google.cloud.spanner.Statement.Builder currentStatementBuilder;
+  protected com.google.cloud.spanner.Statement.Builder currentStatementBuilder;
+
+  private boolean incompleteBinding = false;
 
   private List<com.google.cloud.spanner.Statement> statements;
 
+  private final String query;
 
   /**
    * Creates a ready-to-run Cloud Spanner statement.
@@ -51,23 +56,40 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
       DatabaseClientReactiveAdapter clientLibraryAdapter, String query) {
     this.clientLibraryAdapter = clientLibraryAdapter;
     this.currentStatementBuilder = com.google.cloud.spanner.Statement.newBuilder(query);
+    this.query = query;
   }
 
   @Override
   public Statement add() {
     if (this.statements == null) {
       this.statements = new ArrayList<>();
-      this.statements.add(this.currentStatementBuilder.build());
     }
+
+    this.statements.add(this.currentStatementBuilder.build());
+    this.currentStatementBuilder = com.google.cloud.spanner.Statement.newBuilder(this.query);
+    this.incompleteBinding = false;
+
     return this;
   }
 
   @Override
   public Publisher<? extends Result> execute() {
-    return executeInternal();
+    if (this.statements != null) {
+      if (this.incompleteBinding) {
+        this.statements.add(this.currentStatementBuilder.build());
+        this.incompleteBinding = false;
+        this.currentStatementBuilder = null;
+      }
+      return executeMultiple(this.statements);
+    }
+    return executeSingle(this.currentStatementBuilder.build());
   }
 
-  public abstract Publisher<? extends Result> executeInternal();
+  public abstract Mono<SpannerClientLibraryResult> executeSingle(
+      com.google.cloud.spanner.Statement statement);
+
+  public abstract Flux<SpannerClientLibraryResult> executeMultiple(
+      List<com.google.cloud.spanner.Statement> statements);
 
   @Override
   public Statement bind(int index, Object value) {
@@ -77,6 +99,7 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
   @Override
   public Statement bind(String name, Object value) {
     ClientLibraryBinder.bind(this.currentStatementBuilder, name, value);
+    this.incompleteBinding = true;
     return this;
   }
 

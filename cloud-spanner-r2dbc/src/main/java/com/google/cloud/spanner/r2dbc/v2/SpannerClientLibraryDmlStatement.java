@@ -16,7 +16,11 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
+import com.google.cloud.spanner.Statement;
 import io.r2dbc.spi.Result;
+import java.util.List;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +46,23 @@ public class SpannerClientLibraryDmlStatement extends AbstractSpannerClientLibra
   }
 
   @Override
-  public Publisher<? extends Result> executeInternal() {
+  public Mono<SpannerClientLibraryResult> executeSingle(Statement statement) {
     return this.clientLibraryAdapter
         .runDmlStatement(this.currentStatementBuilder.build())
         .transform(numRowsUpdatedMono -> Mono.just(
             new SpannerClientLibraryResult(Flux.empty(), numRowsUpdatedMono.map(this::longToInt))));
+  }
+
+  @Override
+  public Flux<SpannerClientLibraryResult> executeMultiple(List<Statement> statements) {
+    return this.clientLibraryAdapter
+        .runBatchDml(statements)
+        .flatMapMany(numRowsArray ->
+              Flux.fromStream(
+                  LongStream.of(numRowsArray).boxed()
+                      .map(numRows -> new SpannerClientLibraryResult(Flux.empty(), Mono.just(longToInt(numRows))))
+              )
+        );
   }
 
   private int longToInt(Long numRows) {
