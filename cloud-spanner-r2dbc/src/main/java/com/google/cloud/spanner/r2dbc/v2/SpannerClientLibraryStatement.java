@@ -17,9 +17,7 @@
 package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.Statement;
-import io.r2dbc.spi.Result;
 import java.util.List;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -53,8 +51,8 @@ public class SpannerClientLibraryStatement extends AbstractSpannerClientLibraryS
   @Override
   public Flux<SpannerClientLibraryResult> executeMultiple(List<Statement> statements) {
     return Flux.fromIterable(statements).flatMapSequential(statement ->
-        this.clientLibraryAdapter
-        .runSelectStatement(statement)
-        .transform(rows -> Mono.just(new SpannerClientLibraryResult(rows, Mono.empty()))).single());
+        this.clientLibraryAdapter.runSelectStatement(statement)
+            .transform(
+                rows -> Mono.just(new SpannerClientLibraryResult(rows, Mono.empty()))).single());
   }
 }

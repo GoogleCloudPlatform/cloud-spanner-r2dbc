@@ -30,12 +30,13 @@ import com.google.cloud.spanner.DatabaseId;
 import com.google.cloud.spanner.ReadContext;
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.Statement;
+import com.google.cloud.spanner.TransactionContext;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -169,34 +170,7 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for running a DML statement
    */
   public Mono<Long> runDmlStatement(com.google.cloud.spanner.Statement statement) {
-    return convertFutureToMono(() -> {
-      if (this.isInTransaction()) {
-        LOGGER.debug("  chaining DML statement in transaction: " + statement.getSql());
-
-        // The first statement in a transaction has no input, hence Void input type.
-        // The subsequent statements take the previous statements' return (affected row count)
-        // as input.
-        AsyncTransactionStep<? extends Object, Long> updateStatementFuture =
-            this.lastStep == null
-                ? this.txnContext.then(
-                    (ctx, unusedVoid) -> ctx.executeUpdateAsync(statement),
-                    this.executorService)
-                : this.lastStep.then(
-                    (ctx, unusedPreviousResult) -> ctx.executeUpdateAsync(statement),
-                    this.executorService);
-
-        this.lastStep = updateStatementFuture;
-        return updateStatementFuture;
-
-      } else {
-        LOGGER.debug("  running standalone DML statement: " + statement.getSql());
-        ApiFuture<Long> rowCountFuture =
-            this.dbClient
-                .runAsync()
-                .runAsync(txn -> txn.executeUpdateAsync(statement), this.executorService);
-        return rowCountFuture;
-      }
-    });
+    return runBatchDmlInternal(ctx -> ctx.executeUpdateAsync(statement));
   }
 
   /**
@@ -207,34 +181,33 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for running the provided DML statements
    */
   public Mono<long[]> runBatchDml(List<Statement> statements) {
+    return runBatchDmlInternal(ctx -> ctx.batchUpdateAsync(statements));
+  }
+
+  private <T> Mono<T> runBatchDmlInternal(Function<TransactionContext, ApiFuture<T>> asyncOperation) {
     return convertFutureToMono(() -> {
       if (this.isInTransaction()) {
-        LOGGER.debug("  chaining DML statement in transaction: " +
-                statements.stream().map(s -> s.getSql()).collect(
-                    Collectors.joining()));
 
         // The first statement in a transaction has no input, hence Void input type.
         // The subsequent statements take the previous statements' return (affected row count)
         // as input.
-        AsyncTransactionStep<? extends Object, long[]> updateStatementFuture =
+        AsyncTransactionStep<? extends Object, T> updateStatementFuture =
             this.lastStep == null
                 ? this.txnContext.then(
-                (ctx, unusedVoid) -> ctx.batchUpdateAsync(statements),
+                (ctx, unusedVoid) -> asyncOperation.apply(ctx),
                 this.executorService)
                 : this.lastStep.then(
-                    (ctx, unusedPreviousResult) -> ctx.batchUpdateAsync(statements),
+                    (ctx, unusedPreviousResult) -> asyncOperation.apply(ctx),
                     this.executorService);
 
         this.lastStep = updateStatementFuture;
         return updateStatementFuture;
 
       } else {
-        LOGGER.debug("  running several DML statements: " + statements.stream().map(s -> s.getSql()).collect(
-            Collectors.joining()));
-        ApiFuture<long[]> rowCountFuture =
+        ApiFuture<T> rowCountFuture =
             this.dbClient
                 .runAsync()
-                .runAsync(txn -> txn.batchUpdateAsync(statements), this.executorService);
+                .runAsync(txn -> asyncOperation.apply(txn), this.executorService);
         return rowCountFuture;
       }
     });
