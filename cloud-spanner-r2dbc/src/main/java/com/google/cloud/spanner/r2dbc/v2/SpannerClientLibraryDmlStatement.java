@@ -48,7 +48,7 @@ public class SpannerClientLibraryDmlStatement extends AbstractSpannerClientLibra
   @Override
   public Mono<SpannerClientLibraryResult> executeSingle(Statement statement) {
     return this.clientLibraryAdapter
-        .runDmlStatement(this.currentStatementBuilder.build())
+        .runDmlStatement(statement)
         .transform(numRowsUpdatedMono -> Mono.just(
             new SpannerClientLibraryResult(Flux.empty(), numRowsUpdatedMono.map(this::longToInt))));
   }

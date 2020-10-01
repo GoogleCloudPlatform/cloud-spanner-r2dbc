@@ -39,7 +39,7 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
 
   protected final DatabaseClientReactiveAdapter clientLibraryAdapter;
 
-  protected com.google.cloud.spanner.Statement.Builder currentStatementBuilder;
+  private com.google.cloud.spanner.Statement.Builder currentStatementBuilder;
 
   private boolean incompleteBinding = false;
 
