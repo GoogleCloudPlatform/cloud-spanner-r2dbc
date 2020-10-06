@@ -184,7 +184,8 @@ class DatabaseClientReactiveAdapter {
     return runBatchDmlInternal(ctx -> ctx.batchUpdateAsync(statements));
   }
 
-  private <T> Mono<T> runBatchDmlInternal(Function<TransactionContext, ApiFuture<T>> asyncOperation) {
+  private <T> Mono<T> runBatchDmlInternal(
+      Function<TransactionContext, ApiFuture<T>> asyncOperation) {
     return convertFutureToMono(() -> {
       if (this.isInTransaction()) {
 
@@ -194,8 +195,7 @@ class DatabaseClientReactiveAdapter {
         AsyncTransactionStep<? extends Object, T> updateStatementFuture =
             this.lastStep == null
                 ? this.txnContext.then(
-                (ctx, unusedVoid) -> asyncOperation.apply(ctx),
-                this.executorService)
+                    (ctx, unusedVoid) -> asyncOperation.apply(ctx), this.executorService)
                 : this.lastStep.then(
                     (ctx, unusedPreviousResult) -> asyncOperation.apply(ctx),
                     this.executorService);

@@ -42,14 +42,14 @@ public class SpannerClientLibraryStatement extends AbstractSpannerClientLibraryS
   }
 
   @Override
-  public Mono<SpannerClientLibraryResult> executeSingle(Statement statement) {
+  protected Mono<SpannerClientLibraryResult> executeSingle(Statement statement) {
     return this.clientLibraryAdapter
         .runSelectStatement(statement)
         .transform(rows -> Mono.just(new SpannerClientLibraryResult(rows, Mono.empty()))).single();
   }
 
   @Override
-  public Flux<SpannerClientLibraryResult> executeMultiple(List<Statement> statements) {
+  protected Flux<SpannerClientLibraryResult> executeMultiple(List<Statement> statements) {
     return Flux.fromIterable(statements).flatMapSequential(statement ->
         this.clientLibraryAdapter.runSelectStatement(statement)
             .transform(

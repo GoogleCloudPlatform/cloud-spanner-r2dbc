@@ -85,10 +85,10 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
     return executeSingle(this.currentStatementBuilder.build());
   }
 
-  public abstract Mono<SpannerClientLibraryResult> executeSingle(
+  protected abstract Mono<SpannerClientLibraryResult> executeSingle(
       com.google.cloud.spanner.Statement statement);
 
-  public abstract Flux<SpannerClientLibraryResult> executeMultiple(
+  protected abstract Flux<SpannerClientLibraryResult> executeMultiple(
       List<com.google.cloud.spanner.Statement> statements);
 
   @Override

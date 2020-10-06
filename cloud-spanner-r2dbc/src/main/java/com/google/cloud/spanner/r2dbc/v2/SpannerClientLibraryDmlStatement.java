@@ -43,7 +43,7 @@ public class SpannerClientLibraryDmlStatement extends AbstractSpannerClientLibra
   }
 
   @Override
-  public Mono<SpannerClientLibraryResult> executeSingle(Statement statement) {
+  protected Mono<SpannerClientLibraryResult> executeSingle(Statement statement) {
     return this.clientLibraryAdapter
         .runDmlStatement(statement)
         .transform(numRowsUpdatedMono -> Mono.just(
@@ -51,12 +51,13 @@ public class SpannerClientLibraryDmlStatement extends AbstractSpannerClientLibra
   }
 
   @Override
-  public Flux<SpannerClientLibraryResult> executeMultiple(List<Statement> statements) {
+  protected Flux<SpannerClientLibraryResult> executeMultiple(List<Statement> statements) {
     return this.clientLibraryAdapter
         .runBatchDml(statements)
         .flatMapMany(numRowsArray ->
               Flux.fromArray(ArrayUtils.toObject(numRowsArray))
-                  .map(numRows -> new SpannerClientLibraryResult(Flux.empty(), Mono.just(longToInt(numRows))))
+                  .map(numRows ->
+                      new SpannerClientLibraryResult(Flux.empty(), Mono.just(longToInt(numRows))))
 
         );
   }
