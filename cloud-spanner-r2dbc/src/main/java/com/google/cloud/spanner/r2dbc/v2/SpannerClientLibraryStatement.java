@@ -50,9 +50,6 @@ public class SpannerClientLibraryStatement extends AbstractSpannerClientLibraryS
 
   @Override
   protected Flux<SpannerClientLibraryResult> executeMultiple(List<Statement> statements) {
-    return Flux.fromIterable(statements).flatMapSequential(statement ->
-        this.clientLibraryAdapter.runSelectStatement(statement)
-            .transform(
-                rows -> Mono.just(new SpannerClientLibraryResult(rows, Mono.empty()))).single());
+    return Flux.fromIterable(statements).flatMapSequential(statement -> executeSingle(statement));
   }
 }

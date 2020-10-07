@@ -441,7 +441,7 @@ public class ClientLibraryBasedIT {
   }
 
   /* This test
-  1) exercises s a different internal code path than selectMultipleBoundParameterSetsNoTransaction()
+  1) exercises a different internal code path than selectMultipleBoundParameterSetsNoTransaction()
   2) omits the final add() for the last bound row.
   */
   @Test

@@ -41,7 +41,7 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
 
   private com.google.cloud.spanner.Statement.Builder currentStatementBuilder;
 
-  private boolean incompleteBinding = false;
+  private boolean startedBinding = false;
 
   private List<com.google.cloud.spanner.Statement> statements;
 
@@ -67,7 +67,7 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
 
     this.statements.add(this.currentStatementBuilder.build());
     this.currentStatementBuilder = com.google.cloud.spanner.Statement.newBuilder(this.query);
-    this.incompleteBinding = false;
+    this.startedBinding = false;
 
     return this;
   }
@@ -75,9 +75,9 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
   @Override
   public Publisher<? extends Result> execute() {
     if (this.statements != null) {
-      if (this.incompleteBinding) {
+      if (this.startedBinding) {
         this.statements.add(this.currentStatementBuilder.build());
-        this.incompleteBinding = false;
+        this.startedBinding = false;
         this.currentStatementBuilder = null;
       }
       return executeMultiple(this.statements);
@@ -99,7 +99,7 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
   @Override
   public Statement bind(String name, Object value) {
     ClientLibraryBinder.bind(this.currentStatementBuilder, name, value);
-    this.incompleteBinding = true;
+    this.startedBinding = true;
     return this;
   }
 
