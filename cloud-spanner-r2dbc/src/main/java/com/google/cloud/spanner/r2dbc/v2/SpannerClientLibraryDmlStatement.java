@@ -58,7 +58,6 @@ public class SpannerClientLibraryDmlStatement extends AbstractSpannerClientLibra
               Flux.fromArray(ArrayUtils.toObject(numRowsArray))
                   .map(numRows ->
                       new SpannerClientLibraryResult(Flux.empty(), Mono.just(longToInt(numRows))))
-
         );
   }
 
