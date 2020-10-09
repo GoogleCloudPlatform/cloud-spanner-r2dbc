@@ -175,8 +175,8 @@ class DatabaseClientReactiveAdapter {
 
   /**
    * Allows running DML statements in a batch.
-   * <p>
-   * If no transaction is active, a single-use transaction will be used.
+   *
+   * <p>If no transaction is active, a single-use transaction will be used.
    *
    * @return reactive pipeline for running the provided DML statements
    */
