@@ -23,6 +23,7 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.ServiceOptions;
+import com.google.cloud.spanner.SpannerException;
 import com.google.cloud.spanner.Type;
 import com.google.cloud.spanner.Type.StructField;
 import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryColumnMetadata;
@@ -94,14 +95,14 @@ public class ClientLibraryBasedIT {
                       "CREATE TABLE BOOKS ("
                           + "  UUID STRING(36) NOT NULL,"
                           + "  TITLE STRING(256) NOT NULL,"
-                          + "  AUTHOR STRING(256) NOT NULL,"
+                          + "  AUTHOR STRING(256),"
                           + "  SYNOPSIS STRING(MAX),"
                           + "  EDITIONS ARRAY<STRING(MAX)>,"
-                          + "  FICTION BOOL NOT NULL,"
-                          + "  PUBLISHED DATE NOT NULL,"
-                          + "  WORDS_PER_SENTENCE FLOAT64 NOT NULL,"
-                          + "  CATEGORY INT64 NOT NULL,"
-                          + "  PRICE NUMERIC NOT NULL"
+                          + "  FICTION BOOL,"
+                          + "  PUBLISHED DATE,"
+                          + "  WORDS_PER_SENTENCE FLOAT64,"
+                          + "  CATEGORY INT64,"
+                          + "  PRICE NUMERIC"
                           + ") PRIMARY KEY (UUID)")
                   .execute())
           .block();
@@ -183,6 +184,18 @@ public class ClientLibraryBasedIT {
   }
 
   @Test
+  public void testErrorPropagation() {
+
+    Connection conn = Mono.from(connectionFactory.create()).block();
+
+    StepVerifier.create(
+        Mono.from(conn.createStatement("SELECT * FROM bad SQL no cookie").execute())
+            .flatMapMany(rs -> rs.map((r, rm) -> "unused result"))
+    ).verifyError(SpannerException.class);
+  }
+
+
+  @Test
   public void testDmlInsert() {
     Connection conn = Mono.from(connectionFactory.create()).block();
 
@@ -190,7 +203,6 @@ public class ClientLibraryBasedIT {
 
     StepVerifier.create(
         Mono.from(
-            // TODO: replace hardcoded values with bind variables
             conn.createStatement(INSERT_QUERY)
                 .bind("uuid", id)
                 .bind("category", 100L)
@@ -231,8 +243,9 @@ public class ClientLibraryBasedIT {
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> Flux.concat(
                 c.beginTransaction(),
-                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
-                    .flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
                 c.commitTransaction(),
                 c.close()))
     ).expectNext(1).verifyComplete();
@@ -260,10 +273,12 @@ public class ClientLibraryBasedIT {
             .flatMapMany(c -> Flux.concat(
 
                 c.beginTransaction(),
-                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
-                    .flatMap(r -> r.getRowsUpdated()),
-                Flux.from(c.createStatement(makeInsertQuery(uuid2, 100, 15.0)).execute())
-                    .flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid2, 100, 15.0))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
 
                 // TODO: garble SQL below and watch the publisher hang. Troubleshoot how to surface
                 // exception insead of hanging.
@@ -298,11 +313,13 @@ public class ClientLibraryBasedIT {
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> Flux.concat(
                 c.beginTransaction(),
-                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
-                    .flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
                 c.commitTransaction(),
-                Flux.from(c.createStatement(makeInsertQuery(uuid2, 100, 15.0)).execute())
-                    .flatMap(r -> r.getRowsUpdated())
+                Flux.from(c.createStatement(makeInsertQuery(uuid2, 100, 15.0))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated())
             ))
 
     ).expectNext(1, 1).verifyComplete();
@@ -319,8 +336,9 @@ public class ClientLibraryBasedIT {
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> Flux.concat(
                 c.beginTransaction(),
-                Flux.from(c.createStatement(makeInsertQuery(uuid, 100, 15.0)).execute())
-                    .flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid, 100, 15.0))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
                 c.rollbackTransaction()))
     ).expectNext(1).verifyComplete();
 
@@ -345,8 +363,9 @@ public class ClientLibraryBasedIT {
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> Flux.concat(
                 c.beginTransaction(),
-                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
-                    .flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
                 Flux.from(c.createStatement("SELECT UUID FROM BOOKS WHERE UUID = @uuid")
                   .bind("uuid", uuid1).execute()
                 ).flatMap(r -> r.map((row, rmeta) -> row.get("UUID", String.class))),
@@ -367,8 +386,9 @@ public class ClientLibraryBasedIT {
         Mono.from(connectionFactory.create())
             .flatMapMany(c -> Flux.concat(
                 c.beginTransaction(),
-                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
-                    .flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 15.0))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
                 Flux.from(c.createStatement("SELECT UUID FROM BOOKS WHERE UUID = @uuid")
                     .bind("uuid", uuid1).execute()
                 ).flatMap(r -> r.map((row, rmeta) -> row.get("UUID", String.class))),
@@ -419,6 +439,163 @@ public class ClientLibraryBasedIT {
         Flux.from(conn.createStatement(listTables).bind("table", tableName).execute())
             .flatMap(this::getFirstNumber)
     ).expectNext(0L).as("Table not found after deletion").verifyComplete();
+  }
+
+  @Test
+  public void selectMultipleBoundParameterSetsNoTransaction() {
+
+    String uuid1 = "params-no-transaction-" + this.random.nextInt();
+    String uuid2 = "params-no-transaction-" + this.random.nextInt();
+    String uuid3 = "params-no-transaction-" + this.random.nextInt();
+
+    // set up 3 test rows
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> Flux.concat(
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 3))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid2, 100, 5))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid3, 100, 7))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated())
+            ))
+
+    ).expectNext(1, 1, 1).verifyComplete();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create()).flatMapMany(
+            conn -> Flux.from(
+                conn.createStatement("SELECT count(*) FROM BOOKS WHERE WORDS_PER_SENTENCE > @words")
+                    .bind("words", 8).add()
+                    .bind("words", 7).add()
+                    .bind("words", 5).add()
+                    .bind("words", 4).add()
+                    .bind("words", 0).add()
+                    .execute()
+            )
+            .flatMapSequential(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))))
+    ).expectNext(0L, 0L, 1L, 2L, 3L).as("Row count matches bound variables").verifyComplete();
+
+  }
+
+  /* This test
+  1) exercises a different internal code path than selectMultipleBoundParameterSetsNoTransaction()
+  2) omits the final add() for the last bound row.
+  */
+  @Test
+  public void selectMultipleBoundParameterSetsInTransaction() {
+
+    String uuid1 = "params-no-transaction-" + this.random.nextInt();
+    String uuid2 = "params-no-transaction-" + this.random.nextInt();
+    String uuid3 = "params-no-transaction-" + this.random.nextInt();
+
+    // set up 3 test rows
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> Flux.concat(
+                Flux.from(c.createStatement(makeInsertQuery(uuid1, 100, 3))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid2, 100, 5))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated()),
+                Flux.from(c.createStatement(makeInsertQuery(uuid3, 100, 7))
+                    .execute()
+                ).flatMap(r -> r.getRowsUpdated())
+            ))
+
+    ).expectNext(1, 1, 1).verifyComplete();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create()).flatMapMany(
+            conn -> Flux.concat(
+                conn.beginTransaction(),
+                Flux.from(
+                  conn.createStatement(
+                      "SELECT count(*) FROM BOOKS WHERE WORDS_PER_SENTENCE > @words")
+                      .bind("words", 8).add()
+                      .bind("words", 7).add()
+                      .bind("words", 5).add()
+                      .bind("words", 4).add()
+                      .bind("words", 0) // Final .add() missing intentionally
+                    .execute()
+                ).flatMapSequential(rs -> rs.map((row, rmeta) -> row.get(1, Long.class))),
+                conn.commitTransaction())
+            )
+
+    ).expectNext(0L, 0L, 1L, 2L, 3L).as("Row count matches bound variables").verifyComplete();
+
+  }
+
+  @Test
+  public void insertMultipleBoundParameterSetsNoTransaction() {
+
+    String uuid1 = "params-no-transaction-" + this.random.nextInt();
+    String uuid2 = "params-no-transaction-" + this.random.nextInt();
+    String uuid3 = "params-no-transaction-" + this.random.nextInt();
+
+    String statement =
+        "INSERT BOOKS (UUID, TITLE) VALUES (@uuid, @title)";
+    StepVerifier.create(
+        Mono.from(connectionFactory.create()).flatMapMany(
+            conn -> Flux.from(
+                conn.createStatement(statement)
+                    .bind("uuid", uuid1).bind("title", "A").add()
+                    .bind("uuid", uuid2).bind("title", "B").add()
+                    .bind("uuid", uuid3).bind("title", "C").add()
+                    .execute()
+            )
+                .flatMap(rs -> rs.getRowsUpdated()))
+    ).expectNext(1, 1, 1).as("Row insert count matches").verifyComplete();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> c.createStatement(
+                "SELECT UUID, TITLE FROM BOOKS ORDER BY TITLE")
+                .execute()
+            ).flatMap(rs -> rs.map(
+                (row, rmeta) -> row.get("TITLE", String.class) + row.get("UUID", String.class))))
+        .expectNext("A" + uuid1, "B" + uuid2, "C" + uuid3)
+        .as("Found previously inserted rows")
+        .verifyComplete();
+  }
+
+  @Test
+  public void insertMultipleBoundParameterSetsInTransaction() {
+
+    String uuid1 = "params-no-transaction-" + this.random.nextInt();
+    String uuid2 = "params-no-transaction-" + this.random.nextInt();
+    String uuid3 = "params-no-transaction-" + this.random.nextInt();
+
+    String statement =
+        "INSERT BOOKS (UUID, TITLE) VALUES (@uuid, @title)";
+    StepVerifier.create(
+        Mono.from(connectionFactory.create()).flatMapMany(
+            conn -> Flux.concat(
+                conn.beginTransaction(),
+                Flux.from(conn.createStatement(statement)
+                    .bind("uuid", uuid1).bind("title", "A").add()
+                    .bind("uuid", uuid2).bind("title", "B").add()
+                    .bind("uuid", uuid3).bind("title", "C").add()
+                    .execute()).flatMap(rs -> rs.getRowsUpdated()),
+                conn.commitTransaction()
+            )
+        )
+    ).expectNext(1, 1, 1).as("Row insert count matches").verifyComplete();
+
+    StepVerifier.create(
+        Mono.from(connectionFactory.create())
+            .flatMapMany(c -> c.createStatement(
+                "SELECT UUID, TITLE FROM BOOKS ORDER BY TITLE")
+                .execute()
+            ).flatMap(rs -> rs.map(
+                (row, rmeta) -> row.get("TITLE", String.class) + row.get("UUID", String.class))))
+        .expectNext("A" + uuid1, "B" + uuid2, "C" + uuid3)
+        .as("Found previously inserted rows")
+        .verifyComplete();
   }
 
   private Publisher<Long> getFirstNumber(Result result) {
