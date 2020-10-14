@@ -165,7 +165,7 @@ public class ClientLibraryBasedIT {
             .flatMapMany(rs -> rs.getRowsUpdated())
     ).expectNext(1).verifyComplete();
 
-    List<ColumnMetadata> columnMetadataList = Arrays
+    List<ColumnMetadata> expectedColumnMetadataList = Arrays
         .asList(
             new SpannerClientLibraryColumnMetadata(StructField.of("AUTHOR", Type.string())),
             new SpannerClientLibraryColumnMetadata(StructField.of("PRICE", Type.numeric()))
@@ -179,7 +179,7 @@ public class ClientLibraryBasedIT {
                   return metadataList;
                 })
             ))
-        .expectNext(columnMetadataList)
+        .expectNext(expectedColumnMetadataList)
         .verifyComplete();
   }
 
