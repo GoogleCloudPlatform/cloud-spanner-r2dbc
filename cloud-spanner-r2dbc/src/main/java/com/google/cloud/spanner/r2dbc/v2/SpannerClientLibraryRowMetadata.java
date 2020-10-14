@@ -36,9 +36,9 @@ public class SpannerClientLibraryRowMetadata implements RowMetadata {
   private final List<String> columnNames;
 
   /**
-   * Mapping of column names to its integer index position in the row.
+   * Mapping of column name to its integer index position in the row.
    */
-  private final HashMap<String, Integer> columnNameIndex;
+  private final HashMap<String, Integer> columnNameIndex = new HashMap<>();
 
   /**
    * Extracts column metadata and initializes lookup data structures from the passed-in
@@ -47,7 +47,6 @@ public class SpannerClientLibraryRowMetadata implements RowMetadata {
    * @param structFields the fields of a row from Cloud Spanner.
    */
   public SpannerClientLibraryRowMetadata(List<StructField> structFields) {
-    this.columnNameIndex = new HashMap<>();
     List<ColumnMetadata> tmpColumnMetadata = new ArrayList<>();
     List<String> tmpColumnNames = new ArrayList<>();
 
@@ -76,7 +75,7 @@ public class SpannerClientLibraryRowMetadata implements RowMetadata {
 
   @Override
   public Iterable<? extends ColumnMetadata> getColumnMetadatas() {
-    return Collections.unmodifiableList(this.columnMetadatas);
+    return this.columnMetadatas;
   }
 
   @Override
