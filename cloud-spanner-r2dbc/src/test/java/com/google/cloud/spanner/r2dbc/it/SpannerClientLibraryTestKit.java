@@ -36,6 +36,7 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
+import io.r2dbc.spi.ValidationDepth;
 import io.r2dbc.spi.test.TestKit;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -304,9 +305,17 @@ public class SpannerClientLibraryTestKit implements TestKit<String> {
   }
 
   @Test
-  @Disabled // TODO: GH-274
+  @Override
   public void validate() {
-
+    Mono.from(getConnectionFactory().create())
+        .flatMapMany(connection -> Flux.concat(
+            connection.validate(ValidationDepth.REMOTE),
+            connection.close(),
+            connection.validate(ValidationDepth.REMOTE)))
+        .as(StepVerifier::create)
+        .expectNext(true).as("successful local validation")
+        .expectNext(false).as("failed local validation after close")
+        .verifyComplete();
   }
 
   @Override
