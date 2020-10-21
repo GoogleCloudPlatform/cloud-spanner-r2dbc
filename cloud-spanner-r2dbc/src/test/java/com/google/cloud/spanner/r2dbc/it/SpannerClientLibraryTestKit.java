@@ -36,7 +36,6 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
-import io.r2dbc.spi.ValidationDepth;
 import io.r2dbc.spi.test.TestKit;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

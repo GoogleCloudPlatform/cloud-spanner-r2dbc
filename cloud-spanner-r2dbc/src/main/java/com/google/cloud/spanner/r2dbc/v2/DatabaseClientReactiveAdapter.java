@@ -179,7 +179,8 @@ class DatabaseClientReactiveAdapter {
         return Flux.<SpannerClientLibraryRow>create(sink -> {
           com.google.cloud.spanner.Statement statement =
               Statement.newBuilder("SELECT 1").build();
-          runSelectStatementAsFlux(() -> this.dbClient.singleUseReadOnlyTransaction(), statement, sink);
+          runSelectStatementAsFlux(
+              () -> this.dbClient.singleUseReadOnlyTransaction(), statement, sink);
         })
         .then(Mono.just(true))
         .onErrorResume(error -> {
