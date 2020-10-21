@@ -134,7 +134,7 @@ public class SpannerClientLibraryConnection implements Connection {
   public Publisher<Boolean> validate(ValidationDepth depth) {
     if (depth == ValidationDepth.LOCAL) {
       throw new UnsupportedOperationException(
-          "Local validation health checks is not supported for Cloud Spanner.");
+          "Local validation health checks are not supported for Cloud Spanner.");
     } else {
       return this.clientLibraryAdapter.healthCheck();
     }
