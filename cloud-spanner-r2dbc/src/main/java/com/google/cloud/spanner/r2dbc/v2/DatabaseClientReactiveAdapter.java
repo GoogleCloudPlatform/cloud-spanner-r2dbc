@@ -55,6 +55,8 @@ class DatabaseClientReactiveAdapter {
   // used for DDL operations
   private final SpannerConnectionConfiguration config;
 
+  private final Spanner spannerClient;
+
   private final DatabaseClient dbClient;
 
   private final DatabaseAdminClient dbAdminClient;
@@ -77,7 +79,7 @@ class DatabaseClientReactiveAdapter {
       Spanner spannerClient,
       ExecutorService executorService,
       SpannerConnectionConfiguration config) {
-
+    this.spannerClient = spannerClient;
     this.dbClient = spannerClient.getDatabaseClient(
         DatabaseId.of(config.getProjectId(), config.getInstanceName(), config.getDatabaseName()));
     this.dbAdminClient = spannerClient.getDatabaseAdminClient();
@@ -171,13 +173,13 @@ class DatabaseClientReactiveAdapter {
    */
   public Mono<Boolean> healthCheck() {
     return Mono.defer(() -> {
-      if (executorService.isShutdown()) {
+      if (this.executorService.isShutdown() || this.spannerClient.isClosed()) {
         return Mono.just(false);
       } else {
         return Flux.<SpannerClientLibraryRow>create(sink -> {
           com.google.cloud.spanner.Statement statement =
               Statement.newBuilder("SELECT 1").build();
-          runSelectStatementAsFlux(() -> dbClient.singleUseReadOnlyTransaction(), statement, sink);
+          runSelectStatementAsFlux(() -> this.dbClient.singleUseReadOnlyTransaction(), statement, sink);
         })
         .then(Mono.just(true))
         .onErrorResume(error -> {

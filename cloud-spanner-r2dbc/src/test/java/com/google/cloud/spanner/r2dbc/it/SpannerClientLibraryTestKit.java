@@ -304,20 +304,6 @@ public class SpannerClientLibraryTestKit implements TestKit<String> {
         .verifyComplete();
   }
 
-  @Test
-  @Override
-  public void validate() {
-    Mono.from(getConnectionFactory().create())
-        .flatMapMany(connection -> Flux.concat(
-            connection.validate(ValidationDepth.REMOTE),
-            connection.close(),
-            connection.validate(ValidationDepth.REMOTE)))
-        .as(StepVerifier::create)
-        .expectNext(true).as("successful local validation")
-        .expectNext(false).as("failed local validation after close")
-        .verifyComplete();
-  }
-
   @Override
   @Disabled
   @Test
