@@ -20,12 +20,8 @@ import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DR
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
-import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_BLOB_VALUE_PLACEHOLDER;
-import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_CLOB_VALUE_PLACEHOLDER;
 import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_TWO_COLUMNS;
-import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_VALUE100;
 import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_VALUE200;
-import static io.r2dbc.spi.test.TestKit.TestStatement.INSERT_VALUE_PLACEHOLDER;
 import static io.r2dbc.spi.test.TestKit.TestStatement.SELECT_VALUE;
 import static io.r2dbc.spi.test.TestKit.TestStatement.SELECT_VALUE_TWO_COLUMNS;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,8 +44,6 @@ import io.r2dbc.spi.test.TestKit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -67,25 +61,6 @@ import reactor.test.StepVerifier;
  * Cloud Spanner R2DBC TCK test implementation.
  */
 public class SpannerTestKit implements TestKit<String> {
-
-  private static final Map<TestStatement, Function<Object[], String>> STATEMENTS = new HashMap<>();
-
-  static {
-    STATEMENTS.put(INSERT_VALUE100, args -> "INSERT INTO test (value) VALUES (100)");
-    STATEMENTS.put(INSERT_VALUE200, args -> "INSERT INTO test (value) VALUES (200)");
-    STATEMENTS.put(INSERT_TWO_COLUMNS,
-        args -> "INSERT INTO test_two_column (col1,col2) VALUES (100, 'hello')");
-    STATEMENTS.put(INSERT_BLOB_VALUE_PLACEHOLDER, args ->
-        String.format("INSERT INTO blob_test VALUES (?)", args));
-    STATEMENTS.put(INSERT_CLOB_VALUE_PLACEHOLDER, args ->
-        String.format("INSERT INTO clob_test VALUES (?)", args));
-    STATEMENTS.put(INSERT_VALUE_PLACEHOLDER,
-        args -> String.format("INSERT INTO test (value) VALUES (%s)", args));
-
-    // Spanner column names are case-sensitive
-    STATEMENTS.put(SELECT_VALUE_TWO_COLUMNS,
-        args -> "SELECT col1 AS value, col2 AS VALUE FROM test_two_column");
-  }
 
   private static final ConnectionFactory connectionFactory =
       ConnectionFactories.get(ConnectionFactoryOptions.builder()
@@ -411,11 +386,6 @@ public class SpannerTestKit implements TestKit<String> {
 
   @Override
   public String expand(TestStatement statement, Object... args) {
-
-    if (STATEMENTS.containsKey(statement)) {
-      return STATEMENTS.get(statement).apply(args);
-    }
-
-    return String.format(doGetSql(statement), args);
+    return SpannerTestKitStatements.expand(statement, args);
   }
 }
