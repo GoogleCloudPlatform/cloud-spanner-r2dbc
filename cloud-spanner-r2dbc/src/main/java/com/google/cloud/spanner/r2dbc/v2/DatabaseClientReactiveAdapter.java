@@ -28,10 +28,14 @@ import com.google.cloud.spanner.DatabaseAdminClient;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.DatabaseId;
 import com.google.cloud.spanner.ReadContext;
+import com.google.cloud.spanner.ReadOnlyTransaction;
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.Statement;
+import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.TransactionContext;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
+import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -63,9 +67,13 @@ class DatabaseClientReactiveAdapter {
 
   private final ExecutorService executorService;
 
+  // transaction context
+
   private AsyncTransactionManager transactionManager;
 
-  private TransactionContextFuture txnContext;
+  private TransactionContextFuture txnContextFuture;
+
+  private ReadOnlyTransaction readOnlyTransaction;
 
   private AsyncTransactionStep<?, ? extends Object> lastStep;
 
@@ -87,8 +95,10 @@ class DatabaseClientReactiveAdapter {
     this.config = config;
   }
 
-  private boolean isInTransaction() {
-    return this.txnContext != null;
+  private boolean isInReadWriteTransaction() {
+    // TODO: do we need to close a read-only transaction?
+
+    return this.txnContextFuture != null;
   }
 
   /**
@@ -98,11 +108,22 @@ class DatabaseClientReactiveAdapter {
    */
   public Mono<Void> beginTransaction() {
     return convertFutureToMono(() -> {
-      LOGGER.debug("begin transaction");
+      LOGGER.debug("begin readwrite transaction");
       this.transactionManager = this.dbClient.transactionManagerAsync();
-      this.txnContext = this.transactionManager.beginAsync();
-      return this.txnContext;
+      this.txnContextFuture = this.transactionManager.beginAsync();
+      return this.txnContextFuture;
     }).then();
+  }
+
+  public Mono<Void> beginReadonlyTransaction(TimestampBound timestampBound) {
+
+    // TODO: what if another transaction is in progress?
+    return Mono.defer(
+        () -> {
+            System.out.println("********* READONLY TRANSACTION detected");
+            this.readOnlyTransaction = this.dbClient.readOnlyTransaction(timestampBound);
+            return Mono.empty();
+        });
   }
 
   /**
@@ -112,21 +133,33 @@ class DatabaseClientReactiveAdapter {
    */
   public Publisher<Void> commitTransaction() {
 
-    return convertFutureToMono(() -> {
-      LOGGER.debug("commit transaction");
-      if (this.lastStep == null) {
-        // TODO: replace by a better non-retryable;
-        //  consider not throwing at all and no-oping with warning.
-        throw new RuntimeException("Nothing was executed in this transaction");
+    return Mono.defer(() -> {
+      if (isInReadWriteTransaction()) {
+        return convertFutureToMono(() -> {
+          LOGGER.debug("commit transaction");
+
+          if (this.lastStep == null) {
+            // TODO: replace by a better non-retryable;
+            //  consider not throwing at all and no-oping with warning.
+            throw new RuntimeException("Nothing was executed in this transaction");
+          }
+          return this.lastStep.commitAsync();
+          });
+      } else if (this.readOnlyTransaction != null) {
+        // TODO: does transaction need to be closed to release it back to the pool?
+        this.readOnlyTransaction = null;
+        return Mono.empty();
+      } else {
+        // TODO: log warning that commit was called without begin? or check sPI for expected behavior
+        return Mono.empty();
       }
-      return this.lastStep.commitAsync();
 
     }).doOnTerminate(this::clearTransactionManager).then();
   }
 
   private void clearTransactionManager() {
     LOGGER.debug("close transaction manager");
-    this.txnContext = null;
+    this.txnContextFuture = null;
     this.lastStep = null;
     if (this.transactionManager != null) {
       this.transactionManager.close();
@@ -216,14 +249,14 @@ class DatabaseClientReactiveAdapter {
   private <T> Mono<T> runBatchDmlInternal(
       Function<TransactionContext, ApiFuture<T>> asyncOperation) {
     return convertFutureToMono(() -> {
-      if (this.isInTransaction()) {
+      if (this.isInReadWriteTransaction()) {
 
         // The first statement in a transaction has no input, hence Void input type.
         // The subsequent statements take the previous statements' return (affected row count)
         // as input.
         AsyncTransactionStep<? extends Object, T> updateStatementFuture =
             this.lastStep == null
-                ? this.txnContext.then(
+                ? this.txnContextFuture.then(
                     (ctx, unusedVoid) -> asyncOperation.apply(ctx), this.executorService)
                 : this.lastStep.then(
                     (ctx, unusedPreviousResult) -> asyncOperation.apply(ctx),
@@ -246,14 +279,14 @@ class DatabaseClientReactiveAdapter {
       com.google.cloud.spanner.Statement statement) {
     return Flux.create(
         sink -> {
-          if (this.isInTransaction()) {
+          if (this.isInReadWriteTransaction()) {
 
             LOGGER.debug("  chaining SELECT statement in transaction: " + statement.getSql());
             // The first statement in a transaction has no input, hence Void input type.
             // The subsequent statements take the previous statement's return value as input.
             this.lastStep =
                 this.lastStep == null
-                    ? this.txnContext.then(
+                    ? this.txnContextFuture.then(
                         (ctx, unusedVoid) -> runSelectStatementAsFlux(() -> ctx, statement, sink),
                         this.executorService)
                     : this.lastStep.then(
@@ -263,7 +296,15 @@ class DatabaseClientReactiveAdapter {
 
           } else {
             LOGGER.debug("  running standalone SELECT statement: " + statement.getSql());
-            runSelectStatementAsFlux(() -> this.dbClient.singleUse(), statement, sink);
+            runSelectStatementAsFlux(
+                () -> {
+                  if (this.readOnlyTransaction == null) {
+                    return this.dbClient.singleUse();
+                  } else {
+                    return this.readOnlyTransaction;
+                  }
+                },
+                statement, sink);
           }
         });
   }

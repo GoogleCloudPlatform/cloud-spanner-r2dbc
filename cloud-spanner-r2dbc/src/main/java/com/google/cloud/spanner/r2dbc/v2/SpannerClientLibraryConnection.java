@@ -17,9 +17,11 @@
 package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.Spanner;
+import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import com.google.cloud.spanner.r2dbc.statement.StatementParser;
 import com.google.cloud.spanner.r2dbc.statement.StatementType;
+import com.google.spanner.v1.TransactionOptions;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionMetadata;
@@ -57,6 +59,11 @@ public class SpannerClientLibraryConnection implements Connection {
   @Override
   public Publisher<Void> beginTransaction() {
     return this.clientLibraryAdapter.beginTransaction();
+  }
+
+  // TODO: javadoc custom transaction method requiring downcasting connection object
+  public Mono<Void> beginReadonlyTransaction(TimestampBound timestampBound) {
+    return this.clientLibraryAdapter.beginReadonlyTransaction(timestampBound);
   }
 
   @Override

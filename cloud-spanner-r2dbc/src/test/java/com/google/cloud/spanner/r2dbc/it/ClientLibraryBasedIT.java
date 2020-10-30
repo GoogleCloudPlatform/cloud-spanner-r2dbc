@@ -24,10 +24,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.SpannerException;
+import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.Type;
 import com.google.cloud.spanner.Type.StructField;
 import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryColumnMetadata;
 import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryConnection;
+import com.google.protobuf.Duration;
+import com.google.spanner.v1.TransactionOptions;
+import com.google.spanner.v1.TransactionOptions.ReadOnly;
 import io.r2dbc.spi.ColumnMetadata;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
@@ -35,12 +39,16 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
+import io.r2dbc.spi.Row;
+import io.r2dbc.spi.RowMetadata;
+import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.ValidationDepth;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -608,6 +616,39 @@ public class ClientLibraryBasedIT {
         .expectNext("A" + uuid1, "B" + uuid2, "C" + uuid3)
         .as("Found previously inserted rows")
         .verifyComplete();
+  }
+
+  @Test
+  public void testStaleRead() {
+
+    String uuid1 = "transaction1-staleread" + this.random.nextInt();
+    System.out.println("UUID = " + uuid1);
+
+    SpannerClientLibraryConnection conn = Mono.from(connectionFactory.create())
+        .cast(SpannerClientLibraryConnection.class).block();
+    Statement readStatement = conn.createStatement("SELECT count(*) from BOOKS WHERE UUID=@uuid").bind("uuid", uuid1);
+
+    StepVerifier.create(Flux.concat(
+          Flux.from(conn.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
+              .flatMap(r -> r.getRowsUpdated()),
+          Flux.from(readStatement.execute()).flatMap(result -> result.map((row, rm) -> row.get(1))),
+          conn.beginReadonlyTransaction(TimestampBound.ofExactStaleness(5, TimeUnit.SECONDS)),
+          Flux.from(readStatement.execute()).flatMap(result -> result.map((row, rm) -> row.get(1))),
+          conn.commitTransaction(),
+          Flux.from(readStatement.execute()).flatMap(result -> result.map((row, rm) -> row.get(1)))
+    )).expectNext(1)
+        .as("row inserted")
+        .expectNext(1L)
+        .as("strong read returns the inserted row without a transaction")
+        .expectNext(0L)
+        .as("stale read returns nothing")
+        .expectNext(1L)
+        .as("strong read returns the inserted row after stale-read transaction terminates")
+        .verifyComplete();
+  }
+
+  private String concatRow(Row row) {
+    return row.get(1) + ", " + row.get(2) + ", " + row.get(3);
   }
 
   private Publisher<Long> getFirstNumber(Result result) {
