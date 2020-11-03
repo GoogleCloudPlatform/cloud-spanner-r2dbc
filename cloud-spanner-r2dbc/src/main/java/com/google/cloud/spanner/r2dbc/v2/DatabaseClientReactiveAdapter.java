@@ -21,21 +21,15 @@ import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
 import com.google.cloud.spanner.AsyncResultSet;
 import com.google.cloud.spanner.AsyncResultSet.CallbackResponse;
-import com.google.cloud.spanner.AsyncTransactionManager;
-import com.google.cloud.spanner.AsyncTransactionManager.AsyncTransactionStep;
-import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture;
 import com.google.cloud.spanner.DatabaseAdminClient;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.DatabaseId;
 import com.google.cloud.spanner.ReadContext;
-import com.google.cloud.spanner.ReadOnlyTransaction;
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.TransactionContext;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
-import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadWrite;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -67,15 +61,7 @@ class DatabaseClientReactiveAdapter {
 
   private final ExecutorService executorService;
 
-  // transaction context
-
-  private AsyncTransactionManager transactionManager;
-
-  private TransactionContextFuture txnContextFuture;
-
-  private ReadOnlyTransaction readOnlyTransaction;
-
-  private AsyncTransactionStep<?, ? extends Object> lastStep;
+  private final DatabaseClientTransactionManager txnManager;
 
   /**
    * Instantiates the adapter with given client library {@code DatabaseClient} and executor.
@@ -93,12 +79,7 @@ class DatabaseClientReactiveAdapter {
     this.dbAdminClient = spannerClient.getDatabaseAdminClient();
     this.executorService = executorService;
     this.config = config;
-  }
-
-  private boolean isInReadWriteTransaction() {
-    // TODO: do we need to close a read-only transaction?
-
-    return this.txnContextFuture != null;
+    this.txnManager = new DatabaseClientTransactionManager(this.dbClient, this.executorService);
   }
 
   /**
@@ -107,23 +88,22 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for starting a transaction
    */
   public Mono<Void> beginTransaction() {
-    return convertFutureToMono(() -> {
-      LOGGER.debug("begin readwrite transaction");
-      this.transactionManager = this.dbClient.transactionManagerAsync();
-      this.txnContextFuture = this.transactionManager.beginAsync();
-      return this.txnContextFuture;
-    }).then();
+    return convertFutureToMono(() -> this.txnManager.beginTransaction()).then();
   }
 
+  /**
+   * Allows starting a Cloud Spanner readonly transaction with custom staleness.
+   *
+   * @return reactive pipeline for starting a transaction
+   */
   public Mono<Void> beginReadonlyTransaction(TimestampBound timestampBound) {
 
-    // TODO: what if another transaction is in progress?
-    return Mono.defer(
-        () -> {
-            System.out.println("********* READONLY TRANSACTION detected");
-            this.readOnlyTransaction = this.dbClient.readOnlyTransaction(timestampBound);
-            return Mono.empty();
-        });
+    return Mono.defer(() -> {
+      this.txnManager.beginReadonlyTransaction(timestampBound);
+      // TODO: it would be good for client library to signal when a session is ready for this
+      // transaction, so a meaningful mono is returned.
+      return Mono.empty();
+    });
   }
 
   /**
@@ -133,38 +113,9 @@ class DatabaseClientReactiveAdapter {
    */
   public Publisher<Void> commitTransaction() {
 
-    return Mono.defer(() -> {
-      if (isInReadWriteTransaction()) {
-        return convertFutureToMono(() -> {
-          LOGGER.debug("commit transaction");
-
-          if (this.lastStep == null) {
-            // TODO: replace by a better non-retryable;
-            //  consider not throwing at all and no-oping with warning.
-            throw new RuntimeException("Nothing was executed in this transaction");
-          }
-          return this.lastStep.commitAsync();
-          });
-      } else if (this.readOnlyTransaction != null) {
-        // TODO: does transaction need to be closed to release it back to the pool?
-        this.readOnlyTransaction = null;
-        return Mono.empty();
-      } else {
-        // TODO: log warning that commit was called without begin? or check sPI for expected behavior
-        return Mono.empty();
-      }
-
-    }).doOnTerminate(this::clearTransactionManager).then();
-  }
-
-  private void clearTransactionManager() {
-    LOGGER.debug("close transaction manager");
-    this.txnContextFuture = null;
-    this.lastStep = null;
-    if (this.transactionManager != null) {
-      this.transactionManager.close();
-      this.transactionManager = null;
-    }
+    return convertFutureToMono(() -> this.txnManager.commitTransaction())
+        .doOnTerminate(this.txnManager::clearTransactionManager)
+        .then();
   }
 
   /**
@@ -173,17 +124,8 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for rolling back a transaction
    */
   public Publisher<Void> rollback() {
-    return convertFutureToMono(() -> {
-      LOGGER.debug("roll back");
-      if (this.lastStep == null) {
-        // TODO: replace by a better non-retryable;
-        //  consider not throwing at all and no-oping with warning.
-        throw new RuntimeException(
-            "No statements were executed in this transaction; no-op rollback");
-      }
-      return this.transactionManager.rollbackAsync();
-
-    }).doOnTerminate(this::clearTransactionManager);
+    return convertFutureToMono(() -> this.txnManager.rollbackTransaction())
+        .doOnTerminate(this.txnManager::clearTransactionManager);
   }
 
   /**
@@ -196,7 +138,7 @@ class DatabaseClientReactiveAdapter {
   public Mono<Void> close() {
     // TODO: if txn is committed/rolled back and then connection closed, clearTransactionManager
     // will run twice, causing trace span to be closed twice. Introduce `closed` field.
-    return Mono.fromRunnable(this::clearTransactionManager);
+    return Mono.fromRunnable(this.txnManager::clearTransactionManager);
   }
 
   /**
@@ -212,8 +154,7 @@ class DatabaseClientReactiveAdapter {
         return Flux.<SpannerClientLibraryRow>create(sink -> {
           com.google.cloud.spanner.Statement statement =
               Statement.newBuilder("SELECT 1").build();
-          runSelectStatementAsFlux(
-              () -> this.dbClient.singleUseReadOnlyTransaction(), statement, sink);
+          runSelectStatementAsFlux(this.dbClient.singleUse(), statement, sink);
         })
         .then(Mono.just(true))
         .onErrorResume(error -> {
@@ -249,22 +190,8 @@ class DatabaseClientReactiveAdapter {
   private <T> Mono<T> runBatchDmlInternal(
       Function<TransactionContext, ApiFuture<T>> asyncOperation) {
     return convertFutureToMono(() -> {
-      if (this.isInReadWriteTransaction()) {
-
-        // The first statement in a transaction has no input, hence Void input type.
-        // The subsequent statements take the previous statements' return (affected row count)
-        // as input.
-        AsyncTransactionStep<? extends Object, T> updateStatementFuture =
-            this.lastStep == null
-                ? this.txnContextFuture.then(
-                    (ctx, unusedVoid) -> asyncOperation.apply(ctx), this.executorService)
-                : this.lastStep.then(
-                    (ctx, unusedPreviousResult) -> asyncOperation.apply(ctx),
-                    this.executorService);
-
-        this.lastStep = updateStatementFuture;
-        return updateStatementFuture;
-
+      if (this.txnManager.isInReadWriteTransaction()) {
+        return this.txnManager.runInTransaction(asyncOperation);
       } else {
         ApiFuture<T> rowCountFuture =
             this.dbClient
@@ -279,32 +206,13 @@ class DatabaseClientReactiveAdapter {
       com.google.cloud.spanner.Statement statement) {
     return Flux.create(
         sink -> {
-          if (this.isInReadWriteTransaction()) {
+          if (this.txnManager.isInReadWriteTransaction()) {
 
-            LOGGER.debug("  chaining SELECT statement in transaction: " + statement.getSql());
-            // The first statement in a transaction has no input, hence Void input type.
-            // The subsequent statements take the previous statement's return value as input.
-            this.lastStep =
-                this.lastStep == null
-                    ? this.txnContextFuture.then(
-                        (ctx, unusedVoid) -> runSelectStatementAsFlux(() -> ctx, statement, sink),
-                        this.executorService)
-                    : this.lastStep.then(
-                        (ctx, unusedPreviousResult) ->
-                            runSelectStatementAsFlux(() -> ctx, statement, sink),
-                        this.executorService);
+            this.txnManager.runInTransaction(ctx -> runSelectStatementAsFlux(ctx, statement, sink));
 
           } else {
-            LOGGER.debug("  running standalone SELECT statement: " + statement.getSql());
-            runSelectStatementAsFlux(
-                () -> {
-                  if (this.readOnlyTransaction == null) {
-                    return this.dbClient.singleUse();
-                  } else {
-                    return this.readOnlyTransaction;
-                  }
-                },
-                statement, sink);
+
+            runSelectStatementAsFlux(this.txnManager.getReadContext(), statement, sink);
           }
         });
   }
@@ -325,16 +233,16 @@ class DatabaseClientReactiveAdapter {
    * ApiFuture} returned by `transactionManager.beginAsync()` resolves. In practice, this means
    * always invoking this method in a chained `.then()` lambda * when running in transaction.
    *
-   * @param ctxSupplier Non-blocking supplier of read context (transactional or not).
+   * @param readContext Cloud Spanner read context (plain or transactional)
    * @param statement query to run
    * @param sink output Flux sink
    * @return future suitable for transactional step chaining
    */
   private ApiFuture<Void> runSelectStatementAsFlux(
-      Supplier<ReadContext> ctxSupplier,
+      ReadContext readContext,
       com.google.cloud.spanner.Statement statement,
       FluxSink<SpannerClientLibraryRow> sink) {
-    AsyncResultSet ars = ctxSupplier.get().executeQueryAsync(statement);
+    AsyncResultSet ars = readContext.executeQueryAsync(statement);
     sink.onCancel(ars::cancel);
 
     return ars.setCallback(

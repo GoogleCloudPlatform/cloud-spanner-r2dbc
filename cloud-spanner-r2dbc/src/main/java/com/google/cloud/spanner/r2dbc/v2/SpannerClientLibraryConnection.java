@@ -21,7 +21,6 @@ import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import com.google.cloud.spanner.r2dbc.statement.StatementParser;
 import com.google.cloud.spanner.r2dbc.statement.StatementType;
-import com.google.spanner.v1.TransactionOptions;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionMetadata;
@@ -61,7 +60,11 @@ public class SpannerClientLibraryConnection implements Connection {
     return this.clientLibraryAdapter.beginTransaction();
   }
 
-  // TODO: javadoc custom transaction method requiring downcasting connection object
+  /**
+   * Allows starting a readonly Cloud Spanner transaction with given staleness settings.
+   * @param timestampBound staleness settings
+   * @return {@link Mono} signaling readonly transaction is ready for use
+   */
   public Mono<Void> beginReadonlyTransaction(TimestampBound timestampBound) {
     return this.clientLibraryAdapter.beginReadonlyTransaction(timestampBound);
   }

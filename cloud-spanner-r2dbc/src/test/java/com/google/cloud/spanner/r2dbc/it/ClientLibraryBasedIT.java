@@ -29,9 +29,6 @@ import com.google.cloud.spanner.Type;
 import com.google.cloud.spanner.Type.StructField;
 import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryColumnMetadata;
 import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryConnection;
-import com.google.protobuf.Duration;
-import com.google.spanner.v1.TransactionOptions;
-import com.google.spanner.v1.TransactionOptions.ReadOnly;
 import io.r2dbc.spi.ColumnMetadata;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
@@ -40,7 +37,6 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Row;
-import io.r2dbc.spi.RowMetadata;
 import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.ValidationDepth;
 import java.math.BigDecimal;
@@ -619,20 +615,24 @@ public class ClientLibraryBasedIT {
   }
 
   @Test
-  public void testStaleRead() {
+  public void testStaleRead() throws InterruptedException {
+
+    // Prevent a stale read from 1 second ago from seeing a nonexistent table.
+    Thread.sleep(1000);
 
     String uuid1 = "transaction1-staleread" + this.random.nextInt();
-    System.out.println("UUID = " + uuid1);
 
     SpannerClientLibraryConnection conn = Mono.from(connectionFactory.create())
         .cast(SpannerClientLibraryConnection.class).block();
-    Statement readStatement = conn.createStatement("SELECT count(*) from BOOKS WHERE UUID=@uuid").bind("uuid", uuid1);
+    Statement readStatement = conn.createStatement("SELECT count(*) from BOOKS WHERE UUID=@uuid")
+        .bind("uuid", uuid1);
 
     StepVerifier.create(Flux.concat(
-          Flux.from(conn.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute())
-              .flatMap(r -> r.getRowsUpdated()),
+          Flux.from(
+              conn.createStatement(makeInsertQuery(uuid1, 100, 15.0)).execute()
+          ).flatMap(r -> r.getRowsUpdated()),
           Flux.from(readStatement.execute()).flatMap(result -> result.map((row, rm) -> row.get(1))),
-          conn.beginReadonlyTransaction(TimestampBound.ofExactStaleness(5, TimeUnit.SECONDS)),
+          conn.beginReadonlyTransaction(TimestampBound.ofExactStaleness(1, TimeUnit.SECONDS)),
           Flux.from(readStatement.execute()).flatMap(result -> result.map((row, rm) -> row.get(1))),
           conn.commitTransaction(),
           Flux.from(readStatement.execute()).flatMap(result -> result.map((row, rm) -> row.get(1)))
