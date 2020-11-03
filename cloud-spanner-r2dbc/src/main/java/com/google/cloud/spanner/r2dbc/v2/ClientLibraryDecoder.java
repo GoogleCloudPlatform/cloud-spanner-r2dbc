@@ -95,6 +95,6 @@ public class ClientLibraryDecoder {
     if (type.isAssignableFrom(value.getClass())) {
       return (T) value;
     }
-    return SpannerClientLibrariesConverters.convert(value, type);
+    return SpannerClientLibraryConverters.convert(value, type);
   }
 }

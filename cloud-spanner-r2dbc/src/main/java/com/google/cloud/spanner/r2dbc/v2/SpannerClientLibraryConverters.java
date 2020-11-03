@@ -22,11 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class SpannerClientLibrariesConverters {
+class SpannerClientLibraryConverters {
 
   private static final List<SpannerClientLibrariesConverter<?>> converters = createConverters();
 
-  private static ArrayList<SpannerClientLibrariesConverter<?>> createConverters() {
+  private static List<SpannerClientLibrariesConverter<?>> createConverters() {
     ArrayList<SpannerClientLibrariesConverter<?>> converters = new ArrayList<>();
     converters.add(new LongIntegerConverter());
     return converters;
@@ -36,7 +36,7 @@ public class SpannerClientLibrariesConverters {
     Optional<SpannerClientLibrariesConverter<?>> converter = converters.stream()
         .filter(candidate -> candidate.canConvert(value.getClass(), type))
         .findFirst();
-    if (converter.isEmpty()) {
+    if (!converter.isPresent()) {
       throw new ConversionFailureException(
           String.format("Unable to convert %s to %s", value.getClass(), type));
     }
