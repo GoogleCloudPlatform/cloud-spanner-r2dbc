@@ -33,6 +33,7 @@ import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
@@ -66,18 +67,17 @@ class DatabaseClientReactiveAdapter {
   /**
    * Instantiates the adapter with given client library {@code DatabaseClient} and executor.
    *
-   * @param spannerClient Cloud Spanner client used to run queries and manage transactions.
-   * @param executorService executor to be used for running callbacks.
+   * @param spannerClient Cloud Spanner client used to run queries and manage transactions
+   * @param config User-provided connection configuration options
    */
   public DatabaseClientReactiveAdapter(
       Spanner spannerClient,
-      ExecutorService executorService,
       SpannerConnectionConfiguration config) {
     this.spannerClient = spannerClient;
     this.dbClient = spannerClient.getDatabaseClient(
         DatabaseId.of(config.getProjectId(), config.getInstanceName(), config.getDatabaseName()));
     this.dbAdminClient = spannerClient.getDatabaseAdminClient();
-    this.executorService = executorService;
+    this.executorService = Executors.newFixedThreadPool(config.getThreadPoolSize());
     this.config = config;
     this.txnManager = new DatabaseClientTransactionManager(this.dbClient, this.executorService);
   }
@@ -138,7 +138,11 @@ class DatabaseClientReactiveAdapter {
   public Mono<Void> close() {
     // TODO: if txn is committed/rolled back and then connection closed, clearTransactionManager
     // will run twice, causing trace span to be closed twice. Introduce `closed` field.
-    return Mono.fromRunnable(this.txnManager::clearTransactionManager);
+    return Mono.fromRunnable(() -> {
+      LOGGER.debug("  shutting down executor service");
+      this.txnManager.clearTransactionManager();
+      this.executorService.shutdown();
+    });
   }
 
   /**
@@ -163,6 +167,10 @@ class DatabaseClientReactiveAdapter {
         });
       }
     });
+  }
+
+  Mono<Boolean> localHealthcheck() {
+    return Mono.fromSupplier(() -> !this.executorService.isShutdown());
   }
 
   /**

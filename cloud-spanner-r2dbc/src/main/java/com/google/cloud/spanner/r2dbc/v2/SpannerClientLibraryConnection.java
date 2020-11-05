@@ -16,7 +16,6 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
-import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import com.google.cloud.spanner.r2dbc.statement.StatementParser;
@@ -27,8 +26,6 @@ import io.r2dbc.spi.ConnectionMetadata;
 import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.ValidationDepth;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,18 +38,16 @@ public class SpannerClientLibraryConnection implements Connection {
 
   private final DatabaseClientReactiveAdapter clientLibraryAdapter;
 
-  private ExecutorService executorService;
+
 
   /**
    * Cloud Spanner implementation of R2DBC Connection SPI.
-   * @param spanner Cloud Spanner spanner library database client
+   * @param clientLibraryAdapter adapter to Cloud Spanner database client
    * @param config driver configuration extracted from URL or passed directly to connection factory.
    */
-  public SpannerClientLibraryConnection(Spanner spanner, SpannerConnectionConfiguration config) {
-    this.executorService = Executors.newFixedThreadPool(config.getThreadPoolSize());
-    this.clientLibraryAdapter =
-        new DatabaseClientReactiveAdapter(spanner, this.executorService, config);
-
+  public SpannerClientLibraryConnection(DatabaseClientReactiveAdapter clientLibraryAdapter,
+      SpannerConnectionConfiguration config) {
+    this.clientLibraryAdapter = clientLibraryAdapter;
   }
 
   @Override
@@ -67,6 +62,14 @@ public class SpannerClientLibraryConnection implements Connection {
    */
   public Mono<Void> beginReadonlyTransaction(TimestampBound timestampBound) {
     return this.clientLibraryAdapter.beginReadonlyTransaction(timestampBound);
+  }
+
+  /**
+   * Allows starting a readonly Cloud Spanner transaction with strong consistency.
+   * @return {@link Mono} signaling readonly transaction is ready for use
+   */
+  public Mono<Void> beginReadonlyTransaction() {
+    return this.clientLibraryAdapter.beginReadonlyTransaction(TimestampBound.strong());
   }
 
   @Override
@@ -143,7 +146,7 @@ public class SpannerClientLibraryConnection implements Connection {
   @Override
   public Publisher<Boolean> validate(ValidationDepth depth) {
     if (depth == ValidationDepth.LOCAL) {
-      return Mono.fromSupplier(() -> !this.executorService.isShutdown());
+      return this.clientLibraryAdapter.localHealthcheck();
     } else {
       return this.clientLibraryAdapter.healthCheck();
     }
@@ -151,10 +154,6 @@ public class SpannerClientLibraryConnection implements Connection {
 
   @Override
   public Publisher<Void> close() {
-    return this.clientLibraryAdapter.close()
-        .then(Mono.fromRunnable(() -> {
-          LOGGER.debug("  shutting down executor service");
-          this.executorService.shutdown();
-        }));
+    return this.clientLibraryAdapter.close();
   }
 }
