@@ -23,23 +23,35 @@ import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 public class SpannerClientLibraryConnectionTest {
 
-  SpannerConnectionConfiguration mockConfig = mock(SpannerConnectionConfiguration.class);
-  DatabaseClientReactiveAdapter mockAdapter = mock(DatabaseClientReactiveAdapter.class);
+  SpannerConnectionConfiguration mockConfig;
+  DatabaseClientReactiveAdapter mockAdapter;
+
+  SpannerClientLibraryConnection connection;
+
+  /** Sets up mocks. */
+  @BeforeEach
+  public void setUpMocks() {
+    this.mockConfig = mock(SpannerConnectionConfiguration.class);
+    this.mockAdapter = mock(DatabaseClientReactiveAdapter.class);
+    this.connection = new SpannerClientLibraryConnection(this.mockAdapter, this.mockConfig);
+  }
 
   @Test
   public void beginReadonlyTransactionUsesStrongConsistencyByDefault() {
-    SpannerClientLibraryConnection conn =
-        new SpannerClientLibraryConnection(this.mockAdapter, this.mockConfig);
+
     when(this.mockAdapter.beginReadonlyTransaction(any())).thenReturn(Mono.empty());
 
-    StepVerifier.create(conn.beginReadonlyTransaction()).verifyComplete();
+    StepVerifier.create(this.connection.beginReadonlyTransaction())
+        .verifyComplete();
 
     verify(this.mockAdapter).beginReadonlyTransaction(TimestampBound.strong());
   }
+
 }

@@ -36,7 +36,6 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import io.r2dbc.spi.Result;
-import io.r2dbc.spi.Row;
 import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.ValidationDepth;
 import java.math.BigDecimal;
@@ -645,10 +644,6 @@ public class ClientLibraryBasedIT {
         .expectNext(1L)
         .as("strong read returns the inserted row after stale-read transaction terminates")
         .verifyComplete();
-  }
-
-  private String concatRow(Row row) {
-    return row.get(1) + ", " + row.get(2) + ", " + row.get(3);
   }
 
   private Publisher<Long> getFirstNumber(Result result) {

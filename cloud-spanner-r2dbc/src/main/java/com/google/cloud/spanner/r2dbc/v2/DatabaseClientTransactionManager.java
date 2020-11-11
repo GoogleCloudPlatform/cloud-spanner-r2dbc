@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Google LLC
+ * Copyright 2020-2020 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,12 +63,23 @@ class DatabaseClientTransactionManager {
     return this.txnContextFuture != null;
   }
 
+  boolean isInReadonlyTransaction() {
+    return this.readOnlyTransaction != null;
+  }
+
+  boolean isInTransaction() {
+    return isInReadWriteTransaction() || isInReadonlyTransaction();
+  }
+
   /**
    * Starts a Cloud Spanner Read/Write transaction.
    *
    * @return chainable {@link TransactionContextFuture} for the current transaction.
    */
   TransactionContextFuture beginTransaction() {
+    if (this.isInTransaction()) {
+      throw new TransactionInProgressException(this.isInReadWriteTransaction());
+    }
     this.transactionManager = this.dbClient.transactionManagerAsync();
     this.txnContextFuture = this.transactionManager.beginAsync();
     return this.txnContextFuture;
@@ -81,9 +92,10 @@ class DatabaseClientTransactionManager {
    * @return chainable {@link TransactionContextFuture} for the current transaction.
    */
   void beginReadonlyTransaction(TimestampBound timestampBound) {
-    if (this.readOnlyTransaction != null) {
-      this.readOnlyTransaction.close();
+    if (this.isInTransaction()) {
+      throw new TransactionInProgressException(this.isInReadWriteTransaction());
     }
+
     this.readOnlyTransaction = this.dbClient.readOnlyTransaction(timestampBound);
   }
 
@@ -112,13 +124,17 @@ class DatabaseClientTransactionManager {
       }
       return this.lastStep.commitAsync();
 
-    } else if (this.readOnlyTransaction != null) {
-      this.readOnlyTransaction.close();
-      this.readOnlyTransaction = null;
+    } else if (isInReadonlyTransaction()) {
+      closeReadOnlyTransaction();
     } else {
       LOGGER.warn("Commit called outside of an active transaction.");
     }
     return ApiFutures.immediateFuture(null);
+  }
+
+  private void closeReadOnlyTransaction() {
+    this.readOnlyTransaction.close();
+    this.readOnlyTransaction = null;
   }
 
   /**
