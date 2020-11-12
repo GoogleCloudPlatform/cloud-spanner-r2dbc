@@ -203,9 +203,7 @@ class DatabaseClientReactiveAdapter {
         // If autocommit is changed, commit the existing transaction.
         result = Mono.from(this.commitTransaction());
       }
-
-      this.autoCommit = autoCommit;
-      return result;
+      return result.doOnSuccess(empty -> this.autoCommit = autoCommit);
     });
   }
 
