@@ -237,7 +237,7 @@ class DatabaseClientReactiveAdapter {
       if (this.txnManager.isInReadonlyTransaction()) {
         return Mono.error(
             new IllegalAccessException("Cannot run DML statements in a readonly transaction."));
-      } else if (!autoCommit && !this.txnManager.isInReadWriteTransaction()) {
+      } else if (!this.autoCommit && !this.txnManager.isInReadWriteTransaction()) {
         return Mono.error(new IllegalAccessException(
             "Cannot run DML statements outside of a transaction when autocommit is set to false."));
       }
