@@ -402,7 +402,6 @@ public class SpannerClientLibraryTestKit implements TestKit<String> {
 
   @Override
   @Test
-  @Disabled // TODO: GH-275
   public void changeAutoCommitCommitsTransaction() {
     Mono.from(getConnectionFactory().create())
         .flatMapMany(connection ->
@@ -426,7 +425,6 @@ public class SpannerClientLibraryTestKit implements TestKit<String> {
 
   @Override
   @Test
-  @Disabled // TODO: GH-275
   public void sameAutoCommitLeavesTransactionUnchanged() {
     Mono.from(getConnectionFactory().create())
         .flatMapMany(connection ->
@@ -443,12 +441,6 @@ public class SpannerClientLibraryTestKit implements TestKit<String> {
         )
         .as(StepVerifier::create)
         .verifyComplete();
-  }
-
-  @Override
-  @Disabled // TODO: GH-275
-  public void autoCommitByDefault() {
-
   }
 
   @Override
