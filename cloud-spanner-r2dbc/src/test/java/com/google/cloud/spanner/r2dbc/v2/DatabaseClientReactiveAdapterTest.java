@@ -53,7 +53,7 @@ public class DatabaseClientReactiveAdapterTest {
     this.dbClient = mock(DatabaseClient.class);
     this.dbAdminClient = mock(DatabaseAdminClient.class);
     this.txnManager = mock(DatabaseClientTransactionManager.class);
-    this.executorService = Executors.newFixedThreadPool(1);
+    this.executorService = Executors.newSingleThreadExecutor();
 
     this.adapter = new DatabaseClientReactiveAdapter(
         this.config,
@@ -72,7 +72,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void testChangeAutocommit() {
+  public void testChangeAutocommitCommitsCurrentTransaction() {
     when(this.txnManager.isInTransaction()).thenReturn(true);
     assertThat(this.adapter.isAutoCommit()).isTrue();
 
@@ -83,7 +83,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void testChangeAutocommit_Noop() {
+  public void testSameAutocommitNoop() {
     when(this.txnManager.isInTransaction()).thenReturn(true);
     assertThat(this.adapter.isAutoCommit()).isTrue();
 

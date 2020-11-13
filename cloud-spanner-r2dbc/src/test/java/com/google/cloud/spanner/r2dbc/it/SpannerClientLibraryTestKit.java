@@ -424,26 +424,6 @@ public class SpannerClientLibraryTestKit implements TestKit<String> {
   }
 
   @Override
-  @Test
-  public void sameAutoCommitLeavesTransactionUnchanged() {
-    Mono.from(getConnectionFactory().create())
-        .flatMapMany(connection ->
-            Flux.from(connection.setAutoCommit(false))
-                .thenMany(connection.beginTransaction())
-                .thenMany(
-                    connection.createStatement(expand(TestStatement.INSERT_VALUE200)).execute())
-                .flatMap(Result::getRowsUpdated)
-                .thenMany(connection.setAutoCommit(false))
-                .thenMany(connection.rollbackTransaction())
-                .thenMany(connection.createStatement("SELECT value FROM test").execute())
-                .flatMap(it -> it.map((row, metadata) -> row.get("value")))
-                .concatWith(close(connection))
-        )
-        .as(StepVerifier::create)
-        .verifyComplete();
-  }
-
-  @Override
   public String expand(TestStatement statement, Object... args) {
     return SpannerTestKitStatements.expand(statement, args);
   }

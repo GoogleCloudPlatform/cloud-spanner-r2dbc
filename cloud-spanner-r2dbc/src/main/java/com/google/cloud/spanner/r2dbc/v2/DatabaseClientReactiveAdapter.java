@@ -130,8 +130,7 @@ class DatabaseClientReactiveAdapter {
    *
    * @return reactive pipeline for committing a transaction
    */
-  public Publisher<Void> commitTransaction() {
-
+  public Mono<Void> commitTransaction() {
     return convertFutureToMono(() -> this.txnManager.commitTransaction())
         .doOnTerminate(this.txnManager::clearTransactionManager)
         .then();
@@ -201,7 +200,7 @@ class DatabaseClientReactiveAdapter {
       Mono<Void> result = Mono.empty();
       if (this.autoCommit != autoCommit && this.txnManager.isInTransaction()) {
         // If autocommit is changed, commit the existing transaction.
-        result = Mono.from(this.commitTransaction());
+        result = this.commitTransaction();
       }
       return result.doOnSuccess(empty -> this.autoCommit = autoCommit);
     });
