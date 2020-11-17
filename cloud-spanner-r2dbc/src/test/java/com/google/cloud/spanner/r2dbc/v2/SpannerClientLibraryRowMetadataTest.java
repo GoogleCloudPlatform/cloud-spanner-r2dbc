@@ -82,7 +82,8 @@ public class SpannerClientLibraryRowMetadataTest {
     structFields.add(StructField.of("Column_1", Type.numeric()));
     metadata = new SpannerClientLibraryRowMetadata(structFields);
 
-    assertThat(metadata.getColumnNames()).containsExactly("column_0", "column_1", "column_2");
+    assertThat(metadata.getColumnNames())
+        .containsExactly("column_0", "column_1", "column_2", "Column_1");
     column1 = metadata.getColumnMetadata("column_1");
     assertThat(column1.getNativeTypeMetadata()).isEqualTo(Type.string());
   }
