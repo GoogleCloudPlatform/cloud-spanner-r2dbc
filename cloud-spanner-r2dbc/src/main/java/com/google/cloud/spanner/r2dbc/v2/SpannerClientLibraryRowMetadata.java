@@ -54,8 +54,11 @@ public class SpannerClientLibraryRowMetadata implements RowMetadata {
       StructField field = structFields.get(i);
       ColumnMetadata metadata = new SpannerClientLibraryColumnMetadata(field);
       tmpColumnMetadata.add(metadata);
-      tmpColumnNames.add(field.getName());
-      this.columnNameIndex.put(field.getName(), i);
+      String columnName = field.getName().toLowerCase();
+      if (!this.columnNameIndex.containsKey(columnName)) {
+        tmpColumnNames.add(columnName);
+        this.columnNameIndex.put(columnName, i);
+      }
     }
 
     this.columnMetadatas = Collections.unmodifiableList(tmpColumnMetadata);
