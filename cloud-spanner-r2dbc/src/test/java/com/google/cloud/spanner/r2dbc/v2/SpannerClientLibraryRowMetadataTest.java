@@ -76,15 +76,21 @@ public class SpannerClientLibraryRowMetadataTest {
     ColumnMetadata column0 = metadata.getColumnMetadata(0);
     assertThat(column0.getName()).isEqualTo("column_0");
     assertThat(column0.getNativeTypeMetadata()).isEqualTo(Type.int64());
+  }
+
+  @Test
+  public void testSpannerRowMetadataCaseInsensitivity() {
+    List<StructField> structFields =
+        buildResultSetMetadata(Type.int64(), Type.string(), Type.bool());
 
     // When a get method contains several columns with same name, then the value of the first
     //matching column will be returned
     structFields.add(StructField.of("Column_1", Type.numeric()));
-    metadata = new SpannerClientLibraryRowMetadata(structFields);
+    SpannerClientLibraryRowMetadata metadata = new SpannerClientLibraryRowMetadata(structFields);
 
     assertThat(metadata.getColumnNames())
         .containsExactly("column_0", "column_1", "column_2", "Column_1");
-    column1 = metadata.getColumnMetadata("column_1");
+    ColumnMetadata column1 = metadata.getColumnMetadata("column_1");
     assertThat(column1.getNativeTypeMetadata()).isEqualTo(Type.string());
   }
 
