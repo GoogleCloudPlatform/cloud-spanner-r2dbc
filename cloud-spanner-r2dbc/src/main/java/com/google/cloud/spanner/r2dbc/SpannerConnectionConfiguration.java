@@ -68,26 +68,6 @@ public class SpannerConnectionConfiguration {
   private int threadPoolSize;
 
   /**
-   * Constructor which initializes the configuration from an Cloud Spanner R2DBC url.
-
-  private SpannerConnectionConfiguration(String url, OAuth2Credentials credentials) {
-    String databaseString =
-        ConnectionFactoryOptions.parse(url).getValue(ConnectionFactoryOptions.DATABASE);
-
-    if (!databaseString.matches(DB_NAME_VALIDATE_PATTERN)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Malformed Cloud Spanner Database String: %s. The url must have the format: %s",
-              databaseString,
-              FULLY_QUALIFIED_DB_NAME_PATTERN));
-    }
-
-    this.fullyQualifiedDbName = databaseString;
-    this.credentials = credentials;
-  }
-   */
-
-  /**
    * Basic property initializing constructor.
    *
    * @param projectId GCP project that contains the database.
@@ -242,6 +222,12 @@ public class SpannerConnectionConfiguration {
       return this;
     }
 
+    /**
+     * Sets fully qualified database name.
+     * @param databaseName fully qualified database name in the format of
+     *                     "projects/%s/instances/%s/databases/%s"
+     * @return builder for chaining
+     */
     public Builder setFullyQualifiedDatabaseName(String databaseName) {
       validateFullyQualifiedDatabaseName(databaseName);
       this.fullyQualifiedDatabaseName = databaseName;

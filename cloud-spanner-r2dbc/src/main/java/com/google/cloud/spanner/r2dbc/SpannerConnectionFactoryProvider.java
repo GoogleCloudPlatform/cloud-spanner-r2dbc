@@ -121,7 +121,8 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
     // the original URL when creating connection through ConnectionFactories.get(String).
     if (options.hasOption(URL)) {
       config.setUrl(options.getValue(URL));
-    } else if (options.hasOption(DATABASE) && FQDN_PATTERN_PARSE.matcher(options.getValue(DATABASE)).matches()) {
+    } else if (options.hasOption(DATABASE)
+        && FQDN_PATTERN_PARSE.matcher(options.getValue(DATABASE)).matches()) {
       // URL-based connection configuration
       config.setFullyQualifiedDatabaseName(options.getValue(DATABASE));
     } else {
