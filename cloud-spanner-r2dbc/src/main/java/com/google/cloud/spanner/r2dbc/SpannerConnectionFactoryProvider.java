@@ -16,6 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc;
 
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration.FQDN_PATTERN_PARSE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
@@ -116,9 +117,15 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 
     SpannerConnectionConfiguration.Builder config = new SpannerConnectionConfiguration.Builder();
 
+    // Directly passed URL is supported for backwards compatibility. R2DBC SPI does not provide
+    // the original URL when creating connection through ConnectionFactories.get(String).
     if (options.hasOption(URL)) {
       config.setUrl(options.getValue(URL));
+    } else if (options.hasOption(DATABASE) && FQDN_PATTERN_PARSE.matcher(options.getValue(DATABASE)).matches()) {
+      // URL-based connection configuration
+      config.setFullyQualifiedDatabaseName(options.getValue(DATABASE));
     } else {
+      // Programmatic connection configuration.
       config.setProjectId(options.getRequiredValue(PROJECT))
           .setInstanceName(options.getRequiredValue(INSTANCE))
           .setDatabaseName(options.getRequiredValue(DATABASE));

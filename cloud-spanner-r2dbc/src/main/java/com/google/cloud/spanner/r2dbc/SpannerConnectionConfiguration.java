@@ -26,18 +26,20 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Configurable properties for Cloud Spanner.
  */
 public class SpannerConnectionConfiguration {
 
-  private static final String FULLY_QUALIFIED_DB_NAME_PATTERN =
+  public static final String FQDN_PATTERN_GENERATE =
       "projects/%s/instances/%s/databases/%s";
 
   /** Pattern used to validate that the user input database string is in the right format. */
-  private static final String DB_NAME_VALIDATE_PATTERN =
-      "projects\\/[\\w\\-]+\\/instances\\/[\\w\\-]+\\/databases\\/[\\w\\-]+$";
+  public static final Pattern FQDN_PATTERN_PARSE = Pattern.compile(
+      "projects\\/([\\w\\-]+)\\/instances\\/([\\w\\-]+)\\/databases\\/([\\w\\-]+)$");
 
   private static final String USER_AGENT_LIBRARY_NAME = "cloud-spanner-r2dbc";
 
@@ -67,7 +69,7 @@ public class SpannerConnectionConfiguration {
 
   /**
    * Constructor which initializes the configuration from an Cloud Spanner R2DBC url.
-   */
+
   private SpannerConnectionConfiguration(String url, OAuth2Credentials credentials) {
     String databaseString =
         ConnectionFactoryOptions.parse(url).getValue(ConnectionFactoryOptions.DATABASE);
@@ -83,6 +85,7 @@ public class SpannerConnectionConfiguration {
     this.fullyQualifiedDbName = databaseString;
     this.credentials = credentials;
   }
+   */
 
   /**
    * Basic property initializing constructor.
@@ -107,7 +110,7 @@ public class SpannerConnectionConfiguration {
     this.databaseName = databaseName;
 
     this.fullyQualifiedDbName = String.format(
-        FULLY_QUALIFIED_DB_NAME_PATTERN, projectId, instanceName, databaseName);
+        FQDN_PATTERN_GENERATE, projectId, instanceName, databaseName);
     this.credentials = credentials;
   }
 
@@ -205,7 +208,7 @@ public class SpannerConnectionConfiguration {
 
   public static class Builder {
 
-    private String url;
+    private String fullyQualifiedDatabaseName;
 
     private String projectId;
 
@@ -223,9 +226,36 @@ public class SpannerConnectionConfiguration {
 
     private Integer threadPoolSize;
 
+    /**
+     * R2DBC SPI does not provide the full URL to drivers after parsing the connection string.
+     * Therefore, this usecase is only possible if the client application provides a URL property
+     * directly through the programmatic configuration with
+     * {@code ConnectionFactories.get(ConnectionFactoryOptions)}.
+     */
+    @Deprecated
     public Builder setUrl(String url) {
-      this.url = url;
+      String databaseString =
+          ConnectionFactoryOptions.parse(url).getValue(ConnectionFactoryOptions.DATABASE);
+
+      validateFullyQualifiedDatabaseName(databaseString);
+      this.fullyQualifiedDatabaseName = databaseString;
       return this;
+    }
+
+    public Builder setFullyQualifiedDatabaseName(String databaseName) {
+      validateFullyQualifiedDatabaseName(databaseName);
+      this.fullyQualifiedDatabaseName = databaseName;
+      return this;
+    }
+
+    private void validateFullyQualifiedDatabaseName(String databaseString) {
+      if (!FQDN_PATTERN_PARSE.matcher(databaseString).matches()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Malformed Cloud Spanner Database String: %s. The url must have the format: %s",
+                databaseString,
+                FQDN_PATTERN_GENERATE));
+      }
     }
 
     public Builder setProjectId(String projectId) {
@@ -283,13 +313,21 @@ public class SpannerConnectionConfiguration {
             "Could not acquire default application credentials", e);
       }
 
-      SpannerConnectionConfiguration configuration;
-      if (this.url != null) {
-        configuration = new SpannerConnectionConfiguration(this.url, this.credentials);
-      } else {
-        configuration = new SpannerConnectionConfiguration(
-            this.projectId, this.instanceName, this.databaseName, this.credentials);
+      if (this.fullyQualifiedDatabaseName != null) {
+        Matcher matcher = FQDN_PATTERN_PARSE.matcher(this.fullyQualifiedDatabaseName);
+        if (matcher.find()) {
+          this.projectId = matcher.group(1);
+          this.instanceName = matcher.group(2);
+          this.databaseName = matcher.group(3);
+        } else {
+          // should not happen, as database names are pre-validated in the setters.
+          throw new IllegalArgumentException(
+              "Invalid database name: " + this.fullyQualifiedDatabaseName);
+        }
       }
+
+      SpannerConnectionConfiguration configuration = new SpannerConnectionConfiguration(
+            this.projectId, this.instanceName, this.databaseName, this.credentials);
 
       configuration.partialResultSetFetchSize = this.partialResultSetFetchSize;
       configuration.ddlOperationTimeout = this.ddlOperationTimeout;
