@@ -16,8 +16,6 @@
 
 package com.google.cloud.spanner.r2dbc;
 
-import static com.google.cloud.spanner.connection.ConnectionOptions.CREDENTIALS_PROPERTY_NAME;
-import static com.google.cloud.spanner.connection.ConnectionOptions.OAUTH_TOKEN_PROPERTY_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration.FQDN_PATTERN_PARSE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
@@ -82,17 +80,18 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   public static final Option<GoogleCredentials> GOOGLE_CREDENTIALS =
       Option.valueOf("google_credentials");
 
-  /** Option specifying the location of the GCP credentials file. Same as GOOGLE_CREDENTIALS,
+  /**
+   * Option specifying the location of the GCP credentials file. Same as GOOGLE_CREDENTIALS,
    * but consistent with the JDBC driver option.
    */
-  public static final Option<String> CREDENTIALS = Option.valueOf(CREDENTIALS_PROPERTY_NAME);
+  public static final Option<String> CREDENTIALS = Option.valueOf("credentials");
 
   // TODO: GH-292
   /** Plain-text option used to connect to the emulator. */
   public static final Option<Boolean> USE_PLAIN_TEXT = Option.valueOf("usePlainText");
 
   /** OAuth token to use for authentication. */
-  public static final Option<String> OAUTH_TOKEN = Option.valueOf(OAUTH_TOKEN_PROPERTY_NAME);
+  public static final Option<String> OAUTH_TOKEN = Option.valueOf("oauthToken");
 
   private static final Option[] SECURITY_OPTIONS =
       new Option[] { OAUTH_TOKEN, CREDENTIALS, GOOGLE_CREDENTIALS};

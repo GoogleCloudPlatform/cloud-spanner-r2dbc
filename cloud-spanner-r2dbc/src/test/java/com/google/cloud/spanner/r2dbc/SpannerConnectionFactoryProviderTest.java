@@ -239,8 +239,7 @@ public class SpannerConnectionFactoryProviderTest {
         "r2dbc:spanner://host:443/projects/p/instances/i/databases/d?google_credentials=ABC");
     assertThatThrownBy(() -> this.spannerConnectionFactoryProvider.createConfiguration(options))
         .isInstanceOf(ClassCastException.class)
-        .hasMessageContaining("class java.lang.String cannot be cast to class "
-            + "com.google.auth.oauth2.OAuth2Credentials");
+        .hasMessageContaining("com.google.auth.oauth2.OAuth2Credentials");
   }
 
   @Test
