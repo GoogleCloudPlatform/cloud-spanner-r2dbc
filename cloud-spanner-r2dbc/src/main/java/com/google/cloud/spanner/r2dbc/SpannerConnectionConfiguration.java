@@ -69,6 +69,8 @@ public class SpannerConnectionConfiguration {
 
   private boolean usePlainText;
 
+  private String optimizerVersion;
+
   /**
    * Basic property initializing constructor.
    *
@@ -138,6 +140,10 @@ public class SpannerConnectionConfiguration {
 
   public boolean isUsePlainText() {
     return this.usePlainText;
+  }
+
+  public String getOptimizerVersion() {
+    return this.optimizerVersion;
   }
 
   @Override
@@ -214,6 +220,8 @@ public class SpannerConnectionConfiguration {
     private Integer threadPoolSize;
 
     private boolean usePlainText = false;
+
+    private String optimizerVersion;
 
     /**
      * R2DBC SPI does not provide the full URL to drivers after parsing the connection string.
@@ -298,6 +306,11 @@ public class SpannerConnectionConfiguration {
       return this;
     }
 
+    public Builder setOptimizerVersion(String optimizerVersion) {
+      this.optimizerVersion = optimizerVersion;
+      return this;
+    }
+
     /**
      * Constructs an instance of the {@link SpannerConnectionConfiguration}.
      *
@@ -337,6 +350,7 @@ public class SpannerConnectionConfiguration {
               ? this.threadPoolSize
               : Runtime.getRuntime().availableProcessors();
       configuration.usePlainText = this.usePlainText;
+      configuration.optimizerVersion = this.optimizerVersion;
 
       return configuration;
     }

@@ -73,6 +73,9 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   public static final Option<Duration> DDL_OPERATION_POLL_INTERVAL =
       Option.valueOf("ddl_operation_poll_interval");
 
+  // TODO: GH-292
+  public static final Option<String> OPTIMIZER_VERSION =
+      Option.valueOf("optimizerVersion");
   /**
    * Option specifying the already-instantiated credentials object.
    */
@@ -84,6 +87,7 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
    */
   public static final Option<String> CREDENTIALS = Option.valueOf(CREDENTIALS_PROPERTY_NAME);
 
+  // TODO: GH-292
   /** Plain-text option used to connect to the emulator. */
   public static final Option<Boolean> USE_PLAIN_TEXT = Option.valueOf("usePlainText");
 
@@ -177,6 +181,10 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
 
     if (options.hasOption(USE_PLAIN_TEXT)) {
       config.setUsePlainText(true);
+    }
+
+    if (options.hasOption(OPTIMIZER_VERSION)) {
+      config.setOptimizerVersion(options.getValue(OPTIMIZER_VERSION));
     }
 
     return config.build();

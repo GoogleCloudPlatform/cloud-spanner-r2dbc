@@ -55,8 +55,17 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
   public AbstractSpannerClientLibraryStatement(
       DatabaseClientReactiveAdapter clientLibraryAdapter, String query) {
     this.clientLibraryAdapter = clientLibraryAdapter;
-    this.currentStatementBuilder = com.google.cloud.spanner.Statement.newBuilder(query);
     this.query = query;
+    this.currentStatementBuilder = createStatementBuilder();
+  }
+
+  private com.google.cloud.spanner.Statement.Builder createStatementBuilder() {
+    com.google.cloud.spanner.Statement.Builder builder =
+        com.google.cloud.spanner.Statement.newBuilder(this.query);
+    if (this.clientLibraryAdapter.getQueryOptions() != null) {
+      builder = builder.withQueryOptions(this.clientLibraryAdapter.getQueryOptions());
+    }
+    return builder;
   }
 
   @Override
@@ -66,7 +75,7 @@ abstract class AbstractSpannerClientLibraryStatement implements Statement {
     }
 
     this.statements.add(this.currentStatementBuilder.build());
-    this.currentStatementBuilder = com.google.cloud.spanner.Statement.newBuilder(this.query);
+    this.currentStatementBuilder = createStatementBuilder();
     this.startedBinding = false;
 
     return this;

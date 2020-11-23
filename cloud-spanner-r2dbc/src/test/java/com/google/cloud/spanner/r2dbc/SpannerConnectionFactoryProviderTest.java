@@ -20,6 +20,7 @@ import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.CR
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.GOOGLE_CREDENTIALS;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
+import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.OPTIMIZER_VERSION;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PARTIAL_RESULT_SET_FETCH_SIZE;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PROJECT;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.URL;
@@ -299,7 +300,20 @@ public class SpannerConnectionFactoryProviderTest {
         .hasMessageContaining("Please provide at most one authentication option");
   }
 
+  @Test
+  public void passOptimizerVersion() {
+    ConnectionFactoryOptions options = ConnectionFactoryOptions.builder()
+        .option(DATABASE, "projects/p/instances/i/databases/d")
+        .option(DRIVER, "spanner")
+        .option(GOOGLE_CREDENTIALS, this.mockCredentials)
+        .option(OPTIMIZER_VERSION, "2")
+        .build();
 
+    SpannerConnectionConfiguration config =
+        this.spannerConnectionFactoryProvider.createConfiguration(options);
+
+    assertEquals("2", config.getOptimizerVersion());
+  }
 
   private PartialResultSet makeBook(String odyssey) {
     return PartialResultSet.newBuilder()
