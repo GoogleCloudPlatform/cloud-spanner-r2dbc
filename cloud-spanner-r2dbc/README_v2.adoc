@@ -15,6 +15,7 @@ ConnectionFactories.get(
 ## Authentication
 
 The driver allows the following options for authentication:
+
 * a `String` property `credentials` containing the local file location of the JSON credentials file.
 * a `Credentials` object provided as `google_credentials`. This will only work with programmatically constructed `ConnectionFactoryOptions`.
 * a `String` OAuth token provided as `oauthToken`.
