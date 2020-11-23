@@ -12,6 +12,16 @@ ConnectionFactories.get(
               .build());
 ```
 
+## Authentication
+
+The driver allows the following options for authentication:
+* a `String` property `credentials` containing the local file location of the JSON credentials file.
+* a `Credentials` object provided as `google_credentials`. This will only work with programmatically constructed `ConnectionFactoryOptions`.
+* a `String` OAuth token provided as `oauthToken`.
+
+If no authentication options are provided, Application Default Credentials will be automatically determined.
+The only exception is when the connection is in plain-text, indicating the use of Cloud Spanner emulator, in which case no credentials will be used.
+
 ## Transactions
 
 ### Read-Write Transactions

@@ -67,6 +67,8 @@ public class SpannerConnectionConfiguration {
 
   private int threadPoolSize;
 
+  private boolean usePlainText;
+
   /**
    * Basic property initializing constructor.
    *
@@ -134,6 +136,10 @@ public class SpannerConnectionConfiguration {
     return this.threadPoolSize;
   }
 
+  public boolean isUsePlainText() {
+    return this.usePlainText;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -181,6 +187,7 @@ public class SpannerConnectionConfiguration {
     optionsBuilder.setHeaderProvider(() ->
         Collections.singletonMap(USER_AGENT_KEY, USER_AGENT_LIBRARY_NAME + "/" + PACKAGE_VERSION));
 
+    // usePlainText is not currently used in the client library.
     // TODO (GH-200): allow customizing emulator with optionsBuilder.setEmulatorHost()
 
     return optionsBuilder.build();
@@ -205,6 +212,8 @@ public class SpannerConnectionConfiguration {
     private Duration ddlOperationPollInterval = Duration.ofSeconds(5);
 
     private Integer threadPoolSize;
+
+    private boolean usePlainText = false;
 
     /**
      * R2DBC SPI does not provide the full URL to drivers after parsing the connection string.
@@ -284,6 +293,11 @@ public class SpannerConnectionConfiguration {
       return this;
     }
 
+    public Builder setUsePlainText(boolean usePlainText) {
+      this.usePlainText = true;
+      return this;
+    }
+
     /**
      * Constructs an instance of the {@link SpannerConnectionConfiguration}.
      *
@@ -322,6 +336,7 @@ public class SpannerConnectionConfiguration {
           this.threadPoolSize != null
               ? this.threadPoolSize
               : Runtime.getRuntime().availableProcessors();
+      configuration.usePlainText = this.usePlainText;
 
       return configuration;
     }
