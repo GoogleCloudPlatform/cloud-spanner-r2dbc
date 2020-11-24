@@ -19,6 +19,13 @@ package com.google.cloud.spanner.r2dbc.api;
 import com.google.cloud.spanner.TimestampBound;
 import reactor.core.publisher.Mono;
 
+/**
+ * Interface representing custom Cloud Spanner Connection transaction options that do not fit the
+ * current R2DBC SPI model.
+ *
+ * <p>Cast a Cloud Spanner-provided `Connection` object to this interface to take advantage of the
+ * readonly transaction types: read-only strongly consistent and read-only stale.
+ */
 public interface SpannerConnection {
   /**
    * Allows starting a readonly Cloud Spanner transaction with given staleness settings.
