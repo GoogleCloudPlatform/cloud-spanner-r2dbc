@@ -49,12 +49,13 @@ class ClientLibraryTypeBindersTest {
 
   @Test
   void unsupportedTypeThrowsException() {
-    assertThatThrownBy(() -> ClientLibraryBinder.bind(this.statementBuilder, "a", new Random()))
+    Random rand = new Random();
+    assertThatThrownBy(() -> ClientLibraryBinder.bind(this.statementBuilder, "a", rand))
         .isInstanceOf(BindingFailureException.class)
         .hasMessageContaining("Can't find a binder for type: class java.util.Random");
 
-    assertThatThrownBy(() ->
-        ClientLibraryBinder.bind(this.statementBuilder, "a", new TypedNull(Random.class)))
+    TypedNull randNull = new TypedNull(Random.class);
+    assertThatThrownBy(() -> ClientLibraryBinder.bind(this.statementBuilder, "a", randNull))
         .isInstanceOf(BindingFailureException.class)
         .hasMessageContaining("Can't find a binder for type: class java.util.Random");
   }
