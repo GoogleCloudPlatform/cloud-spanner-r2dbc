@@ -142,7 +142,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void resultSetReadyCallbackStopsSinkOnCompletion() {
+  void resultSetReadyCallbackStopsSinkOnCompletion() {
     when(this.mockResultSet.tryNext()).thenReturn(CursorState.DONE);
 
     DatabaseClientReactiveAdapter.ResultSetReadyCallback cb =
@@ -155,7 +155,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void resultSetReadyCallbackEmitsOnOk() {
+  void resultSetReadyCallbackEmitsOnOk() {
     when(this.mockResultSet.tryNext()).thenReturn(CursorState.OK);
     Struct struct = Struct.newBuilder().add(Value.string("some result")).build();
     when(this.mockResultSet.getCurrentRowAsStruct()).thenReturn(struct);
@@ -174,7 +174,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void resultSetReadyCallbackWaitsOnNotReady() {
+  void resultSetReadyCallbackWaitsOnNotReady() {
     when(this.mockResultSet.tryNext()).thenReturn(CursorState.NOT_READY);
 
     DatabaseClientReactiveAdapter.ResultSetReadyCallback cb =
@@ -186,7 +186,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void resultSetReadyCallbackSendsErrorOnException() {
+  void resultSetReadyCallbackSendsErrorOnException() {
     Exception exception = new RuntimeException("boom");
     when(this.mockResultSet.tryNext()).thenThrow(exception);
 
