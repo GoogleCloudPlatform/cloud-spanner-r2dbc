@@ -29,20 +29,22 @@ public class SpannerR2dbcDialect extends AbstractDialect implements R2dbcDialect
   private static final BindMarkersFactory NAMED =
       BindMarkersFactory.named("@", "val", 32);
 
+  public static final String LIMIT = "LIMIT ";
+
   private static final LimitClause LIMIT_CLAUSE = new LimitClause() {
     @Override
     public String getLimit(long limit) {
-      return "LIMIT " + limit;
+      return LIMIT + limit;
     }
 
     @Override
     public String getOffset(long offset) {
-      return "LIMIT " + Long.MAX_VALUE + " OFFSET " + offset;
+      return LIMIT + Long.MAX_VALUE + " OFFSET " + offset;
     }
 
     @Override
     public String getLimitOffset(long limit, long offset) {
-      return "LIMIT " + limit + " OFFSET " + offset;
+      return LIMIT + limit + " OFFSET " + offset;
     }
 
     @Override

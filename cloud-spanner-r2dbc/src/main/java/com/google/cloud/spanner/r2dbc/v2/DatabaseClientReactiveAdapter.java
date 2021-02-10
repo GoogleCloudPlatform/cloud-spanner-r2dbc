@@ -293,11 +293,11 @@ class DatabaseClientReactiveAdapter {
               case DONE:
                 sink.complete();
                 return CallbackResponse.DONE;
-              case NOT_READY:
-              default:
-                return CallbackResponse.CONTINUE;
               case OK:
                 sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
+                return CallbackResponse.CONTINUE;
+              default:
+                // ResultSet returning NOT_READY or null.
                 return CallbackResponse.CONTINUE;
             }
           } catch (Throwable t) {
