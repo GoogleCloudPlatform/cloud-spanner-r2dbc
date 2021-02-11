@@ -26,7 +26,7 @@ import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import org.junit.jupiter.api.Test;
 
-public class StatementBindingsTest {
+class StatementBindingsTest {
 
   @Test
   void addBasicBinding() {

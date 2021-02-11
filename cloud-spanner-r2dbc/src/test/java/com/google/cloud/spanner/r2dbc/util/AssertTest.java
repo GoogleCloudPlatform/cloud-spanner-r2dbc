@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Unit tests for {@link Assert}.
  */
-public class AssertTest {
+class AssertTest {
 
   @Test
   void assertNotNullThrowsExceptionWhenNull() {

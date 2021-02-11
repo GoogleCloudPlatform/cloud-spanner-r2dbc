@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Test for {@link DefaultCodecs}.
  */
-public class DefaultCodecsNegativeTest {
+class DefaultCodecsNegativeTest {
 
   private Codecs codecs = new DefaultCodecs();
 

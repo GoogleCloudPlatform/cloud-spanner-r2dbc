@@ -34,7 +34,7 @@ import io.r2dbc.spi.R2dbcTransientResourceException;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
-public class SpannerExceptionUtilTest {
+class SpannerExceptionUtilTest {
 
   @Test
   void testCreateR2dbcException() {

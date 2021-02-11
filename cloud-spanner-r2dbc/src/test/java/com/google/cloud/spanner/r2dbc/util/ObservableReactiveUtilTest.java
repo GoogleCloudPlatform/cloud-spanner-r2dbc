@@ -31,7 +31,7 @@ import reactor.test.StepVerifier;
 /**
  * Test for {@link ObservableReactiveUtil}.
  */
-public class ObservableReactiveUtilTest {
+class ObservableReactiveUtilTest {
 
   @Test
   void unaryCallReturnsSingleValue() {

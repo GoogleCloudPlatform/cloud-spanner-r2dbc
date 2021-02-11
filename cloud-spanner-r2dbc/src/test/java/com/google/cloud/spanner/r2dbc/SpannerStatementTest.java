@@ -57,7 +57,7 @@ import reactor.test.StepVerifier;
 /**
  * Test for {@link SpannerStatement}.
  */
-public class SpannerStatementTest {
+class SpannerStatementTest {
 
   private static final SpannerConnectionConfiguration TEST_CONFIG =
       new SpannerConnectionConfiguration.Builder()

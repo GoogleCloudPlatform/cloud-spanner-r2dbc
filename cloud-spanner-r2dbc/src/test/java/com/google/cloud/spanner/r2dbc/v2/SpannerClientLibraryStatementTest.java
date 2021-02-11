@@ -34,7 +34,7 @@ import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-public class SpannerClientLibraryStatementTest {
+class SpannerClientLibraryStatementTest {
 
   DatabaseClientReactiveAdapter mockAdapter;
 

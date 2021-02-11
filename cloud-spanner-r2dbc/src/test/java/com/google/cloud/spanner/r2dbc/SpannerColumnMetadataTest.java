@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Test for {@link SpannerColumnMetadata}.
  */
-public class SpannerColumnMetadataTest {
+class SpannerColumnMetadataTest {
 
   @Test
   void testEmptyFieldName() {

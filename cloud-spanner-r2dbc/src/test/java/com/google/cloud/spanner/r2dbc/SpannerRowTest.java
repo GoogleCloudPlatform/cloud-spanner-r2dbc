@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Test for {@link SpannerRow}.
  */
-public class SpannerRowTest {
+class SpannerRowTest {
 
   private static final Codecs codecs = new DefaultCodecs();
   private final SpannerRowMetadata rowMetadata

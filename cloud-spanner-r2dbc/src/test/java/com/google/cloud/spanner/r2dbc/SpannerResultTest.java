@@ -34,7 +34,7 @@ import reactor.test.StepVerifier;
 /**
  * Test for {@link SpannerResult}.
  */
-public class SpannerResultTest {
+class SpannerResultTest {
 
   private Flux<SpannerRow> resultSet;
 

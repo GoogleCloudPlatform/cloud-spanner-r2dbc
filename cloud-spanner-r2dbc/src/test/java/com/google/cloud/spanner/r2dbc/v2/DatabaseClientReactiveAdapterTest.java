@@ -47,7 +47,7 @@ import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
-public class DatabaseClientReactiveAdapterTest {
+class DatabaseClientReactiveAdapterTest {
 
   // DatabaseClientReactiveAdapter dependencies
   private SpannerConnectionConfiguration config;

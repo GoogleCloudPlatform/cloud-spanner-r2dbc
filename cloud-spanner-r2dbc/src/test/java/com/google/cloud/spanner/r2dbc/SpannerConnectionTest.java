@@ -59,7 +59,7 @@ import reactor.test.publisher.PublisherProbe;
 /**
  * Test for {@link SpannerConnection}.
  */
-public class SpannerConnectionTest {
+class SpannerConnectionTest {
 
   static final String TEST_SESSION_NAME = "project/session/1234";
   static final Session TEST_SESSION =

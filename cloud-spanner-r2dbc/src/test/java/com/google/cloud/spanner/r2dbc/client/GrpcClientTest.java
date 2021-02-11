@@ -58,7 +58,7 @@ import reactor.test.StepVerifier;
 /**
  * Test for {@link GrpcClient}.
  */
-public class GrpcClientTest {
+class GrpcClientTest {
 
   static String SESSION_NAME = "/session/1234";
 

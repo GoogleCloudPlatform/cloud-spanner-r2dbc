@@ -29,7 +29,7 @@ import org.mockito.Mockito;
 /**
  * Test for {@link SpannerConnectionConfiguration}.
  */
-public class SpannerConnectionConfigurationTest {
+class SpannerConnectionConfigurationTest {
 
   GoogleCredentials mockCredentials = Mockito.mock(GoogleCredentials.class);
 

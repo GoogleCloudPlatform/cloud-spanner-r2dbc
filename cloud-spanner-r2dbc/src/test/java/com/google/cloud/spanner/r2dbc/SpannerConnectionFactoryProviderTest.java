@@ -61,7 +61,7 @@ import reactor.test.publisher.TestPublisher;
 /**
  * Unit test for {@link SpannerConnectionFactoryProvider}.
  */
-public class SpannerConnectionFactoryProviderTest {
+class SpannerConnectionFactoryProviderTest {
 
   public static final ConnectionFactoryOptions SPANNER_OPTIONS =
       ConnectionFactoryOptions.builder()

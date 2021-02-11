@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Test for {@link SpannerConnectionMetadata}.
  */
-public class SpannerConnectionMetadataTest {
+class SpannerConnectionMetadataTest {
 
   @Test
   void productNameIsCorrect() {

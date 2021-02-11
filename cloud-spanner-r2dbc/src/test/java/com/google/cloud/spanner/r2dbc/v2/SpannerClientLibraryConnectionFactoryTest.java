@@ -25,7 +25,7 @@ import io.r2dbc.spi.Connection;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-public class SpannerClientLibraryConnectionFactoryTest {
+class SpannerClientLibraryConnectionFactoryTest {
 
   SpannerConnectionConfiguration.Builder configBuilder =
       new SpannerConnectionConfiguration.Builder()

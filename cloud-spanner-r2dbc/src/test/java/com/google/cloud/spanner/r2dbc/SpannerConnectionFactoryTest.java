@@ -32,7 +32,7 @@ import reactor.test.StepVerifier;
 /**
  * Test for {@link SpannerConnectionFactory}.
  */
-public class SpannerConnectionFactoryTest {
+class SpannerConnectionFactoryTest {
 
   private SpannerConnectionConfiguration config;
 

@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-public class CollectionsBuilderTest {
+class CollectionsBuilderTest {
 
   @Test
   void testSetCreation() {

@@ -36,7 +36,7 @@ import reactor.test.StepVerifier;
 /**
  * Tests the partial result flux converter.
  */
-public class PartialResultRowExtractorTest {
+class PartialResultRowExtractorTest {
 
   // These are the expected final rows' values
   final Value a1 = Value.newBuilder().setBoolValue(false).build();

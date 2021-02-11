@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class SpannerClientLibraryConnectionTest {
+class SpannerClientLibraryConnectionTest {
 
   SpannerConnectionConfiguration mockConfig;
   DatabaseClientReactiveAdapter mockAdapter;

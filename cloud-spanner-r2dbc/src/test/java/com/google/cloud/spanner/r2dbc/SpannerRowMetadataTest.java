@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Test for {@link SpannerRowMetadata}.
  */
-public class SpannerRowMetadataTest {
+class SpannerRowMetadataTest {
 
   @Test
   void testHandleMissingColumn() {
