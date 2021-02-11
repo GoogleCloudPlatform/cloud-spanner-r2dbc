@@ -23,7 +23,7 @@ import org.springframework.data.r2dbc.dialect.BindMarkers;
 import org.springframework.data.relational.core.dialect.LimitClause;
 import org.springframework.data.relational.core.dialect.LimitClause.Position;
 
-public class SpannerR2dbcDialectTest {
+class SpannerR2dbcDialectTest {
 
   @Test
   void testLimitClause() {
