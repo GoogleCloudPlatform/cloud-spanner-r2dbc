@@ -32,7 +32,7 @@ public class DefaultCodecsNegativeTest {
   private Codecs codecs = new DefaultCodecs();
 
   @Test
-  public void encodeException() {
+  void encodeException() {
 
     assertThrows(IllegalArgumentException.class,
         () -> this.codecs.encode(BigDecimal.valueOf(100)),
@@ -40,7 +40,7 @@ public class DefaultCodecsNegativeTest {
   }
 
   @Test
-  public void decodeException() {
+  void decodeException() {
 
     assertThrows(IllegalArgumentException.class,
         () -> {

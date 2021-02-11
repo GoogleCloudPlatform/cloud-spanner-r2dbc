@@ -64,7 +64,7 @@ public class PartialResultRowExtractorTest {
   ).build();
 
   @Test
-  public void assembleRowsTest() {
+  void assembleRowsTest() {
     // The values above will be split across several partial result sets.
     PartialResultSet p1 = PartialResultSet.newBuilder().setMetadata(
         this.resultSetMetadata
@@ -118,7 +118,7 @@ public class PartialResultRowExtractorTest {
   }
 
   @Test
-  public void singleResultSetTest() {
+  void singleResultSetTest() {
     PartialResultSet p1 = PartialResultSet.newBuilder().setMetadata(
         this.resultSetMetadata
     ).setChunkedValue(false)
@@ -136,7 +136,7 @@ public class PartialResultRowExtractorTest {
   }
 
   @Test
-  public void neatRowsResultSetTest() {
+  void neatRowsResultSetTest() {
     PartialResultSet p1 = PartialResultSet.newBuilder().setMetadata(
         this.resultSetMetadata
     ).setChunkedValue(false)
@@ -159,7 +159,7 @@ public class PartialResultRowExtractorTest {
   }
 
   @Test
-  public void interRowWholeChunkTest() {
+  void interRowWholeChunkTest() {
     PartialResultSet p1 = PartialResultSet.newBuilder().setMetadata(
         this.resultSetMetadata
     ).setChunkedValue(false)
@@ -182,7 +182,7 @@ public class PartialResultRowExtractorTest {
   }
 
   @Test
-  public void handleEmptyPartialResultSet() {
+  void handleEmptyPartialResultSet() {
     PartialResultSet emptyResultSet =
         PartialResultSet.newBuilder().setMetadata(this.resultSetMetadata).build();
 

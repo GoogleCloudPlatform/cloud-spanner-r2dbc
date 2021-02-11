@@ -95,7 +95,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void testChangeAutocommitCommitsCurrentTransaction() {
+  void testChangeAutocommitCommitsCurrentTransaction() {
     when(this.mockTxnManager.isInTransaction()).thenReturn(true);
     assertThat(this.adapter.isAutoCommit()).isTrue();
 
@@ -106,7 +106,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void testSameAutocommitNoop() {
+  void testSameAutocommitNoop() {
     when(this.mockTxnManager.isInTransaction()).thenReturn(true);
     assertThat(this.adapter.isAutoCommit()).isTrue();
 
@@ -117,7 +117,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void unsetQueryOptimizerResultsInDefaultQueryOptions() {
+  void unsetQueryOptimizerResultsInDefaultQueryOptions() {
     SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
         .setFullyQualifiedDatabaseName("projects/p/instances/i/databases/d")
         .setCredentials(mock(GoogleCredentials.class))
@@ -129,7 +129,7 @@ public class DatabaseClientReactiveAdapterTest {
   }
 
   @Test
-  public void queryOptimizerPropagatesToQueryOptions() {
+  void queryOptimizerPropagatesToQueryOptions() {
     SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
         .setFullyQualifiedDatabaseName("projects/p/instances/i/databases/d")
         .setCredentials(mock(GoogleCredentials.class))

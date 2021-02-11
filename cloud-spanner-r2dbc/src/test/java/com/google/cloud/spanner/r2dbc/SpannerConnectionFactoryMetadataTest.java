@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 public class SpannerConnectionFactoryMetadataTest {
 
   @Test
-  public void getNameReturnsCorrectValue() {
+  void getNameReturnsCorrectValue() {
     assertThat(SpannerConnectionFactoryMetadata.INSTANCE.getName()).isEqualTo("Cloud Spanner");
   }
 

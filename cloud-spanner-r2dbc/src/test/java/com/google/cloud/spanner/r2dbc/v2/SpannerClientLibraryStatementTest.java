@@ -47,7 +47,7 @@ public class SpannerClientLibraryStatementTest {
   }
 
   @Test
-  public void executeSingleNoRowsUpdated() {
+  void executeSingleNoRowsUpdated() {
     when(this.mockAdapter.runSelectStatement(any(Statement.class)))
         .thenReturn(Flux.just(new SpannerClientLibraryRow(SINGLE_COLUMN_STRUCT1)));
 
@@ -67,7 +67,7 @@ public class SpannerClientLibraryStatementTest {
   }
 
   @Test
-  public void executeMultipleReturnsExpectedValuesAndCallsAdapterForEachParameterizedSelect() {
+  void executeMultipleReturnsExpectedValuesAndCallsAdapterForEachParameterizedSelect() {
 
     String query = "SELECT * from table WHERE column=%col1";
     Statement expectedSpannerStatement1 = Statement.newBuilder(query)
@@ -98,7 +98,7 @@ public class SpannerClientLibraryStatementTest {
   }
 
   @Test
-  public void optimizerVersionPassedThroughToQuery() {
+  void optimizerVersionPassedThroughToQuery() {
     QueryOptions queryOptions = QueryOptions.newBuilder().setOptimizerVersion("2").build();
     when(this.mockAdapter.getQueryOptions()).thenReturn(queryOptions);
     SpannerClientLibraryRow mockRow = mock(SpannerClientLibraryRow.class);

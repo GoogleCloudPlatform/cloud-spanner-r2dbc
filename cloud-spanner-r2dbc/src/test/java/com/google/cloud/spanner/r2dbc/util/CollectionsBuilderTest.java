@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 public class CollectionsBuilderTest {
 
   @Test
-  public void testSetCreation() {
+  void testSetCreation() {
     Set<String> items = CollectionsBuilder.setOf("Hello", "bob", "world");
     assertThat(items).containsExactlyInAnyOrder("Hello", "bob", "world");
   }

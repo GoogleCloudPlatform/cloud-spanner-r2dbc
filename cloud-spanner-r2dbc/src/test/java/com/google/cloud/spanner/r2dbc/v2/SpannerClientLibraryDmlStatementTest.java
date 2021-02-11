@@ -37,7 +37,7 @@ public class SpannerClientLibraryDmlStatementTest {
   }
 
   @Test
-  public void executeSingleNoRowsUpdated() {
+  void executeSingleNoRowsUpdated() {
     when(this.mockAdapter.runDmlStatement(any(Statement.class))).thenReturn(Mono.just(0L));
 
     SpannerClientLibraryDmlStatement dmlStatement =
@@ -50,7 +50,7 @@ public class SpannerClientLibraryDmlStatementTest {
   }
 
   @Test
-  public void executeMultiple() {
+  void executeMultiple() {
     when(this.mockAdapter.runDmlStatement(any(Statement.class))).thenReturn(Mono.just(0L));
 
     SpannerClientLibraryDmlStatement dmlStatement =

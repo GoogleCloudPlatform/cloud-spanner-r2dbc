@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 public class StatementBindingsTest {
 
   @Test
-  public void addBasicBinding() {
+  void addBasicBinding() {
     StatementBindings statementBindings = new StatementBindings();
     statementBindings.createBind("name", "John");
     statementBindings.createBind("age", 50);
@@ -56,7 +56,7 @@ public class StatementBindingsTest {
   }
 
   @Test
-  public void testNoopAddBinding() {
+  void testNoopAddBinding() {
     StatementBindings statementBindings = new StatementBindings();
     statementBindings.completeBinding();
     statementBindings.completeBinding();

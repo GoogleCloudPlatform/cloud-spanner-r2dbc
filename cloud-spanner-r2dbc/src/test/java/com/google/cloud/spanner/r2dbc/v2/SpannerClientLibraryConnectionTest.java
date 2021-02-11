@@ -44,7 +44,7 @@ public class SpannerClientLibraryConnectionTest {
   }
 
   @Test
-  public void beginReadonlyTransactionUsesStrongConsistencyByDefault() {
+  void beginReadonlyTransactionUsesStrongConsistencyByDefault() {
 
     when(this.mockAdapter.beginReadonlyTransaction(any())).thenReturn(Mono.empty());
 

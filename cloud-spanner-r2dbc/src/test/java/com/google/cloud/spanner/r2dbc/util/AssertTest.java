@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 public class AssertTest {
 
   @Test
-  public void assertNotNullThrowsExceptionWhenNull() {
+  void assertNotNullThrowsExceptionWhenNull() {
     assertThatThrownBy(() -> {
       Assert.requireNonNull(null, "oh no");
     }).isInstanceOf(IllegalArgumentException.class)
@@ -35,7 +35,7 @@ public class AssertTest {
   }
 
   @Test
-  public void assertNotNullNoopWhenNotNull() {
+  void assertNotNullNoopWhenNotNull() {
     String value = Assert.requireNonNull("definitely not null", "oh no");
     assertThat(value).isEqualTo("definitely not null");
   }
