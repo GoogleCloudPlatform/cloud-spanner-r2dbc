@@ -66,7 +66,7 @@ public class BookExampleApp {
    * Creates a table named BOOKS.
    */
   public void createTable() {
-    Mono.from(connection.createStatement("CREATE TABLE BOOKS ("
+    Mono.from(this.connection.createStatement("CREATE TABLE BOOKS ("
             + "  ID STRING(20) NOT NULL,"
             + "  TITLE STRING(MAX) NOT NULL"
             + ") PRIMARY KEY (ID)").execute())
@@ -78,7 +78,7 @@ public class BookExampleApp {
    * Saves two books.
    */
   public void saveBooks() {
-    Statement statement = connection.createStatement(
+    Statement statement = this.connection.createStatement(
         "INSERT BOOKS "
             + "(ID, TITLE)"
             + " VALUES "
@@ -91,8 +91,8 @@ public class BookExampleApp {
 
     Flux.concat(this.connection.beginTransaction(),
         Flux.from(statement.execute()).flatMapSequential(r -> Mono.from(r.getRowsUpdated())).then(),
-        connection.commitTransaction()
-    ).doOnNext(x -> System.out.println("Insert books transaction committed."))
+        this.connection.commitTransaction()
+    ).doOnComplete(() -> System.out.println("Insert books transaction committed."))
         .blockLast();
   }
 
@@ -100,7 +100,7 @@ public class BookExampleApp {
    * Finds books in the table named BOOKS.
    */
   public void retrieveBooks() {
-    Flux.from(connection.createStatement("SELECT * FROM books").execute())
+    Flux.from(this.connection.createStatement("SELECT * FROM books").execute())
         .flatMap(spannerResult -> spannerResult.map(
             (r, meta) -> "Retrieved book: " + r.get("ID", String.class) + " " + r
                 .get("TITLE", String.class)
