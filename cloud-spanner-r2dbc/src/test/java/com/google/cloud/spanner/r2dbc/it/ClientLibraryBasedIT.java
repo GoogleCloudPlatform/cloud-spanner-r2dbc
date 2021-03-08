@@ -29,6 +29,7 @@ import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.Type;
 import com.google.cloud.spanner.r2dbc.api.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryConnectionFactory;
+import io.r2dbc.spi.Closeable;
 import io.r2dbc.spi.ColumnMetadata;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -125,6 +127,11 @@ class ClientLibraryBasedIT {
         conn.createStatement("DELETE FROM BOOKS WHERE true").execute())
         .flatMap(rs -> Mono.from(rs.getRowsUpdated()))
         .block();
+  }
+
+  @AfterAll
+  static void cleanUpEnvironment() {
+  //  ((Closeable) connectionFactory).close();
   }
 
   @Test
@@ -672,6 +679,7 @@ class ClientLibraryBasedIT {
 
     StepVerifier.create(urlBasedConnectionFactory.create())
         .expectNextMatches(cf -> cf instanceof SpannerClientLibraryConnectionFactory);
+    ((Closeable) urlBasedConnectionFactory).close();
   }
 
   private Publisher<Long> getFirstNumber(Result result) {
@@ -699,4 +707,5 @@ class ClientLibraryBasedIT {
         .as("Expected rows inserted")
         .verifyComplete();
   }
+
 }

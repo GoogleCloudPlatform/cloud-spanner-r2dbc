@@ -18,9 +18,20 @@ package com.example;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
+import com.google.cloud.spanner.Spanner;
+import com.google.cloud.spanner.r2dbc.client.GrpcClient;
+import com.google.cloud.spanner.r2dbc.util.ObservableReactiveUtil;
+import com.google.spanner.v1.DatabaseName;
+import com.google.spanner.v1.ListSessionsRequest;
+import com.google.spanner.v1.ListSessionsResponse;
+import com.google.spanner.v1.Session;
+import com.google.spanner.v1.SpannerGrpc.SpannerStub;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -60,6 +71,7 @@ class BookExampleAppIT {
     bookExampleApp.createTable();
     bookExampleApp.saveBooks();
     bookExampleApp.retrieveBooks();
+    bookExampleApp.cleanup();
 
     assertThat(baos.toString()).contains("Table creation completed.");
     assertThat(baos.toString()).contains("Insert books transaction committed.");
