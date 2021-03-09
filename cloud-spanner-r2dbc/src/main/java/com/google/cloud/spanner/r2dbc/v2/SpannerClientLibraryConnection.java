@@ -141,5 +141,4 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
   public Publisher<Void> close() {
     return this.clientLibraryAdapter.close();
   }
-
 }
