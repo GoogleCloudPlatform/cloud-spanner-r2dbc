@@ -33,30 +33,28 @@ import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 
 /**
- * This class does not follow test naming conventions intentionally.
- * It is intended for one-off use troubleshooting and cleaning up sessions.
+ * Driver class for one-off use troubleshooting and cleaning up of Cloud Spanner sessions.
  * Note that during normal operation, no leftover sessions should be present. If leftover sessions
  * are detected, it's due to a bug and should be fixed.
  */
-@Disabled
-public class SessionCleanupUtils {
+class SessionCleanupUtils {
 
   static GrpcClient client;
   static SpannerStub spannerStub;
 
-  @BeforeAll
-  static void setUpEnvironment() throws Exception {
+  public static void main(String[] args) throws Exception {
     client = new GrpcClient(GoogleCredentials.getApplicationDefault());
     spannerStub = client.getSpanner();
+
+    // Uncomment if necessary to clear already-accumulated sessions.
+    //deleteAllSessions();
+
+    verifyNoLeftoverSessions();
   }
 
-  @Test
-  void deleteAllSessions() throws Exception {
+  static void deleteAllSessions() throws Exception {
     List<String> activeSessions = getSessionNames();
     System.out.println("Deleting " + activeSessions.size() + " sessions");
     int i = 0;
@@ -96,13 +94,12 @@ public class SessionCleanupUtils {
    * - you want to verify session state after a test. In this case, make another method
    *   verifying the correct number of sessions (exactly 1, greater than 10 etc.)
    */
-  @Test
-  void verifyNoLeftoverSessions() throws Exception {
+  static void verifyNoLeftoverSessions() throws Exception {
     List<String> activeSessions = getSessionNames();
     assertThat(activeSessions).isEmpty();
   }
 
-  private List<String> getSessionNames() throws Exception {
+  private static List<String> getSessionNames() throws Exception {
     String databaseName = DatabaseName.format(ServiceOptions.getDefaultProjectId(),
         DatabaseProperties.INSTANCE, DatabaseProperties.DATABASE);
 
