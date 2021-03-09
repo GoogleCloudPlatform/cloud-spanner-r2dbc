@@ -16,8 +16,6 @@
 
 package com.google.cloud.spanner.r2dbc.it;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.r2dbc.client.GrpcClient;
@@ -96,7 +94,11 @@ class SessionCleanupUtils {
    */
   static void verifyNoLeftoverSessions() throws Exception {
     List<String> activeSessions = getSessionNames();
-    assertThat(activeSessions).isEmpty();
+    if (activeSessions.isEmpty()) {
+      System.out.println("No leftover sessions, yay!");
+    } else {
+      throw new IllegalStateException("Expected no sessions, but found " + activeSessions.size());
+    }
   }
 
   private static List<String> getSessionNames() throws Exception {
