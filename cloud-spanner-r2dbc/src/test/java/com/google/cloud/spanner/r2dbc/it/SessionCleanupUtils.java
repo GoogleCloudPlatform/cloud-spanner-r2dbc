@@ -34,12 +34,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
  * This class does not follow test naming conventions intentionally.
  * It is intended for one-off use troubleshooting and cleaning up sessions.
+ * Note that during normal operation, no leftover sessions should be present. If leftover sessions
+ * are detected, it's due to a bug and should be fixed.
  */
+@Disabled
 public class SessionCleanupUtils {
 
   static GrpcClient client;
@@ -54,6 +58,7 @@ public class SessionCleanupUtils {
   @Test
   void deleteAllSessions() throws Exception {
     List<String> activeSessions = getSessionNames();
+    System.out.println("Deleting " + activeSessions.size() + " sessions");
     int i = 0;
     for (String name : activeSessions) {
       if (i % 50 == 0) {
@@ -81,15 +86,19 @@ public class SessionCleanupUtils {
           });
     }
 
+    Thread.sleep(1000);
+
   }
 
+  /** In stable state, there should be no stray sessions.
+   * Exceptions:
+   * - you are running in a CI environment and there are other tests running.
+   * - you want to verify session state after a test. In this case, make another method
+   *   verifying the correct number of sessions (exactly 1, greater than 10 etc.)
+   */
   @Test
-  // can be used as a test or as a helper verifier method.
-  void verifyAtMostOneLeftoverSession() throws Exception {
+  void verifyNoLeftoverSessions() throws Exception {
     List<String> activeSessions = getSessionNames();
-
-    // only the current session should be present, or none
-    //assertThat(activeSessions).hasSizeLessThan(2);
     assertThat(activeSessions).isEmpty();
   }
 

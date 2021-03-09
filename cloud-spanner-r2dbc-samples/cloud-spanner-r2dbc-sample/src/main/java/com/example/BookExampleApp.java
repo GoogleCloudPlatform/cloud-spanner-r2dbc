@@ -59,7 +59,7 @@ public class BookExampleApp {
   }
 
   public void cleanup() {
-    this.connection.close();
+    Mono.from(this.connection.close()).block();
   }
 
   /**

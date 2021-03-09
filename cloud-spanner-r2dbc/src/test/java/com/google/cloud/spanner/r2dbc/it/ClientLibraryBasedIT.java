@@ -131,7 +131,8 @@ class ClientLibraryBasedIT {
 
   @AfterAll
   static void cleanUpEnvironment() {
-  //  ((Closeable) connectionFactory).close();
+    Closeable closeableConnectionFactory = (Closeable) connectionFactory;
+    Mono.from(closeableConnectionFactory.close()).block();
   }
 
   @Test
@@ -676,10 +677,12 @@ class ClientLibraryBasedIT {
   void testConnectingThroughUrl() {
     ConnectionFactory urlBasedConnectionFactory =
         ConnectionFactories.get(DatabaseProperties.URL + "?client-implementation=client-library");
+    assertThat(urlBasedConnectionFactory).isInstanceOf(SpannerClientLibraryConnectionFactory.class);
+    SpannerClientLibraryConnectionFactory sclConnectionFactory =
+        (SpannerClientLibraryConnectionFactory) urlBasedConnectionFactory;
 
-    StepVerifier.create(urlBasedConnectionFactory.create())
-        .expectNextMatches(cf -> cf instanceof SpannerClientLibraryConnectionFactory);
-    ((Closeable) urlBasedConnectionFactory).close();
+    // clean up Spanner resources.
+    Mono.from(sclConnectionFactory.close()).block();
   }
 
   private Publisher<Long> getFirstNumber(Result result) {
