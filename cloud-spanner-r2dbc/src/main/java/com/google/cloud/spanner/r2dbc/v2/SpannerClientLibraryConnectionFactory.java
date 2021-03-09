@@ -63,7 +63,6 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory,
    */
   @Override
   public Publisher<Void> close() {
-    // TODO: check if it would still be blocking in Cloud Spanner Connection API
     return Mono.fromRunnable(() -> this.spannerClient.close());
   }
 }
