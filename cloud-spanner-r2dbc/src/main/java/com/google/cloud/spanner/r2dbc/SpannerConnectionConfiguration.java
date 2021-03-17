@@ -20,7 +20,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.util.Assert;
-import com.google.common.annotations.VisibleForTesting;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import java.io.IOException;
@@ -204,7 +203,6 @@ public class SpannerConnectionConfiguration {
   /**
    * Builder for the enclosing class.
    */
-  @VisibleForTesting
   public static class Builder {
 
     private String fullyQualifiedDatabaseName;

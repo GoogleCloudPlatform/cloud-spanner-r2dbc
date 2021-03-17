@@ -301,7 +301,7 @@ class SpannerIntegrationTest {
         this.connection,
         "Select count(1) as count FROM books",
         (row, rowMetadata) -> row.get("count", Long.class)).get(0);
-    assertThat(count).isEqualTo(0);
+    assertThat(count).isZero();
 
     Statement statement = this.connection.createStatement(
         "INSERT BOOKS "
@@ -351,7 +351,7 @@ class SpannerIntegrationTest {
         this.connection,
         "Select count(1) as count FROM books",
         (row, rowMetadata) -> row.get("count", Long.class)).get(0);
-    assertThat(count).isEqualTo(0);
+    assertThat(count).isZero();
 
     StepVerifier.create(Flux.concat(
                 this.connection.beginTransaction(),
@@ -456,7 +456,7 @@ class SpannerIntegrationTest {
         .blockFirst();
 
     int rowsUpdated = Mono.from(result.getRowsUpdated()).block();
-    assertThat(rowsUpdated).isEqualTo(0);
+    assertThat(rowsUpdated).isZero();
 
     List<String> rowsReturned =
         Flux.from(result.map((row, metadata) -> row.toString()))
