@@ -83,8 +83,6 @@ class ClientLibraryBasedIT {
   @BeforeAll
   public static void setupSpannerTable() {
 
-    Hooks.onOperatorDebug();
-
     if (!"false".equals(System.getProperty("it.recreate-ddl"))) {
       LOGGER.info("Dropping and re-creating table BOOKS.");
       Connection con = Mono.from(connectionFactory.create()).block();
