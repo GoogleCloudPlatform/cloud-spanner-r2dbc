@@ -175,7 +175,7 @@ class SpannerConnectionFactoryProviderTest {
 
     StepVerifier.create(connectionFactory.create()
         .flatMapMany(c -> c.createStatement("SELECT * from table").execute())
-            .flatMap(result -> result.map((row,meta) -> row.get(0, String.class)))
+            .flatMap(result -> result.map((row, meta) -> row.get(0, String.class)))
         )
         .then(() -> {
           // switchOnFirst() requests one element, then requests the demand balance.
