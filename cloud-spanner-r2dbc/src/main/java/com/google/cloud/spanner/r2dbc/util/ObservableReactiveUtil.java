@@ -94,7 +94,7 @@ public class ObservableReactiveUtil {
     }
 
     public void request(long n) {
-      this.rsObserver.request(n > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int)n);
+      this.rsObserver.request(n > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) n);
     }
   }
 

@@ -162,7 +162,7 @@ class SpannerConnectionFactoryProviderTest {
             .build();
 
     SpannerConnectionFactory connectionFactory
-        = (SpannerConnectionFactory)this.spannerConnectionFactoryProvider.create(options);
+        = (SpannerConnectionFactory) this.spannerConnectionFactoryProvider.create(options);
 
     TestPublisher<PartialResultSet> partialResultSetPublisher = TestPublisher.create();
     when(this.mockClient.executeStreamingSql(
