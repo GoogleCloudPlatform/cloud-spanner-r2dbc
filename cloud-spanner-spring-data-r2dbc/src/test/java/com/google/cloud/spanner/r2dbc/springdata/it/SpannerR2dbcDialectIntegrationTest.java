@@ -47,7 +47,8 @@ import reactor.test.StepVerifier;
  */
 class SpannerR2dbcDialectIntegrationTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(SpannerR2dbcDialectIntegrationTest.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(SpannerR2dbcDialectIntegrationTest.class);
 
   private static final String DRIVER_NAME = "spanner";
 
