@@ -69,7 +69,7 @@ import reactor.test.StepVerifier;
 /**
  * Integration test for connecting to a real Spanner instance.
  */
-class SpannerIT {
+class SpannerIntegrationTest {
 
   private static final ConnectionFactory connectionFactory =
       ConnectionFactories.get(ConnectionFactoryOptions.builder()
@@ -85,7 +85,7 @@ class SpannerIT {
 
   private SpannerConnection connection;
 
-  private static final Logger logger = LoggerFactory.getLogger(SpannerIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(SpannerIntegrationTest.class);
 
   /**
    * Setup the Spanner stub for testing.

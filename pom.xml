@@ -293,7 +293,7 @@
         <configuration>
           <includes>
             <include>**/*TestKit.java</include>
-            <include>**/*IT.java</include>
+            <include>**/*IntegrationTest*.java</include>
           </includes>
         </configuration>
         <executions>
