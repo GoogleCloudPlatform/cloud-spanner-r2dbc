@@ -81,6 +81,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
    * Begins a new transaction with the specified {@link TransactionOptions}.
    *
    * @param transactionOptions custom options to modify the transaction to start.
+   *
    * @return {@link Mono} indicating completion of the operation.
    */
   public Mono<Void> beginTransaction(TransactionOptions transactionOptions) {
@@ -230,6 +231,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
    * transaction is committed first.
    *
    * @param newAutoCommit whether autocommit should be on or off in the future.
+   *
    * @return {@link Mono} of the transaction commit operation, if applicable; empty mono otherwise.
    */
   @Override

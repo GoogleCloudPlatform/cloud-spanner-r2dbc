@@ -59,6 +59,7 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory,
 
   /**
    * This method is blocking, to be called at the end of the application lifecycle.
+   *
    * @return
    */
   @Override

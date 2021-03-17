@@ -104,6 +104,7 @@ public class StatementBindings {
 
   /**
    * Returns the built binding for the statement.
+   *
    * @return list of {@link Struct} representing all the parameter bindings for the statement.
    */
   public List<Struct> getBindings() {

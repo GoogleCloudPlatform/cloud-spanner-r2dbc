@@ -112,6 +112,7 @@ public class SpannerConnectionConfiguration {
 
   /**
    * Turns configuration properties into a fully qualified database name.
+   *
    * @return fully qualified database name
    */
   public String getFullyQualifiedDatabaseName() {
@@ -244,6 +245,7 @@ public class SpannerConnectionConfiguration {
      *
      * @param databaseName fully qualified database name in the format of
      *                     "projects/%s/instances/%s/databases/%s"
+     *
      * @return builder for chaining
      */
     public Builder setFullyQualifiedDatabaseName(String databaseName) {

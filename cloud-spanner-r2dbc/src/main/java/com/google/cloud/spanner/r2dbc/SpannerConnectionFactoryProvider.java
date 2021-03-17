@@ -194,6 +194,7 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
    * Fails if more than one known security option is specified.
    *
    * @param options user-supplied configuration options
+   *
    * @return
    */
   private OAuth2Credentials extractCredentials(ConnectionFactoryOptions options) {

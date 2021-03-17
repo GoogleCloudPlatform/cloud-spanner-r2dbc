@@ -28,6 +28,7 @@ public interface Codec<T> {
    *
    * @param dataType spanner data type
    * @param type input data type
+   *
    * @return true the codec can decode a value, false otherwise
    */
   boolean canDecode(Type dataType, Class<?> type);
@@ -36,6 +37,7 @@ public interface Codec<T> {
    * Indicates if the codec can encode a value.
    *
    * @param type input data object type
+   *
    * @return true the codec can encode value, false otherwise
    */
   boolean canEncode(Class<?> type);
@@ -45,6 +47,7 @@ public interface Codec<T> {
    *
    * @param value the {@link Value} object containing the value to decode
    * @param spannerType the type to decode to
+   *
    * @return the decoded value
    */
   @Nullable
@@ -55,6 +58,7 @@ public interface Codec<T> {
    * Encode a value.
    *
    * @param value the value to encode
+   *
    * @return the encoded value
    */
   Value encode(Object value);
