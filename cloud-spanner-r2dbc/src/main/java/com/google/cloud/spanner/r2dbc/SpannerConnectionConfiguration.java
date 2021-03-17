@@ -200,7 +200,7 @@ public class SpannerConnectionConfiguration {
     return optionsBuilder.build();
   }
 
-  public static class Builder {
+  static class Builder {
 
     private String fullyQualifiedDatabaseName;
 

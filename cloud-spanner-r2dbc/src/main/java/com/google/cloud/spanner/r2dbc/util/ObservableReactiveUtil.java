@@ -35,7 +35,7 @@ public class ObservableReactiveUtil {
    * stream.
    *
    * @param remoteCall lambda capable of invoking the correct remote call, making use of the
-   * {@link Mono}-converting {@link StreamObserver} implementation.
+   *     {@link Mono}-converting {@link StreamObserver} implementation.
    * @param <ResponseT> type of remote call response
    *
    * @return {@link Mono} containing the response of the unary call.

@@ -21,6 +21,11 @@ import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
 import reactor.util.annotation.Nullable;
 
+/**
+ * Interface to enable type conversion between Cloud Spanner and Java types.
+ *
+ * @param <T> Java type
+ */
 public interface Codec<T> {
 
   /**

@@ -195,7 +195,7 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
    *
    * @param options user-supplied configuration options
    *
-   * @return
+   * @return constructed credentials if successful
    */
   private OAuth2Credentials extractCredentials(ConnectionFactoryOptions options) {
 

@@ -58,9 +58,10 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory,
   }
 
   /**
-   * This method is blocking, to be called at the end of the application lifecycle.
+   * This method returns a publisher based on a blocking client library call. It is meant to be
+   * called at the end of the application lifecycle.
    *
-   * @return
+   * @return A Mono indicating that the blocking call completed.
    */
   @Override
   public Publisher<Void> close() {
