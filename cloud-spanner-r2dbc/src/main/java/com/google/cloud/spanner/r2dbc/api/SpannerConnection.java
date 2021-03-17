@@ -29,6 +29,7 @@ import reactor.core.publisher.Mono;
 public interface SpannerConnection {
   /**
    * Allows starting a readonly Cloud Spanner transaction with given staleness settings.
+   *
    * @param timestampBound staleness settings
    * @return {@link Mono} signaling readonly transaction is ready for use
    */

@@ -67,6 +67,7 @@ public class StatementBindings {
 
   /**
    * Add an additional param-to-value binding pair to the current parameter binding.
+   *
    * @param identifier the String name of the bind variable.
    * @param value the value you wish to bind the parameter to.
    */

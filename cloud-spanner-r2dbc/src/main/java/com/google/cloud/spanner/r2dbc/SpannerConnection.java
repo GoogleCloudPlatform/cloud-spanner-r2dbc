@@ -61,6 +61,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
 
   /**
    * Instantiates a Spanner session with given configuration.
+   *
    * @param client client controlling low-level Spanner operations.
    * @param session Spanner session to use for all interactions on this connection.
    * @param config configuration to customize the Spanner Connection properties.
@@ -203,6 +204,7 @@ public class SpannerConnection implements Connection, StatementExecutionContext 
   /**
    * Sets a new transaction or unsets the current one if {@code null} is passed in.
    * Transactions are mutable in the execution context.
+   *
    * @param transaction the newly opened transaction
    */
   private void setTransaction(

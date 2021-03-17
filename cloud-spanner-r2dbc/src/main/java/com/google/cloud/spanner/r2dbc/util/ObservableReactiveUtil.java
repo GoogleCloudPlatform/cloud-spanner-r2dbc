@@ -33,6 +33,7 @@ public class ObservableReactiveUtil {
   /**
    * Invokes a lambda that in turn issues a remote call, directing the response to a {@link Mono}
    * stream.
+   *
    * @param remoteCall lambda capable of invoking the correct remote call, making use of the
    * {@link Mono}-converting {@link StreamObserver} implementation.
    * @param <ResponseT> type of remote call response

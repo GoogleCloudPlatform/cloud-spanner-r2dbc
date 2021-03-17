@@ -158,6 +158,7 @@ class DatabaseClientTransactionManager {
 
   /**
    * Runs provided operation, managing the client library transactional future chaining.
+   *
    * @param operation a function executing either streaming SQL or DML.
    *     The function accepts ReadContext for SELECT queries, and TransactionContext for DML.
    * @param <T> Type of object wrapped by the {@link ApiFuture} returned by the operation
