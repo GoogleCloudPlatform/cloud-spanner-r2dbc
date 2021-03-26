@@ -19,9 +19,9 @@ package com.google.cloud.spanner.r2dbc.springdata;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.data.r2dbc.dialect.BindMarkers;
 import org.springframework.data.relational.core.dialect.LimitClause;
 import org.springframework.data.relational.core.dialect.LimitClause.Position;
+import org.springframework.r2dbc.core.binding.BindMarkers;
 
 class SpannerR2dbcDialectTest {
 

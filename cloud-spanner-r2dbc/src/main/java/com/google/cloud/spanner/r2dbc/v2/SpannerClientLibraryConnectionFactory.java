@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
+import com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryMetadata;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import io.r2dbc.spi.Closeable;
 import io.r2dbc.spi.Connection;
@@ -54,7 +55,7 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory,
 
   @Override
   public ConnectionFactoryMetadata getMetadata() {
-    return null;
+    return SpannerConnectionFactoryMetadata.INSTANCE;
   }
 
   /**

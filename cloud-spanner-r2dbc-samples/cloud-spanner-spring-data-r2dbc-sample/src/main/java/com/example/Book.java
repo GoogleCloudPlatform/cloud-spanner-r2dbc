@@ -17,6 +17,7 @@
 package com.example;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 /**
@@ -26,8 +27,10 @@ import org.springframework.data.relational.core.mapping.Table;
 public class Book {
 
   @Id
+  @Column("ID")
   private String id;
 
+  @Column("TITLE")
   private String title;
 
   public Book(String id, String title) {
@@ -41,5 +44,21 @@ public class Book {
 
   public String getTitle() {
     return this.title;
+  }
+
+  public void setId(String id) {
+    this.id = id;
+  }
+
+  public void setTitle(String title) {
+    this.title = title;
+  }
+
+  @Override
+  public String toString() {
+    return "Book{" +
+        "id='" + id + '\'' +
+        ", title='" + title + '\'' +
+        '}';
   }
 }

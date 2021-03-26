@@ -207,7 +207,11 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for running a DML statement
    */
   Mono<Long> runDmlStatement(com.google.cloud.spanner.Statement statement) {
-    return runBatchDmlInternal(ctx -> ctx.executeUpdateAsync(statement));
+    return runBatchDmlInternal(
+        ctx -> {
+          System.out.println("*** Executing update on " + statement.getSql());
+          return ctx.executeUpdateAsync(statement);
+        });
   }
 
   /**
