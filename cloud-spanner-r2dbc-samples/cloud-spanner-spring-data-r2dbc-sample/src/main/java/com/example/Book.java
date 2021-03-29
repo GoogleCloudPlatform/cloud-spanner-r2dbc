@@ -46,19 +46,4 @@ public class Book {
     return this.title;
   }
 
-  public void setId(String id) {
-    this.id = id;
-  }
-
-  public void setTitle(String title) {
-    this.title = title;
-  }
-
-  @Override
-  public String toString() {
-    return "Book{" +
-        "id='" + id + '\'' +
-        ", title='" + title + '\'' +
-        '}';
-  }
 }
