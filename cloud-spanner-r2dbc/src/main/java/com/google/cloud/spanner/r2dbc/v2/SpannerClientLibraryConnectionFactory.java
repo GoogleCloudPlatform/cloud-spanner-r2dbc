@@ -67,7 +67,7 @@ public class SpannerClientLibraryConnectionFactory implements ConnectionFactory,
    * @return A Mono indicating that the blocking call completed
    */
   @Override
-  public Publisher<Void> close() {
+  public Mono<Void> close() {
     return Mono.fromRunnable(() -> this.spannerClient.close());
   }
 }
