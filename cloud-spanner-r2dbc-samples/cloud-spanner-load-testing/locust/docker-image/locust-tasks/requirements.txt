@@ -1,0 +1,17 @@
+certifi==2020.12.5
+chardet==4.0.0
+Click==7.1.2
+Flask==1.1.2
+gevent==21.1.2
+greenlet==1.0.0
+idna==2.10
+itsdangerous==1.1.0
+Jinja2==2.11.3
+locust==1.4.4
+MarkupSafe==1.1.1
+msgpack==1.0.2
+pyzmq==22.0.3
+requests==2.25.1
+six==1.15.0
+urllib3==1.26.4
+Werkzeug==1.0.1
