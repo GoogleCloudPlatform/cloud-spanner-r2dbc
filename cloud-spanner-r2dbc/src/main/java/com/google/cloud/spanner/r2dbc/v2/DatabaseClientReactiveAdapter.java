@@ -35,8 +35,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.spanner.v1.ExecuteSqlRequest.QueryOptions;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
@@ -45,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Converts gRPC/Cloud Spanner client library asyncronous abstractions into reactive ones.
@@ -63,7 +63,8 @@ class DatabaseClientReactiveAdapter {
 
   private final DatabaseAdminClient dbAdminClient;
 
-  private final ExecutorService executorService;
+  //private final ExecutorService executorService;
+  private final Executor executorService;
 
   private DatabaseClientTransactionManager txnManager;
 
@@ -80,11 +81,14 @@ class DatabaseClientReactiveAdapter {
   DatabaseClientReactiveAdapter(
       Spanner spannerClient,
       SpannerConnectionConfiguration config) {
+
     this.spannerClient = spannerClient;
     this.dbClient = spannerClient.getDatabaseClient(
         DatabaseId.of(config.getProjectId(), config.getInstanceName(), config.getDatabaseName()));
     this.dbAdminClient = spannerClient.getDatabaseAdminClient();
-    this.executorService = Executors.newFixedThreadPool(config.getThreadPoolSize());
+    // this.executorService = Executors.newFixedThreadPool(config.getThreadPoolSize());
+    this.executorService = runnable -> Schedulers.parallel().schedule(runnable);
+
     this.config = config;
     this.txnManager = new DatabaseClientTransactionManager(this.dbClient, this.executorService);
 
@@ -152,7 +156,7 @@ class DatabaseClientReactiveAdapter {
     // will run twice, causing trace span to be closed twice. Introduce `closed` field.
     return Mono.fromRunnable(() -> {
       this.txnManager.clearTransactionManager();
-      this.executorService.shutdown();
+      //this.executorService.shutdown();
     });
   }
 
@@ -163,7 +167,7 @@ class DatabaseClientReactiveAdapter {
    */
   Mono<Boolean> healthCheck() {
     return Mono.defer(() -> {
-      if (this.executorService.isShutdown() || this.spannerClient.isClosed()) {
+      if (this.spannerClient.isClosed()) {
         return Mono.just(false);
       } else {
         return Flux.<SpannerClientLibraryRow>create(sink -> {
@@ -181,7 +185,7 @@ class DatabaseClientReactiveAdapter {
   }
 
   Mono<Boolean> localHealthcheck() {
-    return Mono.fromSupplier(() -> !this.executorService.isShutdown());
+    return Mono.fromSupplier(() -> true);
   }
 
   boolean isAutoCommit() {
@@ -285,6 +289,7 @@ class DatabaseClientReactiveAdapter {
       FluxSink<SpannerClientLibraryRow> sink) {
     AsyncResultSet ars = readContext.executeQueryAsync(statement);
     sink.onCancel(ars::cancel);
+    sink.onDispose(ars::close);
 
     return ars.setCallback(
         this.executorService,

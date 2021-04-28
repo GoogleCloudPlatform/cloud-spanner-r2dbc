@@ -28,7 +28,7 @@ import com.google.cloud.spanner.ReadOnlyTransaction;
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.TransactionContext;
 import com.google.cloud.spanner.r2dbc.TransactionInProgressException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,10 +53,10 @@ class DatabaseClientTransactionManager {
 
   private AsyncTransactionStep<?, ? extends Object> lastStep;
 
-  private final ExecutorService executorService;
+  private final Executor executorService;
 
   public DatabaseClientTransactionManager(
-      DatabaseClient dbClient, ExecutorService executorService) {
+      DatabaseClient dbClient, Executor executorService) {
     this.dbClient = dbClient;
     this.executorService = executorService;
   }
