@@ -1,46 +1,45 @@
 package com.example;
 
+import static com.example.DbConstants.TEST_DATABASE;
+import static com.example.DbConstants.TEST_INSTANCE;
+import static com.example.DbConstants.TEST_PROJECT;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.ServiceOptions;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.DatabaseId;
+import com.google.cloud.spanner.ReadOnlyTransaction;
 import com.google.cloud.spanner.ResultSet;
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.Statement;
+import io.r2dbc.spi.Closeable;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import javax.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @RestController
 @RequestMapping("/artworks")
 public class MetController {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(MetController.class);
-
-  static final String TEST_INSTANCE
-      = System.getProperty("spanner.instance", "reactivetest");
-  static final String TEST_DATABASE
-      = System.getProperty("spanner.database", "met");
-  static final String TEST_PROJECT
-      = System.getProperty("gcp.project", ServiceOptions.getDefaultProjectId());
 
   ConnectionFactory connectionFactoryGrpc = ConnectionFactories.get(
       ConnectionFactoryOptions.builder()
@@ -50,14 +49,8 @@ public class MetController {
           .option(DATABASE, TEST_DATABASE)
           .build());
 
-  ConnectionFactory connectionFactoryClientLibrary = ConnectionFactories.get(
-      ConnectionFactoryOptions.builder()
-          .option(Option.valueOf("project"), TEST_PROJECT)
-          .option(DRIVER, DRIVER_NAME)
-          .option(INSTANCE, TEST_INSTANCE)
-          .option(DATABASE, TEST_DATABASE)
-          .option(Option.valueOf("client-implementation"), "client-library")
-          .build());
+  @Autowired
+  ConnectionFactory connectionFactoryClientLibrary;
 
   SpannerOptions options = SpannerOptions.newBuilder().build();
   Spanner spanner = options.getService();
@@ -109,14 +102,15 @@ public class MetController {
     ResultSet resultSet = this.dbClient.singleUse()
         .executeQuery(Statement.of(generateQuery()));
 
-    return Flux.create(sink -> {
+    return Flux.<String>create(sink -> {
       while (resultSet.next()) {
         sink.next(
             resultSet.getCurrentRowAsStruct().getString("title") +
                 " (" + resultSet.getCurrentRowAsStruct().getString("object_name") + ")\n<br/>");
       }
       sink.complete();
-    });
+      resultSet.close();
+    }).subscribeOn(Schedulers.boundedElastic());
 
   }
 
@@ -130,36 +124,90 @@ public class MetController {
           resultSet.getCurrentRowAsStruct().getString("title") + " (" +
               resultSet.getCurrentRowAsStruct().getString("object_name") + ")\n<br/>");
     }
+    resultSet.close();
 
     return titles;
   }
 
+  @GetMapping("/client-library-reactive-readonly-txn")
+  Flux<String> getArtworksClientLibraryReactiveReadonlyTransaction() {
+    ReadOnlyTransaction txn = this.dbClient.readOnlyTransaction();
+    ResultSet resultSet = txn
+        .executeQuery(Statement.of(generateQuery()));
+
+    return Flux.<String>create(
+            sink -> {
+              while (resultSet.next()) {
+                sink.next(
+                    resultSet.getCurrentRowAsStruct().getString("title")
+                        + " ("
+                        + resultSet.getCurrentRowAsStruct().getString("object_name")
+                        + ")\n<br/>");
+              }
+              sink.complete();
+              resultSet.close();
+              txn.close();
+            })
+        .subscribeOn(Schedulers.boundedElastic());
+  }
+
+  @GetMapping("noop-no-delay")
+  Flux<String> noOpWithoutDelay() {
+    return Flux.just("one", "two");
+  }
+
+  @GetMapping("noop-10ms-delay")
+  Flux<String> noOpWith10msDelay() {
+    return Flux.just("one", "two").delaySubscription(Duration.ofMillis(10));
+  }
+
+  @GetMapping("noop-100ms-delay")
+  Flux<String> noOpWith100msDelay() {
+    return Flux.just("one", "two").delaySubscription(Duration.ofMillis(100));
+  }
+
+  @GetMapping("noop-1s-delay")
+  Flux<String> noOpWith1sDelay() {
+    return Flux.just("one", "two").delaySubscription(Duration.ofSeconds(1));
+  }
+
+
   @GetMapping("/r2dbc-grpc")
   Flux<String> getArtworksR2dbcGrpc() {
-    return Flux.from(this.connectionFactoryGrpc.create())
-        .flatMap(conn -> conn.createStatement(generateQuery()).execute())
-            .flatMap(spannerResult -> spannerResult.map(
-                (r, meta) -> r.get("title", String.class) + " (" +
-                    r.get("object_name", String.class) + ")\n<br/>"
-            ));
+    return Mono.from(this.connectionFactoryGrpc.create())
+        .flatMapMany(conn ->
+            Flux.from(conn.createStatement(generateQuery()).execute())
+                .flatMap(spannerResult -> spannerResult.map(
+                    (r, meta) -> r.get("title", String.class) + " (" +
+                        r.get("object_name", String.class) + ")\n<br/>"
+                )).doOnComplete(() -> Mono.from(conn.close()).subscribe())
+        );
   }
 
   @GetMapping("/r2dbc-clientlibrary")
   Flux<String> getArtworksR2dbcClientLibrary() {
     return Mono.from(this.connectionFactoryClientLibrary.create())
-        .flatMapMany(conn -> conn.createStatement(generateQuery()).execute())
-        .flatMap(spannerResult -> spannerResult.map(
-            (r, meta) -> {
-              //System.out.println("Got ROW: " + r);
-              return r.get("title", String.class)
-                  + " (" + r.get("object_name", String.class) + ")\n<br/>";
-            }
-        ));
+        .flatMapMany(conn ->
+            Flux.from(conn.createStatement(generateQuery()).execute())
+            .flatMap(spannerResult -> spannerResult.map(
+              (r, meta) -> {
+                //System.out.println("Got ROW: " + r);
+                return r.get("title", String.class)
+                    + " (" + r.get("object_name", String.class) + ")\n<br/>";
+              })
+            ).doOnComplete(() -> {
+              Mono.from(conn.close()).subscribe();
+            })
+        );
   }
 
   @PreDestroy
   public void cleanUp() {
-    // TODO: clean up spanner sessions
+    Mono.from(
+        ( (Closeable) connectionFactoryClientLibrary).close()
+    ).subscribe();
+
+    this.spanner.close();
   }
 
 

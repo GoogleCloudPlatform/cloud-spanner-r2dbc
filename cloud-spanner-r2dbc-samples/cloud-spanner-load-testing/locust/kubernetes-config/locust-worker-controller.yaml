@@ -31,11 +31,13 @@ spec:
     spec:
       containers:
         - name: locust-worker
-          image: gcr.io/[PROJECT_ID]/locust-tasks:latest
+          image: gcr.io/elfel-spring/locust-tasks:latest
           env:
             - name: LOCUST_MODE
               value: worker
             - name: LOCUST_MASTER
               value: locust-master
             - name: TARGET_HOST
-              value: http://[TARGET_HOST]
+              value: http://10.47.246.139
+      nodeSelector:
+        cloud.google.com/gke-nodepool: locust-pool

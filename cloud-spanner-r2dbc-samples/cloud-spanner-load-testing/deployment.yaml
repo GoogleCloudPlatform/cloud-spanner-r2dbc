@@ -23,4 +23,6 @@ spec:
       - image: gcr.io/[PROJECT_ID]/[IMAGE_NAME]
         name: r2dbc-load-testing
         resources: {}
+      nodeSelector:
+        cloud.google.com/gke-nodepool: webapp-pool
 status: {}

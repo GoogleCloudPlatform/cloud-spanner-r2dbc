@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cloud Spanner Load Testing</title>
+</head>
+<body>
+
+  <h2>Choose your adventure:</h2>
+
+  <ul>
+    <li>
+      <a href="/artworks/client-library-all">Client Library: Return full list</a>
+    </li>
+
+    <li>
+      <a href="/artworks/client-library-reactive">Client Library: Ersatz Reactive</a>
+    </li>
+
+    <!-- ah, it's reusable, but I don't reuse it. Should try that -->
+    <li>
+      <a href="/artworks/client-library-reactive-readonly-txn">Client Library: Ersatz Reactive with a reusable transaction</a>
+    </li>
+
+    <li>
+      <a href="/artworks/r2dbc-grpc">R2DBC: v1, gRPC</a>
+    </li>
+
+    <li>
+      <a href="/artworks/r2dbc-clientlibrary">R2DBC: v2, client library</a>
+    </li>
+
+    <li>
+      <a href="/artworks/noop-no-delay">No Spanner operations, no delay</a>
+    </li>
+
+    <li>
+      <a href="/artworks/noop-10ms-delay">No Spanner operations, 10ms delay</a>
+    </li>
+
+    <li>
+      <a href="/artworks/noop-100ms-delay">No Spanner operations, 100ms delay</a>
+    </li>
+
+    <li>
+      <a href="/artworks/noop-1s-delay">No Spanner operations, 1s delay</a>
+    </li>
+
+  </ul>
+</body>
+</html>
