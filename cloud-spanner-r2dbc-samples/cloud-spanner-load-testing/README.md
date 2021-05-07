@@ -37,3 +37,21 @@ Keep in mind that AppEngine versions "May only contain lowercase letters, digits
 
 mvn package appengine:deploy -Dapp.deploy.projectId=$PROJECT_ID -Dapp.deploy.version=$VERSION
 
+
+## Profiling on GKE
+
+NOTE: make sure your service has the Cloudprofiler Agent role; otherwise no data will be reported.
+
+The easiest way to enable java agent on GKE is to include it as an extra file in the src/main/jib folder.
+1. Install cprof into the folder within this application:
+````
+mkdir -p src/main/jib/opt/cprof
+
+wget -q -O- https://storage.googleapis.com/cloud-profiler/java/latest/profiler_java_agent.tar.gz | tar xzv -C src/main/jib/opt/cprof
+
+```` 
+
+1. And now create a container that starts java with the agent enabled.
+````
+mvn -DskipTests package com.google.cloud.tools:jib-maven-plugin:3.0.0:build -Djib.from.image=registry://adoptopenjdk:11-jre -Dimage=gcr.io/$PROJECT_ID/$APP_NAME:$VERSION -Djib.container.jvmFlags="-agentpath:/opt/cprof/profiler_java_agent.so=-cprof_service=r2dbc-profiling"
+````
