@@ -35,8 +35,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.spanner.v1.ExecuteSqlRequest.QueryOptions;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
@@ -45,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Converts gRPC/Cloud Spanner client library asyncronous abstractions into reactive ones.
@@ -53,6 +53,9 @@ import reactor.core.publisher.Mono;
 class DatabaseClientReactiveAdapter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseClientReactiveAdapter.class);
+
+  public static final Executor REACTOR_EXECUTOR =
+      runnable -> Schedulers.parallel().schedule(runnable);
 
   // used for DDL operations
   private final SpannerConnectionConfiguration config;
@@ -63,11 +66,11 @@ class DatabaseClientReactiveAdapter {
 
   private final DatabaseAdminClient dbAdminClient;
 
-  private final ExecutorService executorService;
-
   private DatabaseClientTransactionManager txnManager;
 
   private boolean autoCommit = true;
+
+  private boolean active = true;
 
   private QueryOptions queryOptions;
 
@@ -84,9 +87,8 @@ class DatabaseClientReactiveAdapter {
     this.dbClient = spannerClient.getDatabaseClient(
         DatabaseId.of(config.getProjectId(), config.getInstanceName(), config.getDatabaseName()));
     this.dbAdminClient = spannerClient.getDatabaseAdminClient();
-    this.executorService = Executors.newFixedThreadPool(config.getThreadPoolSize());
     this.config = config;
-    this.txnManager = new DatabaseClientTransactionManager(this.dbClient, this.executorService);
+    this.txnManager = new DatabaseClientTransactionManager(this.dbClient);
 
     QueryOptions.Builder builder =  QueryOptions.newBuilder();
     if (config.getOptimizerVersion() != null) {
@@ -148,12 +150,14 @@ class DatabaseClientReactiveAdapter {
    * @return reactive pipeline for closing the connection.
    */
   Mono<Void> close() {
-    // TODO: if txn is committed/rolled back and then connection closed, clearTransactionManager
-    // will run twice, causing trace span to be closed twice. Introduce `closed` field.
-    return Mono.fromRunnable(() -> {
-      this.txnManager.clearTransactionManager();
-      this.executorService.shutdown();
+    return Mono.defer(() -> {
+      if (!this.active) {
+        return Mono.empty();
+      }
+      this.active = false;
+      return convertFutureToMono(() -> this.txnManager.clearTransactionManager());
     });
+
   }
 
   /**
@@ -163,7 +167,7 @@ class DatabaseClientReactiveAdapter {
    */
   Mono<Boolean> healthCheck() {
     return Mono.defer(() -> {
-      if (this.executorService.isShutdown() || this.spannerClient.isClosed()) {
+      if (!this.active || this.spannerClient.isClosed()) {
         return Mono.just(false);
       } else {
         return Flux.<SpannerClientLibraryRow>create(sink -> {
@@ -181,7 +185,7 @@ class DatabaseClientReactiveAdapter {
   }
 
   Mono<Boolean> localHealthcheck() {
-    return Mono.fromSupplier(() -> !this.executorService.isShutdown());
+    return Mono.fromSupplier(() -> this.active);
   }
 
   boolean isAutoCommit() {
@@ -239,7 +243,7 @@ class DatabaseClientReactiveAdapter {
           ApiFuture<T> rowCountFuture =
               this.dbClient
                   .runAsync()
-                  .runAsync(txn -> asyncOperation.apply(txn), this.executorService);
+                  .runAsync(txn -> asyncOperation.apply(txn), REACTOR_EXECUTOR);
           return rowCountFuture;
         }
       });
@@ -287,9 +291,7 @@ class DatabaseClientReactiveAdapter {
     sink.onCancel(ars::cancel);
     sink.onDispose(ars::close);
 
-    return ars.setCallback(
-        this.executorService,
-        new ResultSetReadyCallback(sink));
+    return ars.setCallback(REACTOR_EXECUTOR, new ResultSetReadyCallback(sink));
   }
 
   static class ResultSetReadyCallback implements ReadyCallback {
@@ -339,7 +341,7 @@ class DatabaseClientReactiveAdapter {
                   sink.success(result);
                 }
               },
-              this.executorService);
+              REACTOR_EXECUTOR);
         });
   }
 

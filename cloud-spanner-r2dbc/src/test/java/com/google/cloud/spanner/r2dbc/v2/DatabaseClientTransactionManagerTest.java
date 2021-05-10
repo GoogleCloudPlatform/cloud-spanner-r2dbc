@@ -29,7 +29,6 @@ import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.TransactionInProgressException;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,9 +71,7 @@ class DatabaseClientTransactionManagerTest {
     when(this.mockDbClient.readOnlyTransaction(TimestampBound.strong()))
         .thenReturn(this.mockReadOnlyTransaction);
 
-    this.transactionManager =
-        new DatabaseClientTransactionManager(
-            this.mockDbClient, Executors.newSingleThreadExecutor());
+    this.transactionManager = new DatabaseClientTransactionManager(this.mockDbClient);
 
   }
 
