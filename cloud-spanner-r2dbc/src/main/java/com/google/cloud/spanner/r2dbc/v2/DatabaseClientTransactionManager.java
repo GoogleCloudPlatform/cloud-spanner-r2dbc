@@ -111,6 +111,11 @@ class DatabaseClientTransactionManager {
       returnFuture = this.transactionManager.closeAsync();
       this.transactionManager = null;
     }
+
+    if (isInReadonlyTransaction()) {
+      closeReadOnlyTransaction();
+    }
+
     return returnFuture;
   }
 

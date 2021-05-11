@@ -171,15 +171,13 @@ class DatabaseClientReactiveAdapter {
         return Mono.just(false);
       } else {
         return Flux.<SpannerClientLibraryRow>create(sink -> {
-          com.google.cloud.spanner.Statement statement =
-              Statement.newBuilder("SELECT 1").build();
+          Statement statement = Statement.newBuilder("SELECT 1").build();
           runSelectStatementAsFlux(this.dbClient.singleUse(), statement, sink);
-        })
-        .then(Mono.just(true))
-        .onErrorResume(error -> {
-          LOGGER.warn("Cloud Spanner healthcheck failed", error);
-          return Mono.just(false);
-        });
+        }).then(Mono.just(true))
+            .onErrorResume(error -> {
+              LOGGER.warn("Cloud Spanner healthcheck failed", error);
+              return Mono.just(false);
+            });
       }
     });
   }
@@ -210,7 +208,7 @@ class DatabaseClientReactiveAdapter {
    *
    * @return reactive pipeline for running a DML statement
    */
-  Mono<Long> runDmlStatement(com.google.cloud.spanner.Statement statement) {
+  Mono<Long> runDmlStatement(Statement statement) {
     return runBatchDmlInternal(ctx -> ctx.executeUpdateAsync(statement));
   }
 
@@ -243,15 +241,14 @@ class DatabaseClientReactiveAdapter {
           ApiFuture<T> rowCountFuture =
               this.dbClient
                   .runAsync()
-                  .runAsync(txn -> asyncOperation.apply(txn), REACTOR_EXECUTOR);
+                  .runAsync(asyncOperation::apply, REACTOR_EXECUTOR);
           return rowCountFuture;
         }
       });
     });
   }
 
-  Flux<SpannerClientLibraryRow> runSelectStatement(
-      com.google.cloud.spanner.Statement statement) {
+  Flux<SpannerClientLibraryRow> runSelectStatement(Statement statement) {
     return Flux.create(
         sink -> {
           if (this.txnManager.isInReadWriteTransaction()) {
@@ -284,9 +281,7 @@ class DatabaseClientReactiveAdapter {
    * @return future suitable for transactional step chaining
    */
   private ApiFuture<Void> runSelectStatementAsFlux(
-      ReadContext readContext,
-      com.google.cloud.spanner.Statement statement,
-      FluxSink<SpannerClientLibraryRow> sink) {
+      ReadContext readContext, Statement statement, FluxSink<SpannerClientLibraryRow> sink) {
     AsyncResultSet ars = readContext.executeQueryAsync(statement);
     sink.onCancel(ars::cancel);
     sink.onDispose(ars::close);
