@@ -59,10 +59,6 @@ class ClientLibraryBasedIntegrationTest {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(ClientLibraryBasedIntegrationTest.class);
 
-  static final String INSERT_QUERY = "INSERT BOOKS (UUID, TITLE, AUTHOR, CATEGORY, FICTION, "
-      + "PUBLISHED, WORDS_PER_SENTENCE, PRICE) VALUES (@uuid, 'A Sound of Thunder', "
-      + "'Ray Bradbury', @category, TRUE, '1952-06-28', @wordCount, @price)";
-
   private static final ConnectionFactory connectionFactory =
       ConnectionFactories.get(
           ConnectionFactoryOptions.builder()
@@ -73,6 +69,8 @@ class ClientLibraryBasedIntegrationTest {
               .option(Option.valueOf("client-implementation"), "client-library")
               .build());
 
+  static TestDatabaseHelper dbHelper = new TestDatabaseHelper(connectionFactory);
+
   Random random = new Random();
 
   /**
@@ -82,32 +80,10 @@ class ClientLibraryBasedIntegrationTest {
   @BeforeAll
   public static void setupSpannerTable() {
 
-    if (!"false".equals(System.getProperty("it.recreate-ddl"))) {
-      LOGGER.info("Dropping and re-creating table BOOKS.");
-      Connection con = Mono.from(connectionFactory.create()).block();
-
-      try {
-        Mono.from(con.createStatement("DROP TABLE BOOKS").execute()).block();
-      } catch (Exception e) {
-        LOGGER.info("The BOOKS table doesn't exist", e);
-      }
-
-      Mono.from(
-              con.createStatement(
-                      "CREATE TABLE BOOKS ("
-                          + "  UUID STRING(36) NOT NULL,"
-                          + "  TITLE STRING(256) NOT NULL,"
-                          + "  AUTHOR STRING(256),"
-                          + "  SYNOPSIS STRING(MAX),"
-                          + "  EDITIONS ARRAY<STRING(MAX)>,"
-                          + "  FICTION BOOL,"
-                          + "  PUBLISHED DATE,"
-                          + "  WORDS_PER_SENTENCE FLOAT64,"
-                          + "  CATEGORY INT64,"
-                          + "  PRICE NUMERIC"
-                          + ") PRIMARY KEY (UUID)")
-                  .execute())
-          .block();
+    if ("false".equals(System.getProperty("it.recreate-ddl"))) {
+      dbHelper.createTableIfNecessary();
+    } else {
+      dbHelper.recreateTable();
     }
   }
 
@@ -116,18 +92,12 @@ class ClientLibraryBasedIntegrationTest {
    */
   @BeforeEach
   public void deleteData() {
-
-    Connection conn =
-        Mono.from(connectionFactory.create()).block();
-
-    Mono.from(
-        conn.createStatement("DELETE FROM BOOKS WHERE true").execute())
-        .flatMap(rs -> Mono.from(rs.getRowsUpdated()))
-        .block();
+    dbHelper.clearTestData();
   }
 
   @AfterAll
   static void cleanUpEnvironment() {
+    dbHelper.close();
     Closeable closeableConnectionFactory = (Closeable) connectionFactory;
     Mono.from(closeableConnectionFactory.close()).block();
   }
@@ -164,11 +134,14 @@ class ClientLibraryBasedIntegrationTest {
   void testMetadata() {
 
     Connection conn = Mono.from(connectionFactory.create()).block();
+    String query = "INSERT BOOKS (UUID, TITLE, CATEGORY, WORDS_PER_SENTENCE, PRICE) "
+        + "VALUES (@uuid, @title, @category, @wordCount, @price)";
 
     StepVerifier.create(
         Mono.from(
-            conn.createStatement(INSERT_QUERY)
+            conn.createStatement(query)
                 .bind("uuid", "abc")
+                .bind("title", "and now about metadata")
                 .bind("category", 100L)
                 .bind("wordCount", 20.8)
                 .bind("price", new BigDecimal("123.99"))
@@ -204,17 +177,19 @@ class ClientLibraryBasedIntegrationTest {
     ).verifyError(SpannerException.class);
   }
 
-
   @Test
   void testDmlInsert() {
     Connection conn = Mono.from(connectionFactory.create()).block();
 
     String id = "abc123-" + this.random.nextInt();
+    String query = "INSERT BOOKS (UUID, TITLE, CATEGORY, WORDS_PER_SENTENCE, PRICE) "
+        + "VALUES (@uuid, @title, @category, @wordCount, @price)";
 
     StepVerifier.create(
         Mono.from(
-            conn.createStatement(INSERT_QUERY)
+            conn.createStatement(query)
                 .bind("uuid", id)
+                .bind("title", "testing DML")
                 .bind("category", 100L)
                 .bind("wordCount", 20.8)
                 .bind("price", new BigDecimal("123.99"))
