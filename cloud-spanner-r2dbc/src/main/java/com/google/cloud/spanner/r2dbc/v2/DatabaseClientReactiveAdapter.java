@@ -294,54 +294,27 @@ class DatabaseClientReactiveAdapter {
 
     private AsyncResultSet pausedCursor;
 
-    // default to no this.demand, wait for request
+    // default to no demand, wait for request
     private long demand = 0;
-
-    private boolean isUnbounded() {
-      return this.demand == Long.MAX_VALUE;
-    }
 
     ResultSetReadyCallback(FluxSink<SpannerClientLibraryRow> sink) {
       this.sink = sink;
-      this.sink.onRequest(
-          numRowsRequested -> {
-            System.out.println(Thread.currentThread().getName()
-                + " - *** request: " + numRowsRequested);
-            if (numRowsRequested == Long.MAX_VALUE) {
-
-              this.demand = Long.MAX_VALUE;
-              System.out.println(Thread.currentThread().getName()
-                  + " - *** making this.demand MAX_VALUE: " + this.demand);
-            } else {
-              // todo: make thread safe?
-              System.out.print(Thread.currentThread().getName()
-                  + " - *** changing this.demand from MAX_VALUE: " + this.demand);
-
-              // if specific demand appears after unbounded, this is the new demand.
-              this.demand = isUnbounded() ? numRowsRequested : (this.demand + numRowsRequested);
-              System.out.println(" to " + this.demand);
-            }
-
-            if (this.pausedCursor != null && this.demand > 0) {
-              System.out.println(Thread.currentThread().getName()
-                  + " - *** unpausing since this.demand is now " + this.demand);
-              this.pausedCursor.resume();
-              this.pausedCursor = null;
-            }
-          });
+      this.sink.onRequest(this::increaseDemand);
     }
 
     @Override
     public CallbackResponse cursorReady(AsyncResultSet resultSet) {
-      System.out.println(Thread.currentThread().getName()
-          + " - *** CURSOR_READY called; current this.demand = " + this.demand);
+      /*System.out.println(Thread.currentThread().getName()
+          + " - *** CURSOR_READY called; current this.demand = " + this.demand);*/
       // TODO: handle backpressure by asking callback to signal CallbackResponse.PAUSE
       try {
-        if (this.demand < 1) {
+        if (!hasDemand()) {
           System.out.println(Thread.currentThread().getName()
               + " - *** this.demand ( " + this.demand + " ); pausing");
           this.pausedCursor = resultSet;
           return CallbackResponse.PAUSE;
+        } else {
+          System.out.println(Thread.currentThread().getName() + " - *** THERE IS DEMAND!");
         }
         switch (resultSet.tryNext()) {
           case DONE:
@@ -352,9 +325,7 @@ class DatabaseClientReactiveAdapter {
           case OK:
             System.out.println(Thread.currentThread().getName()
                 + " - *** try next: ok");
-            if (!isUnbounded()) {
-              this.demand--;
-            }
+            decreaseDemand();
             this.sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
             return CallbackResponse.CONTINUE;
           default:
@@ -366,6 +337,57 @@ class DatabaseClientReactiveAdapter {
         this.sink.error(t);
         return CallbackResponse.DONE;
       }
+    }
+
+    // Internal demand management methods
+
+    @VisibleForTesting
+    boolean isUnbounded() {
+      return this.demand == Long.MAX_VALUE;
+    }
+
+    @VisibleForTesting
+    synchronized void increaseDemand(long newDemand) {
+      System.out.println(Thread.currentThread().getName()
+          + " - *** request: " + newDemand);
+      if (newDemand == Long.MAX_VALUE) {
+
+        this.demand = Long.MAX_VALUE;
+        System.out.println(Thread.currentThread().getName()
+            + " - *** making this.demand MAX_VALUE: " + this.demand);
+      } else {
+        // todo: make thread safe?
+        System.out.print(Thread.currentThread().getName()
+            + " - *** changing demand from: " + this.demand);
+
+        // if specific demand appears after unbounded, this is the new demand.
+        this.demand = isUnbounded() ? newDemand : (this.demand + newDemand);
+        System.out.println(" to " + this.demand);
+      }
+
+      if (this.pausedCursor != null && this.demand > 0) {
+        System.out.println(Thread.currentThread().getName()
+            + " - *** unpausing since this.demand is now " + this.demand);
+        this.pausedCursor.resume();
+        this.pausedCursor = null;
+      }
+    }
+
+    @VisibleForTesting
+    synchronized void decreaseDemand() {
+      if (!isUnbounded() && hasDemand()) {
+        this.demand--;
+      }
+    }
+
+    @VisibleForTesting
+    boolean hasDemand() {
+      return this.demand > 0;
+    }
+
+    @VisibleForTesting
+    long getDemand() {
+      return this.demand;
     }
   }
 
