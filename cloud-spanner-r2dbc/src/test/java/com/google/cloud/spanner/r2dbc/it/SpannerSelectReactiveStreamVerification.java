@@ -73,11 +73,13 @@ class SpannerSelectReactiveStreamVerification extends
   public Publisher<Row> createPublisher(long l) {
     return Mono.from(connectionFactory.create())
         .flatMapMany(conn ->
-            Flux.from(conn.createStatement("SELECT * FROM BOOKS ORDER BY TITLE LIMIT " + l).execute())
+            Flux.from(
+                  conn.createStatement("SELECT * FROM BOOKS ORDER BY TITLE LIMIT " + l).execute())
                 .flatMap(rs -> rs.map((r, rm) -> r), 1, /* turn off prefetch */ 1)
-                .doOnNext(r -> System.out.println(Thread.currentThread().getName() + " - *** ---> Found row: " + r.get(1)))
-            // not closing connection to avoid changing demand (delayUntil uses buffer of 32)
-                //.delayUntil(r -> conn.close())
+                .doOnNext(r -> System.out.println(Thread.currentThread().getName()
+                    + " - *** ---> Found row: " + r.get(1)))
+        // not closing connection to avoid changing demand (delayUntil uses buffer of 32)
+        //.delayUntil(r -> conn.close())
         );
   }
 

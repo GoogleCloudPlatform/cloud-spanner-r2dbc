@@ -51,9 +51,7 @@ import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -66,8 +64,6 @@ class DatabaseClientReactiveAdapterTest {
   private DatabaseAdminClient mockDbAdminClient;
   private DatabaseClientTransactionManager mockTxnManager;
   private ExecutorService executorService;
-
-  private FluxSink mockSink;
 
   private AsyncResultSet mockResultSet;
   private ReadContext mockReadContext;
@@ -89,7 +85,6 @@ class DatabaseClientReactiveAdapterTest {
     this.mockTxnManager = mock(DatabaseClientTransactionManager.class);
     this.executorService = Executors.newSingleThreadExecutor();
     this.mockReadContext = mock(ReadContext.class);
-    this.mockSink =  mock(FluxSink.class);
     this.mockResultSet = mock(AsyncResultSet.class);
     this.mockTxnContextFuture = mock(TransactionContextFuture.class);
 
@@ -178,13 +173,13 @@ class DatabaseClientReactiveAdapterTest {
   void resultSetReadyCallbackStopsSinkOnCompletion() {
     when(this.mockResultSet.tryNext()).thenReturn(CursorState.DONE);
 
-    DatabaseClientReactiveAdapter.ResultSetReadyCallback cb =
-        new ResultSetReadyCallback(this.mockSink);
-    CallbackResponse response = cb.cursorReady(this.mockResultSet);
-
-    assertThat(response).isSameAs(CallbackResponse.DONE);
-    verify(this.mockSink).complete();
-    verifyNoMoreInteractions(this.mockSink);
+    StepVerifier.create(
+      Flux.<SpannerClientLibraryRow>create(sink -> {
+        CallbackResponse response =
+            new ResultSetReadyCallback(sink).cursorReady(this.mockResultSet);
+        assertThat(response).isSameAs(CallbackResponse.DONE);
+      })
+    ).verifyComplete();
   }
 
   @Test
@@ -193,29 +188,30 @@ class DatabaseClientReactiveAdapterTest {
     Struct struct = Struct.newBuilder().add(Value.string("some result")).build();
     when(this.mockResultSet.getCurrentRowAsStruct()).thenReturn(struct);
 
-    DatabaseClientReactiveAdapter.ResultSetReadyCallback cb =
-        new ResultSetReadyCallback(this.mockSink);
-    CallbackResponse response = cb.cursorReady(this.mockResultSet);
 
-    assertThat(response).isSameAs(CallbackResponse.CONTINUE);
-    ArgumentCaptor<SpannerClientLibraryRow> arg =
-        ArgumentCaptor.forClass(SpannerClientLibraryRow.class);
-    verify(this.mockSink).next(arg.capture());
-    assertThat(arg.getValue().get(1)).isEqualTo("some result");
-
-    verifyNoMoreInteractions(this.mockSink);
+    StepVerifier.create(
+        Flux.<SpannerClientLibraryRow>create(sink -> {
+          ResultSetReadyCallback cb = new ResultSetReadyCallback(sink);
+          CallbackResponse response = cb.cursorReady(this.mockResultSet);
+          assertThat(response).isSameAs(CallbackResponse.CONTINUE);
+        })
+    ).assertNext(r -> assertThat(r.get(1)).isEqualTo("some result")
+    ).thenCancel() // without CallbackResponse.DONE signal, sink will not complete by itself.
+      .verify();
   }
 
   @Test
   void resultSetReadyCallbackWaitsOnNotReady() {
     when(this.mockResultSet.tryNext()).thenReturn(CursorState.NOT_READY);
 
-    DatabaseClientReactiveAdapter.ResultSetReadyCallback cb =
-        new ResultSetReadyCallback(this.mockSink);
-    CallbackResponse response = cb.cursorReady(this.mockResultSet);
+    StepVerifier.create(
+        Flux.<SpannerClientLibraryRow>create(sink -> {
+          CallbackResponse response =
+              new ResultSetReadyCallback(sink).cursorReady(this.mockResultSet);
 
-    assertThat(response).isSameAs(CallbackResponse.CONTINUE);
-    verifyNoMoreInteractions(this.mockSink);
+          assertThat(response).isSameAs(CallbackResponse.CONTINUE);
+        })
+    ).thenCancel();
   }
 
   @Test
@@ -223,13 +219,14 @@ class DatabaseClientReactiveAdapterTest {
     Exception exception = new RuntimeException("boom");
     when(this.mockResultSet.tryNext()).thenThrow(exception);
 
-    DatabaseClientReactiveAdapter.ResultSetReadyCallback cb =
-        new ResultSetReadyCallback(this.mockSink);
-    CallbackResponse response = cb.cursorReady(this.mockResultSet);
-
-    assertThat(response).isSameAs(CallbackResponse.DONE);
-    verify(this.mockSink).error(exception);
-    verifyNoMoreInteractions(this.mockSink);
+    StepVerifier.create(
+        Flux.<SpannerClientLibraryRow>create(sink -> {
+          CallbackResponse response =
+              new ResultSetReadyCallback(sink).cursorReady(this.mockResultSet);
+          assertThat(response).isSameAs(CallbackResponse.DONE);
+        })
+    ).expectErrorMessage("boom")
+        .verify();
   }
 
   @Test

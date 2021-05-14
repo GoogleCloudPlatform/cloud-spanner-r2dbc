@@ -294,58 +294,66 @@ class DatabaseClientReactiveAdapter {
 
     private AsyncResultSet pausedCursor;
 
-    // default to no demand, wait for request
+    // default to no this.demand, wait for request
     private long demand = 0;
 
     private boolean isUnbounded() {
-      return demand == Long.MAX_VALUE;
+      return this.demand == Long.MAX_VALUE;
     }
 
     ResultSetReadyCallback(FluxSink<SpannerClientLibraryRow> sink) {
       this.sink = sink;
       this.sink.onRequest(
           numRowsRequested -> {
-            System.out.println(Thread.currentThread().getName() + " - *** request: " + numRowsRequested);
+            System.out.println(Thread.currentThread().getName()
+                + " - *** request: " + numRowsRequested);
             if (numRowsRequested == Long.MAX_VALUE) {
 
-              demand = Long.MAX_VALUE;
-              System.out.println(Thread.currentThread().getName() + " - *** making demand MAX_VALUE: " + demand);
+              this.demand = Long.MAX_VALUE;
+              System.out.println(Thread.currentThread().getName()
+                  + " - *** making this.demand MAX_VALUE: " + this.demand);
             } else {
               // todo: make thread safe?
-              System.out.print(Thread.currentThread().getName() + " - *** changing demand from MAX_VALUE: " + demand);
+              System.out.print(Thread.currentThread().getName()
+                  + " - *** changing this.demand from MAX_VALUE: " + this.demand);
 
               // if specific demand appears after unbounded, this is the new demand.
-              demand = isUnbounded() ? numRowsRequested : (demand + numRowsRequested);
-              System.out.println(" to " + demand);
+              this.demand = isUnbounded() ? numRowsRequested : (this.demand + numRowsRequested);
+              System.out.println(" to " + this.demand);
             }
 
-            if (pausedCursor != null && demand > 0) {
-              System.out.println(Thread.currentThread().getName() + " - *** unpausing since demand is now " + demand);
-              pausedCursor.resume();
-              pausedCursor = null;
+            if (this.pausedCursor != null && this.demand > 0) {
+              System.out.println(Thread.currentThread().getName()
+                  + " - *** unpausing since this.demand is now " + this.demand);
+              this.pausedCursor.resume();
+              this.pausedCursor = null;
             }
           });
     }
 
     @Override
     public CallbackResponse cursorReady(AsyncResultSet resultSet) {
-      System.out.println(Thread.currentThread().getName() + " - *** CURSOR_READY called; current demand = " + demand);
+      System.out.println(Thread.currentThread().getName()
+          + " - *** CURSOR_READY called; current this.demand = " + this.demand);
       // TODO: handle backpressure by asking callback to signal CallbackResponse.PAUSE
       try {
-        if (demand < 1) {
-          System.out.println(Thread.currentThread().getName() + " - *** demand ( " + demand + " ); pausing");
-          pausedCursor = resultSet;
+        if (this.demand < 1) {
+          System.out.println(Thread.currentThread().getName()
+              + " - *** this.demand ( " + this.demand + " ); pausing");
+          this.pausedCursor = resultSet;
           return CallbackResponse.PAUSE;
         }
         switch (resultSet.tryNext()) {
           case DONE:
-            System.out.println(Thread.currentThread().getName() + " - *** try next: done");
+            System.out.println(Thread.currentThread().getName()
+                + " - *** try next: done");
             this.sink.complete();
             return CallbackResponse.DONE;
           case OK:
-            System.out.println(Thread.currentThread().getName() + " - *** try next: ok");
+            System.out.println(Thread.currentThread().getName()
+                + " - *** try next: ok");
             if (!isUnbounded()) {
-              demand--;
+              this.demand--;
             }
             this.sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
             return CallbackResponse.CONTINUE;
