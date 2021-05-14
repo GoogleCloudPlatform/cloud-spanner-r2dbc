@@ -57,7 +57,7 @@ class SpannerSelectReactiveStreamVerification extends
     dbHelper = new TestDatabaseHelper(connectionFactory);
     dbHelper.createTableIfNecessary();
     dbHelper.clearTestData();
-    dbHelper.addTestData(10);
+    dbHelper.addTestData(30);
   }
 
   @AfterSuite
@@ -73,9 +73,11 @@ class SpannerSelectReactiveStreamVerification extends
   public Publisher<Row> createPublisher(long l) {
     return Mono.from(connectionFactory.create())
         .flatMapMany(conn ->
-            Flux.from(conn.createStatement("SELECT * FROM BOOKS ORDER BY TITLE").execute())
-                .flatMap(rs -> rs.map((r, rm) -> r))
-                .delayUntil(r -> conn.close())
+            Flux.from(conn.createStatement("SELECT * FROM BOOKS ORDER BY TITLE LIMIT " + l).execute())
+                .flatMap(rs -> rs.map((r, rm) -> r), 1, /* turn off prefetch */ 1)
+                .doOnNext(r -> System.out.println(Thread.currentThread().getName() + " - *** ---> Found row: " + r.get(1)))
+            // not closing connection to avoid changing demand (delayUntil uses buffer of 32)
+                //.delayUntil(r -> conn.close())
         );
   }
 
@@ -88,7 +90,7 @@ class SpannerSelectReactiveStreamVerification extends
 
   @Override
   public long maxElementsFromPublisher() {
-    // only 10 rows set up in the database
-    return 10;
+    // only 30 rows set up in the database
+    return 30;
   }
 }

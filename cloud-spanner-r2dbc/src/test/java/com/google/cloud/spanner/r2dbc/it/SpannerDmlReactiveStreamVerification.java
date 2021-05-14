@@ -27,6 +27,7 @@ import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
 import org.testng.annotations.AfterSuite;
@@ -71,22 +72,21 @@ class SpannerDmlReactiveStreamVerification extends
   }
 
   @Override
-  public Mono<Integer> createPublisher(long l) {
+  public Publisher<Integer> createPublisher(long l) {
     return Mono.from(connectionFactory.create())
         .flatMapMany(conn ->
             Flux.from(conn.createStatement(
                 "UPDATE BOOKS SET TITLE=\"book one updated\" WHERE CATEGORY=42 ").execute())
                 .flatMap(rs -> rs.getRowsUpdated())
                 .delayUntil(r -> conn.close())
-        ).next();
+        );
   }
 
   @Override
-  public Mono<Integer> createFailedPublisher() {
+  public Publisher<Integer> createFailedPublisher() {
     return Mono.from(connectionFactory.create())
         .flatMapMany(conn -> conn.createStatement("UPDATE BOOKS SET bad syntax ").execute())
-        .flatMap(rs -> rs.getRowsUpdated())
-        .next();
+        .flatMap(rs -> rs.getRowsUpdated());
   }
 
   @Override

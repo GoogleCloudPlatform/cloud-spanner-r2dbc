@@ -292,22 +292,65 @@ class DatabaseClientReactiveAdapter {
   static class ResultSetReadyCallback implements ReadyCallback {
     private FluxSink<SpannerClientLibraryRow> sink;
 
+    private AsyncResultSet pausedCursor;
+
+    // default to no demand, wait for request
+    private long demand = 0;
+
+    private boolean isUnbounded() {
+      return demand == Long.MAX_VALUE;
+    }
+
     ResultSetReadyCallback(FluxSink<SpannerClientLibraryRow> sink) {
       this.sink = sink;
+      this.sink.onRequest(
+          numRowsRequested -> {
+            System.out.println(Thread.currentThread().getName() + " - *** request: " + numRowsRequested);
+            if (numRowsRequested == Long.MAX_VALUE) {
+
+              demand = Long.MAX_VALUE;
+              System.out.println(Thread.currentThread().getName() + " - *** making demand MAX_VALUE: " + demand);
+            } else {
+              // todo: make thread safe?
+              System.out.print(Thread.currentThread().getName() + " - *** changing demand from MAX_VALUE: " + demand);
+
+              // if specific demand appears after unbounded, this is the new demand.
+              demand = isUnbounded() ? numRowsRequested : (demand + numRowsRequested);
+              System.out.println(" to " + demand);
+            }
+
+            if (pausedCursor != null && demand > 0) {
+              System.out.println(Thread.currentThread().getName() + " - *** unpausing since demand is now " + demand);
+              pausedCursor.resume();
+              pausedCursor = null;
+            }
+          });
     }
 
     @Override
     public CallbackResponse cursorReady(AsyncResultSet resultSet) {
+      System.out.println(Thread.currentThread().getName() + " - *** CURSOR_READY called; current demand = " + demand);
       // TODO: handle backpressure by asking callback to signal CallbackResponse.PAUSE
       try {
+        if (demand < 1) {
+          System.out.println(Thread.currentThread().getName() + " - *** demand ( " + demand + " ); pausing");
+          pausedCursor = resultSet;
+          return CallbackResponse.PAUSE;
+        }
         switch (resultSet.tryNext()) {
           case DONE:
+            System.out.println(Thread.currentThread().getName() + " - *** try next: done");
             this.sink.complete();
             return CallbackResponse.DONE;
           case OK:
+            System.out.println(Thread.currentThread().getName() + " - *** try next: ok");
+            if (!isUnbounded()) {
+              demand--;
+            }
             this.sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
             return CallbackResponse.CONTINUE;
           default:
+            System.out.println(Thread.currentThread().getName() + " - *** try next: other");
             // ResultSet returning NOT_READY or null.
             return CallbackResponse.CONTINUE;
         }
