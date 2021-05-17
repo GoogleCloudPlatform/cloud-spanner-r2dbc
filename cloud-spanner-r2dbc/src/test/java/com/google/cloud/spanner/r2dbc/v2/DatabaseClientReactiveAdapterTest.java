@@ -178,7 +178,7 @@ class DatabaseClientReactiveAdapterTest {
     StepVerifier.create(
       Flux.<SpannerClientLibraryRow>create(sink -> {
         CallbackResponse response =
-            new ResultSetReadyCallback(sink).cursorReady(this.mockResultSet);
+            new ResultSetReadyCallback(sink, mockResultSet).cursorReady(this.mockResultSet);
         assertThat(response).isSameAs(CallbackResponse.DONE);
       })
     ).verifyComplete();
@@ -193,7 +193,7 @@ class DatabaseClientReactiveAdapterTest {
 
     StepVerifier.create(
         Flux.<SpannerClientLibraryRow>create(sink -> {
-          ResultSetReadyCallback cb = new ResultSetReadyCallback(sink);
+          ResultSetReadyCallback cb = new ResultSetReadyCallback(sink, mockResultSet);
           CallbackResponse response = cb.cursorReady(this.mockResultSet);
           assertThat(response).isSameAs(CallbackResponse.CONTINUE);
         })
@@ -209,7 +209,7 @@ class DatabaseClientReactiveAdapterTest {
     StepVerifier.create(
         Flux.<SpannerClientLibraryRow>create(sink -> {
           CallbackResponse response =
-              new ResultSetReadyCallback(sink).cursorReady(this.mockResultSet);
+              new ResultSetReadyCallback(sink, mockResultSet).cursorReady(this.mockResultSet);
 
           assertThat(response).isSameAs(CallbackResponse.CONTINUE);
         })
@@ -224,7 +224,7 @@ class DatabaseClientReactiveAdapterTest {
     StepVerifier.create(
         Flux.<SpannerClientLibraryRow>create(sink -> {
           CallbackResponse response =
-              new ResultSetReadyCallback(sink).cursorReady(this.mockResultSet);
+              new ResultSetReadyCallback(sink, mockResultSet).cursorReady(this.mockResultSet);
           assertThat(response).isSameAs(CallbackResponse.DONE);
         })
     ).expectErrorMessage("boom")
@@ -238,7 +238,7 @@ class DatabaseClientReactiveAdapterTest {
     StepVerifier.create(
             Flux.<SpannerClientLibraryRow>create(
                 sink -> {
-                  ResultSetReadyCallback cb = new ResultSetReadyCallback(sink);
+                  ResultSetReadyCallback cb = new ResultSetReadyCallback(sink, mockResultSet);
                   // more callback invocations than results available
                   for (int i = 0; i < 7; i++) {
                     cb.cursorReady(this.mockResultSet);
@@ -262,7 +262,7 @@ class DatabaseClientReactiveAdapterTest {
 
     StepVerifier.create(
         Flux.<SpannerClientLibraryRow>create(sink -> {
-          ResultSetReadyCallback cb = new ResultSetReadyCallback(sink);
+          ResultSetReadyCallback cb = new ResultSetReadyCallback(sink, mockResultSet);
           // more callback invocations than results available
           for (int i = 0; i < 7; i++) {
             cb.cursorReady(this.mockResultSet);
@@ -307,7 +307,7 @@ class DatabaseClientReactiveAdapterTest {
 
   @Test
   void resultSetReadyCallback_demandStartsAtZero() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class));
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
     assertThat(cb.isUnbounded()).isFalse();
     assertThat(cb.hasDemand()).isFalse();
     assertThat(cb.getDemand()).isZero();
@@ -315,7 +315,7 @@ class DatabaseClientReactiveAdapterTest {
 
   @Test
   void resultSetReadyCallback_unboundedDemandMeansMaxLongValue() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class));
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
     cb.increaseDemand(Long.MAX_VALUE);
     assertThat(cb.isUnbounded()).isTrue();
     assertThat(cb.hasDemand()).isTrue();
@@ -324,7 +324,7 @@ class DatabaseClientReactiveAdapterTest {
 
   @Test
   void resultSetReadyCallback_unboundedDemandCannotDecrease() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class));
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
     cb.increaseDemand(Long.MAX_VALUE);
     assertThat(cb.isUnbounded()).isTrue();
     assertThat(cb.getDemand()).isEqualTo(Long.MAX_VALUE);
@@ -340,7 +340,7 @@ class DatabaseClientReactiveAdapterTest {
 
   @Test
   void resultSetReadyCallback_demandAccumulates() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class));
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
     cb.increaseDemand(17);
     assertThat(cb.isUnbounded()).isFalse();
     assertThat(cb.getDemand()).isEqualTo(17);
@@ -355,7 +355,7 @@ class DatabaseClientReactiveAdapterTest {
 
   @Test
   void resultSetReadyCallback_switchFromBoundedToUnbounded() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class));
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
     cb.increaseDemand(17);
     assertThat(cb.isUnbounded()).isFalse();
     assertThat(cb.getDemand()).isEqualTo(17);
@@ -370,7 +370,7 @@ class DatabaseClientReactiveAdapterTest {
 
   @Test
   void resultSetReadyCallback_demandCannotFallBelowZero() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class));
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
     cb.increaseDemand(2);
     assertThat(cb.isUnbounded()).isFalse();
     assertThat(cb.getDemand()).isEqualTo(2);

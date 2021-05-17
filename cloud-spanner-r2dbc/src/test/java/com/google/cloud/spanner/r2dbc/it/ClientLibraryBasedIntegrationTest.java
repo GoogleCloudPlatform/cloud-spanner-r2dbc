@@ -40,6 +40,7 @@ import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.ValidationDepth;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -81,7 +82,7 @@ class ClientLibraryBasedIntegrationTest {
   public static void setupSpannerTable() {
 
     if ("false".equals(System.getProperty("it.recreate-ddl"))) {
-      dbHelper.createTableIfNecessary();
+      // temporarily disable because table exists dbHelper.createTableIfNecessary();
     } else {
       dbHelper.recreateTable();
     }
@@ -656,6 +657,27 @@ class ClientLibraryBasedIntegrationTest {
     // clean up Spanner resources.
     Mono.from(sclConnectionFactory.close()).block();
   }
+
+  // blah
+  @Test
+  void selectWithBackpressure() {
+    dbHelper.addTestData(5);
+
+    Connection conn = Mono.from(connectionFactory.create()).block();
+
+    StepVerifier.create(
+        Mono.from(conn.createStatement("SELECT title FROM BOOKS").execute())
+            .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, String.class))),
+        /* initiali demand of2 */ 2)
+        .expectNextCount(2)
+        //.thenRequest(3)
+        //.thenAwait(Duration.ofSeconds(300))
+        //.expectNextCount(3)
+        .thenCancel().verify();
+        //.verifyComplete();
+
+  }
+
 
   private Publisher<Long> getFirstNumber(Result result) {
     return result.map((row, meta) -> (Long) row.get(1));

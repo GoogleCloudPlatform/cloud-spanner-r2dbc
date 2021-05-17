@@ -80,6 +80,7 @@ class TestDatabaseHelper {
           .execute()
     )
         .flatMap(result -> result.map((r, m) -> r))
+        .log()
         .hasElements()
         .block();
   }

@@ -283,23 +283,44 @@ class DatabaseClientReactiveAdapter {
   private ApiFuture<Void> runSelectStatementAsFlux(
       ReadContext readContext, Statement statement, FluxSink<SpannerClientLibraryRow> sink) {
     AsyncResultSet ars = readContext.executeQueryAsync(statement);
-    sink.onCancel(ars::cancel);
-    sink.onDispose(ars::close);
+    //sink.onCancel(ars::cancel);
+    //sink.onDispose(ars::close);
 
-    return ars.setCallback(REACTOR_EXECUTOR, new ResultSetReadyCallback(sink));
+    return ars.setCallback(REACTOR_EXECUTOR, new ResultSetReadyCallback(sink, ars));
   }
 
   static class ResultSetReadyCallback implements ReadyCallback {
     private FluxSink<SpannerClientLibraryRow> sink;
 
-    private AsyncResultSet pausedCursor;
+    private AsyncResultSet spannerResultSet;
 
     // default to no demand, wait for request
     private long demand = 0;
 
-    ResultSetReadyCallback(FluxSink<SpannerClientLibraryRow> sink) {
+    boolean closed = false;
+    boolean paused = false;
+
+    ResultSetReadyCallback(FluxSink<SpannerClientLibraryRow> sink, AsyncResultSet resultSet) {
+      System.out.println("***********************************************");
+      System.out.println("**************  ResultSetReadyCallback CREATED   ********");
+      System.out.println("***********************************************");
       this.sink = sink;
       this.sink.onRequest(this::increaseDemand);
+      this.spannerResultSet = resultSet;
+     // replace manual demand management with  this.sink.requestedFromDownstream()
+      this.sink.onCancel(
+          () -> {
+            System.out.println("******************* AAAARGH ON CANCEL");
+            closed = true;
+            this.spannerResultSet.cancel();
+          });
+      this.sink.onDispose(() -> {
+        System.out.println("******************* AAAARGH ON DISPOSE");
+        closed = true;
+        this.spannerResultSet.close();
+          // force cursorReturnedDoneOrException to be set
+          //this.pausedCursor.tryNext();
+      });
     }
 
     @Override
@@ -308,14 +329,33 @@ class DatabaseClientReactiveAdapter {
           + " - *** CURSOR_READY called; current this.demand = " + this.demand);*/
       // TODO: handle backpressure by asking callback to signal CallbackResponse.PAUSE
       try {
-        if (!hasDemand()) {
-          System.out.println(Thread.currentThread().getName()
-              + " - *** this.demand ( " + this.demand + " ); pausing");
-          this.pausedCursor = resultSet;
-          return CallbackResponse.PAUSE;
-        } else {
-          System.out.println(Thread.currentThread().getName() + " - *** THERE IS DEMAND!");
+/* this should not be done. infinite loop results.
+if (closed) {
+          System.out.println("*** Stream closed; completing");
+          this.sink.complete();
+         return CallbackResponse.DONE;
+        }*/
+        System.out.println("cursorReady: manual demand " + this.demand + "; reactor demand = " + this.sink.requestedFromDownstream());
+        synchronized (this) {
+
+
+          if (!hasDemand()) {
+            System.out.println("No demand, pity! Returning PAUSE");
+            if (!paused) {
+              System.out.println(
+                  Thread.currentThread().getName()
+                      + " - *** demand ( "
+                      + this.demand
+                      + " ); pausing");
+              this.paused = true;
+              return CallbackResponse.PAUSE;
+            }
+          } else {
+            System.out.println(Thread.currentThread().getName() + " - *** THERE IS DEMAND!");
+          }
         }
+
+
         switch (resultSet.tryNext()) {
           case DONE:
             System.out.println(Thread.currentThread().getName()
@@ -343,6 +383,7 @@ class DatabaseClientReactiveAdapter {
 
     @VisibleForTesting
     boolean isUnbounded() {
+      System.out.println("isUnbounded: manual demand " + this.demand + "; reactor demand = " + this.sink.requestedFromDownstream());
       return this.demand == Long.MAX_VALUE;
     }
 
@@ -354,7 +395,7 @@ class DatabaseClientReactiveAdapter {
 
         this.demand = Long.MAX_VALUE;
         System.out.println(Thread.currentThread().getName()
-            + " - *** making this.demand MAX_VALUE: " + this.demand);
+            + " - *** making demand MAX_VALUE: " + this.demand);
       } else {
         // todo: make thread safe?
         System.out.print(Thread.currentThread().getName()
@@ -363,30 +404,33 @@ class DatabaseClientReactiveAdapter {
         // if specific demand appears after unbounded, this is the new demand.
         this.demand = isUnbounded() ? newDemand : (this.demand + newDemand);
         System.out.println(" to " + this.demand);
+        System.out.println("increaseDemand: manual demand " + this.demand + "; reactor demand = " + this.sink.requestedFromDownstream());
       }
 
-      if (this.pausedCursor != null && this.demand > 0) {
+      if (this.paused && this.demand > 0) {
         System.out.println(Thread.currentThread().getName()
             + " - *** unpausing since this.demand is now " + this.demand);
-        this.pausedCursor.resume();
-        this.pausedCursor = null;
+        this.spannerResultSet.resume();
+        this.paused = false;
       }
     }
 
     @VisibleForTesting
     synchronized void decreaseDemand() {
+
       if (!isUnbounded() && hasDemand()) {
         this.demand--;
       }
+      System.out.println("decreaseDemand: manual demand " + this.demand + "; reactor demand = " + this.sink.requestedFromDownstream());
     }
 
     @VisibleForTesting
-    boolean hasDemand() {
+    synchronized boolean hasDemand() {
       return this.demand > 0;
     }
 
     @VisibleForTesting
-    long getDemand() {
+    synchronized long getDemand() {
       return this.demand;
     }
   }

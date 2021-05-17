@@ -66,7 +66,7 @@ class SpannerSelectReactiveStreamVerification extends
   }
 
   public SpannerSelectReactiveStreamVerification() {
-    super(new TestEnvironment(true));
+    super(new TestEnvironment(400, 600));
   }
 
   @Override
@@ -95,4 +95,6 @@ class SpannerSelectReactiveStreamVerification extends
     // only 30 rows set up in the database
     return 30;
   }
+
+
 }
