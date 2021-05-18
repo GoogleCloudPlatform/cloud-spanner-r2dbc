@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 import com.google.api.core.ApiFutures;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.spanner.AsyncResultSet;
-import com.google.cloud.spanner.AsyncResultSet.CallbackResponse;
 import com.google.cloud.spanner.AsyncResultSet.CursorState;
 import com.google.cloud.spanner.AsyncTransactionManager.TransactionContextFuture;
 import com.google.cloud.spanner.DatabaseAdminClient;
@@ -38,12 +37,9 @@ import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.ReadContext;
 import com.google.cloud.spanner.Spanner;
 import com.google.cloud.spanner.Statement;
-import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.TransactionContext;
-import com.google.cloud.spanner.Value;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
-import com.google.cloud.spanner.r2dbc.v2.DatabaseClientReactiveAdapter.ResultSetReadyCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.spanner.v1.ExecuteSqlRequest.QueryOptions;
 import java.util.concurrent.ExecutorService;
@@ -51,9 +47,7 @@ import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.stubbing.OngoingStubbing;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -111,7 +105,7 @@ class DatabaseClientReactiveAdapterTest {
     // Normally client library ResultSet implementation would invoke R2DBC driver's callback
     // as many times as needed. Here, the mock result set simulates this by running callback once.
     when(this.mockResultSet.setCallback(any(), any())).thenAnswer(invocation -> {
-      ((ResultSetReadyCallback) invocation.getArgument(1)).cursorReady(this.mockResultSet);
+      ((ReactiveResultSetCallback) invocation.getArgument(1)).cursorReady(this.mockResultSet);
       return Futures.immediateFuture(null);
     });
 
@@ -169,187 +163,6 @@ class DatabaseClientReactiveAdapterTest {
     DatabaseClientReactiveAdapter adapter =
         new DatabaseClientReactiveAdapter(this.mockSpannerClient, config);
     assertEquals("2", adapter.getQueryOptions().getOptimizerVersion());
-  }
-
-  @Test
-  void resultSetReadyCallbackStopsSinkOnCompletion() {
-    when(this.mockResultSet.tryNext()).thenReturn(CursorState.DONE);
-
-    StepVerifier.create(
-      Flux.<SpannerClientLibraryRow>create(sink -> {
-        CallbackResponse response =
-            new ResultSetReadyCallback(sink, this.mockResultSet).cursorReady(this.mockResultSet);
-        assertThat(response).isSameAs(CallbackResponse.DONE);
-      })
-    ).verifyComplete();
-  }
-
-  @Test
-  void resultSetReadyCallbackEmitsOnOk() {
-    when(this.mockResultSet.tryNext()).thenReturn(CursorState.OK);
-    Struct struct = Struct.newBuilder().add(Value.string("some result")).build();
-    when(this.mockResultSet.getCurrentRowAsStruct()).thenReturn(struct);
-
-
-    StepVerifier.create(
-        Flux.<SpannerClientLibraryRow>create(sink -> {
-          ResultSetReadyCallback cb = new ResultSetReadyCallback(sink, this.mockResultSet);
-          CallbackResponse response = cb.cursorReady(this.mockResultSet);
-          assertThat(response).isSameAs(CallbackResponse.CONTINUE);
-        })
-    ).assertNext(r -> assertThat(r.get(1)).isEqualTo("some result")
-    ).thenCancel() // without CallbackResponse.DONE signal, sink will not complete by itself.
-      .verify();
-  }
-
-  @Test
-  void resultSetReadyCallbackWaitsOnNotReady() {
-    when(this.mockResultSet.tryNext()).thenReturn(CursorState.NOT_READY);
-
-    StepVerifier.create(
-        Flux.<SpannerClientLibraryRow>create(sink -> {
-          CallbackResponse response =
-              new ResultSetReadyCallback(sink, this.mockResultSet).cursorReady(this.mockResultSet);
-
-          assertThat(response).isSameAs(CallbackResponse.CONTINUE);
-        })
-    ).thenCancel();
-  }
-
-  @Test
-  void resultSetReadyCallbackSendsErrorOnException() {
-    Exception exception = new RuntimeException("boom");
-    when(this.mockResultSet.tryNext()).thenThrow(exception);
-
-    StepVerifier.create(
-        Flux.<SpannerClientLibraryRow>create(sink -> {
-          CallbackResponse response =
-              new ResultSetReadyCallback(sink, this.mockResultSet).cursorReady(this.mockResultSet);
-          assertThat(response).isSameAs(CallbackResponse.DONE);
-        })
-    ).expectErrorMessage("boom")
-        .verify();
-  }
-
-  @Test
-  void resultSetReadyCallbackUnboundedDemand() {
-    setUpResultSet("result1", "result2", "result3", "result4", "result5");
-
-    StepVerifier.create(
-            Flux.<SpannerClientLibraryRow>create(
-                sink -> {
-                  ResultSetReadyCallback cb = new ResultSetReadyCallback(sink, this.mockResultSet);
-                  // more callback invocations than results available
-                  for (int i = 0; i < 7; i++) {
-                    cb.cursorReady(this.mockResultSet);
-                  }
-                })) // unbounded demand
-        .expectNextMatches(r -> r.get(1, String.class).equals("result1"))
-        .expectNextMatches(r -> r.get(1, String.class).equals("result2"))
-        .expectNextMatches(r -> r.get(1, String.class).equals("result3"))
-        .expectNextMatches(r -> r.get(1, String.class).equals("result4"))
-        .expectNextMatches(r -> r.get(1, String.class).equals("result5"))
-        .verifyComplete();
-
-    verify(this.mockResultSet, times(5)).getCurrentRowAsStruct();
-  }
-
-  @Test
-  void resultSetReadyCallbackWithBackpressure() {
-    setUpResultSet("result1", "result2", "result3");
-
-    StepVerifier.create(
-        Flux.<SpannerClientLibraryRow>create(sink -> {
-          ResultSetReadyCallback cb = new ResultSetReadyCallback(sink, this.mockResultSet);
-          // more callback invocations than results available
-          cb.cursorReady(this.mockResultSet);
-          cb.cursorReady(this.mockResultSet);
-          cb.cursorReady(this.mockResultSet);
-          cb.cursorReady(this.mockResultSet);
-        }),
-        /* initial demand of 1 */ 1)
-          .expectNextMatches(r -> r.get(1, String.class).equals("result1"))
-          .thenRequest(2)
-          .expectNextMatches(r -> r.get(1, String.class).equals("result2"))
-          .expectNextMatches(r -> r.get(1, String.class).equals("result3"))
-          .thenRequest(1)
-        .verifyComplete();
-
-    verify(this.mockResultSet, times(3)).getCurrentRowAsStruct();
-  }
-
-  /**
-   * Mocks results corresponding to the passed in column values, assuming a single-column table.
-   * Emits DONE status after emitting N (number of columns) OK statuses.
-   *
-   * @param columnValues assumes a single-column table
-   */
-  private void setUpResultSet(String... columnValues) {
-    OngoingStubbing<CursorState> tryNextStub = when(this.mockResultSet.tryNext());
-
-    for (String value : columnValues) {
-      tryNextStub = tryNextStub.thenReturn(CursorState.OK);
-    }
-    tryNextStub.thenReturn(CursorState.DONE);
-
-    OngoingStubbing<Struct> getRowStub = when(this.mockResultSet.getCurrentRowAsStruct());
-    for (String value : columnValues) {
-      Struct struct = Struct.newBuilder()
-          .add(Value.string(value))
-          .build();
-
-      getRowStub = getRowStub.thenReturn(struct);
-    }
-  }
-
-
-  @Test
-  void resultSetReadyCallbackPausesWhenNoDemand() {
-    FluxSink<SpannerClientLibraryRow> mockSink = mock(FluxSink.class);
-    when(mockSink.requestedFromDownstream()).thenReturn(0L);
-
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mockSink, this.mockResultSet);
-    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.PAUSE);
-  }
-
-
-  @Test
-  void resultSetReadyCallbackWhenNoDemandAndCalledMoreThanOnce() {
-    FluxSink<SpannerClientLibraryRow> mockSink = mock(FluxSink.class);
-    when(mockSink.requestedFromDownstream()).thenReturn(0L);
-
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mockSink, this.mockResultSet);
-    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.PAUSE);
-
-    // TODO: after  googleapis/java-spanner#1192 is released, update to expect PAUSE
-    // when called repeatedly on insufficient demand.
-    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.DONE);
-  }
-
-  @Test
-  void resultSetReadyCallbackEmitsWhenDemandPresent() {
-    FluxSink<SpannerClientLibraryRow> mockSink = mock(FluxSink.class);
-    when(mockSink.requestedFromDownstream()).thenReturn(1L);
-    when(this.mockResultSet.tryNext()).thenReturn(CursorState.OK);
-    Struct struct = Struct.newBuilder().add(Value.string("some result")).build();
-    when(this.mockResultSet.getCurrentRowAsStruct()).thenReturn(struct);
-
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mockSink, this.mockResultSet);
-    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.CONTINUE);
-    verify(mockSink).next(any());
-  }
-
-  @Test
-  void resultSetReadyCallbackEmitsWhenUnboundedDemand() {
-    FluxSink<SpannerClientLibraryRow> mockSink = mock(FluxSink.class);
-    when(mockSink.requestedFromDownstream()).thenReturn(Long.MAX_VALUE);
-    when(this.mockResultSet.tryNext()).thenReturn(CursorState.OK);
-    Struct struct = Struct.newBuilder().add(Value.string("some result")).build();
-    when(this.mockResultSet.getCurrentRowAsStruct()).thenReturn(struct);
-
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mockSink, this.mockResultSet);
-    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.CONTINUE);
-    verify(mockSink).next(any());
   }
 
   @Test
