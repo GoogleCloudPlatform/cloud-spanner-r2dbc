@@ -82,7 +82,7 @@ class ClientLibraryBasedIntegrationTest {
   public static void setupSpannerTable() {
 
     if ("false".equals(System.getProperty("it.recreate-ddl"))) {
-      // temporarily disable because table exists dbHelper.createTableIfNecessary();
+      dbHelper.createTableIfNecessary();
     } else {
       dbHelper.recreateTable();
     }
@@ -658,10 +658,31 @@ class ClientLibraryBasedIntegrationTest {
     Mono.from(sclConnectionFactory.close()).block();
   }
 
-  // blah
   @Test
-  void selectWithBackpressure() {
-    dbHelper.addTestData(5);
+  void selectWithBackpressureCanceledEarly() {
+    dbHelper.addTestData(10);
+
+    Connection conn = Mono.from(connectionFactory.create()).block();
+
+    StepVerifier.create(
+        Mono.from(conn.createStatement("SELECT title FROM BOOKS").execute())
+            .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, String.class))),
+        /* initial demand of 2 */ 2)
+        .expectNextCount(2)
+        .expectNoEvent(Duration.ofMillis(200))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .expectNoEvent(Duration.ofMillis(200))
+        .thenRequest(3)
+        .expectNextCount(3)
+
+        //.expectNoEvent(Duration.ofMillis(200))
+        .thenCancel().verify();
+  }
+
+  @Test
+  void selectWithBackpressureCompletesWhenResultSetEnds() {
+    dbHelper.addTestData(10);
 
     Connection conn = Mono.from(connectionFactory.create()).block();
 
@@ -670,14 +691,15 @@ class ClientLibraryBasedIntegrationTest {
             .flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, String.class))),
         /* initiali demand of2 */ 2)
         .expectNextCount(2)
-        //.thenRequest(3)
-        //.thenAwait(Duration.ofSeconds(300))
-        //.expectNextCount(3)
-        .thenCancel().verify();
-        //.verifyComplete();
+        .expectNoEvent(Duration.ofMillis(200))
+        .thenRequest(8)
+        .expectNextCount(8)
+        // there is no demand, so end-of-result-set won't be read until demand appears.
+        .expectNoEvent(Duration.ofMillis(200))
+        .thenRequest(1)
+        .verifyComplete();
 
   }
-
 
   private Publisher<Long> getFirstNumber(Result result) {
     return result.map((row, meta) -> (Long) row.get(1));

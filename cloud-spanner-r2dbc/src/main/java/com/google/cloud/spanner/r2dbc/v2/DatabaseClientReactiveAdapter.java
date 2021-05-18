@@ -294,82 +294,42 @@ class DatabaseClientReactiveAdapter {
 
     private AsyncResultSet spannerResultSet;
 
-    // default to no demand, wait for request
-    private long demand = 0;
-
-    boolean closed = false;
-    boolean paused = false;
+    private boolean paused = false;
 
     ResultSetReadyCallback(FluxSink<SpannerClientLibraryRow> sink, AsyncResultSet resultSet) {
-      System.out.println("***********************************************");
-      System.out.println("**************  ResultSetReadyCallback CREATED   ********");
-      System.out.println("***********************************************");
+
       this.sink = sink;
-      this.sink.onRequest(this::increaseDemand);
+      this.sink.onRequest(this::unpauseOnAddedDemand);
       this.spannerResultSet = resultSet;
-     // replace manual demand management with  this.sink.requestedFromDownstream()
-      this.sink.onCancel(
-          () -> {
-            System.out.println("******************* AAAARGH ON CANCEL");
-            closed = true;
-            this.spannerResultSet.cancel();
-          });
-      this.sink.onDispose(() -> {
-        System.out.println("******************* AAAARGH ON DISPOSE");
-        closed = true;
-        this.spannerResultSet.close();
-          // force cursorReturnedDoneOrException to be set
-          //this.pausedCursor.tryNext();
-      });
+
+      this.sink.onCancel(this.spannerResultSet::cancel);
+      this.sink.onDispose(this.spannerResultSet::close);
     }
 
     @Override
     public CallbackResponse cursorReady(AsyncResultSet resultSet) {
-      /*System.out.println(Thread.currentThread().getName()
-          + " - *** CURSOR_READY called; current this.demand = " + this.demand);*/
-      // TODO: handle backpressure by asking callback to signal CallbackResponse.PAUSE
+
       try {
-/* this should not be done. infinite loop results.
-if (closed) {
-          System.out.println("*** Stream closed; completing");
-          this.sink.complete();
-         return CallbackResponse.DONE;
-        }*/
-        System.out.println("cursorReady: manual demand " + this.demand + "; reactor demand = " + this.sink.requestedFromDownstream());
         synchronized (this) {
+          if (this.sink.requestedFromDownstream() < 1) {
 
-
-          if (!hasDemand()) {
-            System.out.println("No demand, pity! Returning PAUSE");
-            if (!paused) {
-              System.out.println(
-                  Thread.currentThread().getName()
-                      + " - *** demand ( "
-                      + this.demand
-                      + " ); pausing");
+            // TODO: when googleapis/java-spanner#1192 is released, remove the nested condition,
+            // and return PAUSE regardless of previous state of this.paused. Validate TCK.
+            if (!this.paused) {
               this.paused = true;
               return CallbackResponse.PAUSE;
             }
-          } else {
-            System.out.println(Thread.currentThread().getName() + " - *** THERE IS DEMAND!");
           }
         }
 
-
         switch (resultSet.tryNext()) {
           case DONE:
-            System.out.println(Thread.currentThread().getName()
-                + " - *** try next: done");
             this.sink.complete();
             return CallbackResponse.DONE;
           case OK:
-            System.out.println(Thread.currentThread().getName()
-                + " - *** try next: ok");
-            decreaseDemand();
             this.sink.next(new SpannerClientLibraryRow(resultSet.getCurrentRowAsStruct()));
             return CallbackResponse.CONTINUE;
           default:
-            System.out.println(Thread.currentThread().getName() + " - *** try next: other");
             // ResultSet returning NOT_READY or null.
             return CallbackResponse.CONTINUE;
         }
@@ -379,59 +339,11 @@ if (closed) {
       }
     }
 
-    // Internal demand management methods
-
-    @VisibleForTesting
-    boolean isUnbounded() {
-      System.out.println("isUnbounded: manual demand " + this.demand + "; reactor demand = " + this.sink.requestedFromDownstream());
-      return this.demand == Long.MAX_VALUE;
-    }
-
-    @VisibleForTesting
-    synchronized void increaseDemand(long newDemand) {
-      System.out.println(Thread.currentThread().getName()
-          + " - *** request: " + newDemand);
-      if (newDemand == Long.MAX_VALUE) {
-
-        this.demand = Long.MAX_VALUE;
-        System.out.println(Thread.currentThread().getName()
-            + " - *** making demand MAX_VALUE: " + this.demand);
-      } else {
-        // todo: make thread safe?
-        System.out.print(Thread.currentThread().getName()
-            + " - *** changing demand from: " + this.demand);
-
-        // if specific demand appears after unbounded, this is the new demand.
-        this.demand = isUnbounded() ? newDemand : (this.demand + newDemand);
-        System.out.println(" to " + this.demand);
-        System.out.println("increaseDemand: manual demand " + this.demand + "; reactor demand = " + this.sink.requestedFromDownstream());
-      }
-
-      if (this.paused && this.demand > 0) {
-        System.out.println(Thread.currentThread().getName()
-            + " - *** unpausing since this.demand is now " + this.demand);
+    synchronized void unpauseOnAddedDemand(long request) {
+      if (this.paused && this.sink.requestedFromDownstream() > 0) {
         this.spannerResultSet.resume();
         this.paused = false;
       }
-    }
-
-    @VisibleForTesting
-    synchronized void decreaseDemand() {
-
-      if (!isUnbounded() && hasDemand()) {
-        this.demand--;
-      }
-      System.out.println("decreaseDemand: manual demand " + this.demand + "; reactor demand = " + this.sink.requestedFromDownstream());
-    }
-
-    @VisibleForTesting
-    synchronized boolean hasDemand() {
-      return this.demand > 0;
-    }
-
-    @VisibleForTesting
-    synchronized long getDemand() {
-      return this.demand;
     }
   }
 
