@@ -164,10 +164,13 @@ class ReactiveResultSetCallbackTest {
     // demand disappeared: demand = 0
     assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.PAUSE);
     verify(mockSink, times(numCalls)).next(any()); // no additional items emitted
+    verify(this.mockResultSet, times(0)).resume();
 
     // demand came back: demand = 3
     assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.CONTINUE);
     verify(mockSink, times(++numCalls)).next(any()); // item emitted
+    cb.resumeOnAddedDemand(3);
+    verify(this.mockResultSet).resume();
 
     // demand continues: demand = 2
     assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.CONTINUE);

@@ -85,7 +85,7 @@ class ReactiveResultSetCallback implements ReadyCallback {
           // ResultSet returning NOT_READY or null.
           return CallbackResponse.CONTINUE;
       }
-    } catch (Throwable t) {
+    } catch (Exception t) {
       this.sink.error(t);
       return CallbackResponse.DONE;
     }
