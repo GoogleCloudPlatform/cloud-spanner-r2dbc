@@ -52,23 +52,27 @@ class TestDatabaseHelper {
     this.connection = Mono.from(connectionFactory.create()).block();
   }
 
-  public void recreateTable() {
-    LOGGER.info("Dropping and re-creating table BOOKS.");
+  public void dropTable() {
+    LOGGER.info("Dropping table BOOKS.");
 
     try {
       Mono.from(this.connection.createStatement("DROP TABLE BOOKS").execute()).block();
     } catch (Exception e) {
       LOGGER.info("The BOOKS table doesn't exist", e);
     }
-
-    createTable();
   }
 
   public void createTableIfNecessary() {
-
-    if (!tableExists("BOOKS")) {
-      createTable();
+    boolean exists = tableExists("BOOKS");
+    if (exists && "false".equals(System.getProperty("it.recreate-ddl"))) {
+      return;
     }
+
+    if (exists) {
+      dropTable();
+    }
+
+    createTable();
   }
 
   public boolean tableExists(String tableName) {
@@ -86,6 +90,7 @@ class TestDatabaseHelper {
   }
 
   private void createTable() {
+    LOGGER.info("Creating table BOOKS.");
     Mono.from(
         this.connection.createStatement(
             "CREATE TABLE BOOKS ("

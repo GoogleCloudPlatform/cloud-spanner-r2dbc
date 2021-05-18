@@ -80,12 +80,7 @@ class ClientLibraryBasedIntegrationTest {
    */
   @BeforeAll
   public static void setupSpannerTable() {
-
-    if ("false".equals(System.getProperty("it.recreate-ddl"))) {
-      dbHelper.createTableIfNecessary();
-    } else {
-      dbHelper.recreateTable();
-    }
+    dbHelper.createTableIfNecessary();
   }
 
   /**

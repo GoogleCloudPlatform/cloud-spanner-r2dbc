@@ -53,6 +53,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.OngoingStubbing;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -250,7 +251,6 @@ class DatabaseClientReactiveAdapterTest {
         .expectNextMatches(r -> r.get(1, String.class).equals("result5"))
         .verifyComplete();
 
-    // only 3 out of 5 results returned
     verify(this.mockResultSet, times(5)).getCurrentRowAsStruct();
   }
 
@@ -258,23 +258,23 @@ class DatabaseClientReactiveAdapterTest {
   void resultSetReadyCallbackWithBackpressure() {
     setUpResultSet("result1", "result2", "result3");
 
-
     StepVerifier.create(
         Flux.<SpannerClientLibraryRow>create(sink -> {
           ResultSetReadyCallback cb = new ResultSetReadyCallback(sink, this.mockResultSet);
           // more callback invocations than results available
-          for (int i = 0; i < 7; i++) {
-            cb.cursorReady(this.mockResultSet);
-          }
+          cb.cursorReady(this.mockResultSet);
+          cb.cursorReady(this.mockResultSet);
+          cb.cursorReady(this.mockResultSet);
+          cb.cursorReady(this.mockResultSet);
         }),
         /* initial demand of 1 */ 1)
           .expectNextMatches(r -> r.get(1, String.class).equals("result1"))
           .thenRequest(2)
           .expectNextMatches(r -> r.get(1, String.class).equals("result2"))
           .expectNextMatches(r -> r.get(1, String.class).equals("result3"))
+          .thenRequest(1)
         .verifyComplete();
 
-    // only 3 out of 5 results returned
     verify(this.mockResultSet, times(3)).getCurrentRowAsStruct();
   }
 
@@ -302,92 +302,55 @@ class DatabaseClientReactiveAdapterTest {
     }
   }
 
-  /*
+
   @Test
-  void resultSetReadyCallback_demandStartsAtZero() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
-    assertThat(cb.isUnbounded()).isFalse();
-    assertThat(cb.hasDemand()).isFalse();
-    assertThat(cb.getDemand()).isZero();
+  void resultSetReadyCallbackPausesWhenNoDemand() {
+    FluxSink<SpannerClientLibraryRow> mockSink = mock(FluxSink.class);
+    when(mockSink.requestedFromDownstream()).thenReturn(0L);
+
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mockSink, this.mockResultSet);
+    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.PAUSE);
+  }
+
+
+  @Test
+  void resultSetReadyCallbackWhenNoDemandAndCalledMoreThanOnce() {
+    FluxSink<SpannerClientLibraryRow> mockSink = mock(FluxSink.class);
+    when(mockSink.requestedFromDownstream()).thenReturn(0L);
+
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mockSink, this.mockResultSet);
+    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.PAUSE);
+
+    // TODO: after  googleapis/java-spanner#1192 is released, update to expect PAUSE
+    // when called repeatedly on insufficient demand.
+    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.DONE);
   }
 
   @Test
-  void resultSetReadyCallback_unboundedDemandMeansMaxLongValue() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
-    cb.increaseDemand(Long.MAX_VALUE);
-    assertThat(cb.isUnbounded()).isTrue();
-    assertThat(cb.hasDemand()).isTrue();
-    assertThat(cb.getDemand()).isEqualTo(Long.MAX_VALUE);
+  void resultSetReadyCallbackEmitsWhenDemandPresent() {
+    FluxSink<SpannerClientLibraryRow> mockSink = mock(FluxSink.class);
+    when(mockSink.requestedFromDownstream()).thenReturn(1L);
+    when(this.mockResultSet.tryNext()).thenReturn(CursorState.OK);
+    Struct struct = Struct.newBuilder().add(Value.string("some result")).build();
+    when(this.mockResultSet.getCurrentRowAsStruct()).thenReturn(struct);
+
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mockSink, this.mockResultSet);
+    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.CONTINUE);
+    verify(mockSink).next(any());
   }
 
   @Test
-  void resultSetReadyCallback_unboundedDemandCannotDecrease() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
-    cb.increaseDemand(Long.MAX_VALUE);
-    assertThat(cb.isUnbounded()).isTrue();
-    assertThat(cb.getDemand()).isEqualTo(Long.MAX_VALUE);
-    assertThat(cb.hasDemand()).isTrue();
+  void resultSetReadyCallbackEmitsWhenUnboundedDemand() {
+    FluxSink<SpannerClientLibraryRow> mockSink = mock(FluxSink.class);
+    when(mockSink.requestedFromDownstream()).thenReturn(Long.MAX_VALUE);
+    when(this.mockResultSet.tryNext()).thenReturn(CursorState.OK);
+    Struct struct = Struct.newBuilder().add(Value.string("some result")).build();
+    when(this.mockResultSet.getCurrentRowAsStruct()).thenReturn(struct);
 
-
-    cb.decreaseDemand();
-
-    assertThat(cb.isUnbounded()).isTrue();
-    assertThat(cb.getDemand()).isEqualTo(Long.MAX_VALUE);
-    assertThat(cb.hasDemand()).isTrue();
+    ResultSetReadyCallback cb = new ResultSetReadyCallback(mockSink, this.mockResultSet);
+    assertThat(cb.cursorReady(this.mockResultSet)).isEqualTo(CallbackResponse.CONTINUE);
+    verify(mockSink).next(any());
   }
-
-  @Test
-  void resultSetReadyCallback_demandAccumulates() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
-    cb.increaseDemand(17);
-    assertThat(cb.isUnbounded()).isFalse();
-    assertThat(cb.getDemand()).isEqualTo(17);
-    assertThat(cb.hasDemand()).isTrue();
-
-    cb.increaseDemand(25);
-
-    assertThat(cb.isUnbounded()).isFalse();
-    assertThat(cb.getDemand()).isEqualTo(42);
-    assertThat(cb.hasDemand()).isTrue();
-  }
-
-  @Test
-  void resultSetReadyCallback_switchFromBoundedToUnbounded() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
-    cb.increaseDemand(17);
-    assertThat(cb.isUnbounded()).isFalse();
-    assertThat(cb.getDemand()).isEqualTo(17);
-    assertThat(cb.hasDemand()).isTrue();
-
-    cb.increaseDemand(Long.MAX_VALUE);
-
-    assertThat(cb.isUnbounded()).isTrue();
-    assertThat(cb.getDemand()).isEqualTo(Long.MAX_VALUE);
-    assertThat(cb.hasDemand()).isTrue();
-  }
-
-  @Test
-  void resultSetReadyCallback_demandCannotFallBelowZero() {
-    ResultSetReadyCallback cb = new ResultSetReadyCallback(mock(FluxSink.class), mockResultSet);
-    cb.increaseDemand(2);
-    assertThat(cb.isUnbounded()).isFalse();
-    assertThat(cb.getDemand()).isEqualTo(2);
-    assertThat(cb.hasDemand()).isTrue();
-
-    cb.decreaseDemand();
-    cb.decreaseDemand();
-
-    assertThat(cb.isUnbounded()).isFalse();
-    assertThat(cb.getDemand()).isEqualTo(0);
-    assertThat(cb.hasDemand()).isFalse();
-
-    cb.decreaseDemand();
-
-    assertThat(cb.isUnbounded()).isFalse();
-    assertThat(cb.getDemand()).isEqualTo(0);
-    assertThat(cb.hasDemand()).isFalse();
-  }
-  */
 
   @Test
   void resultSetClosedOnSuccessfulFluxCompletion() {
