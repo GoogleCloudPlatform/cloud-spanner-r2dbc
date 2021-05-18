@@ -93,10 +93,11 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- TestNG is used for Reactive Streams TCK verification tests -->
     <dependency>
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>
-      <version>7.4.0</version>
+      <version>${testng.version}</version>
       <scope>provided</scope>
     </dependency>
 

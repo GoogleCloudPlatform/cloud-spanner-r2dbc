@@ -283,9 +283,6 @@ class DatabaseClientReactiveAdapter {
   private ApiFuture<Void> runSelectStatementAsFlux(
       ReadContext readContext, Statement statement, FluxSink<SpannerClientLibraryRow> sink) {
     AsyncResultSet ars = readContext.executeQueryAsync(statement);
-    //sink.onCancel(ars::cancel);
-    //sink.onDispose(ars::close);
-
     return ars.setCallback(REACTOR_EXECUTOR, new ResultSetReadyCallback(sink, ars));
   }
 
@@ -299,9 +296,9 @@ class DatabaseClientReactiveAdapter {
     ResultSetReadyCallback(FluxSink<SpannerClientLibraryRow> sink, AsyncResultSet resultSet) {
 
       this.sink = sink;
-      this.sink.onRequest(this::unpauseOnAddedDemand);
       this.spannerResultSet = resultSet;
 
+      this.sink.onRequest(this::unpauseOnAddedDemand);
       this.sink.onCancel(this.spannerResultSet::cancel);
       this.sink.onDispose(this.spannerResultSet::close);
     }

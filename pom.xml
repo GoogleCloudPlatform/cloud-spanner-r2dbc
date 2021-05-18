@@ -95,6 +95,8 @@
 
     <assertj.version>3.19.0</assertj.version>
     <junit.version>5.7.1</junit.version>
+    <surefire-failsafe.version>3.0.0-M5</surefire-failsafe.version>
+    <testng.version>7.4.0</testng.version>
   </properties>
 
   <dependencyManagement>
@@ -281,7 +283,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M5</version>
+        <version>${surefire-failsafe.version}</version>
         <configuration>
           <skip>${skip.surefire.tests}</skip>
           <excludes>
@@ -290,22 +292,21 @@
         </configuration>
       </plugin>
 
-      <!-- JUnit 5 integration tests -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>3.0.0-M5</version>
+        <version>${surefire-failsafe.version}</version>
 
         <dependencies>
           <dependency>
             <groupId>org.apache.maven.surefire</groupId>
             <artifactId>surefire-junit-platform</artifactId>
-            <version>3.0.0-M5</version>
+            <version>${surefire-failsafe.version}</version>
           </dependency>
           <dependency>
             <groupId>org.apache.maven.surefire</groupId>
             <artifactId>surefire-testng</artifactId>
-            <version>3.0.0-M5</version>
+            <version>${surefire-failsafe.version}</version>
           </dependency>
         </dependencies>
 

@@ -670,8 +670,7 @@ class ClientLibraryBasedIntegrationTest {
         .expectNoEvent(Duration.ofMillis(200))
         .thenRequest(3)
         .expectNextCount(3)
-
-        //.expectNoEvent(Duration.ofMillis(200))
+        .expectNoEvent(Duration.ofMillis(200))
         .thenCancel().verify();
   }
 
