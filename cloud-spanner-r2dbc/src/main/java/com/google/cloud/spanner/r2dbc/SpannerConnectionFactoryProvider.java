@@ -48,7 +48,11 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   /** R2DBC driver name for Google Cloud Spanner. */
   public static final String DRIVER_NAME = "cloudspanner";
 
-  /** {@code DRIVER_NAME} should be used instead. */
+  /**
+   * Abbreviated name standing for Cloud Spanner.
+   *
+   * @deprecated {@code DRIVER_NAME} should be used instead.
+   */
   @Deprecated
   public static final String SHORT_DRIVER_NAME = "spanner";
 

@@ -120,8 +120,9 @@ class SpannerConnectionFactoryProviderTest {
     ConnectionFactory spannerConnectionFactory =
         ConnectionFactories.get("r2dbc:spanner://spanner.googleapis.com:443/projects/"
             + "myproject/instances/myinstance/databases/mydatabase?usePlainText=true");
-    assertThat(spannerConnectionFactory).isNotNull();
-    assertThat(spannerConnectionFactory).isInstanceOf(SpannerConnectionFactory.class);
+    assertThat(spannerConnectionFactory)
+        .isNotNull()
+        .isInstanceOf(SpannerConnectionFactory.class);
   }
 
   @Test
@@ -129,8 +130,9 @@ class SpannerConnectionFactoryProviderTest {
     ConnectionFactory spannerConnectionFactory =
         ConnectionFactories.get("r2dbc:cloudspanner://spanner.googleapis.com:443/projects/"
             + "myproject/instances/myinstance/databases/mydatabase?usePlainText=true");
-    assertThat(spannerConnectionFactory).isNotNull();
-    assertThat(spannerConnectionFactory).isInstanceOf(SpannerConnectionFactory.class);
+    assertThat(spannerConnectionFactory)
+        .isNotNull()
+        .isInstanceOf(SpannerConnectionFactory.class);
   }
 
   @Test
@@ -140,8 +142,9 @@ class SpannerConnectionFactoryProviderTest {
             "r2dbc:spanner://spanner.googleapis.com:443/projects/"
                 + "myproject/instances/myinstance/databases/mydatabase"
                 + "?client-implementation=client-library&usePlainText=true");
-    assertThat(spannerConnectionFactory).isNotNull();
-    assertThat(spannerConnectionFactory).isInstanceOf(SpannerClientLibraryConnectionFactory.class);
+    assertThat(spannerConnectionFactory)
+        .isNotNull()
+        .isInstanceOf(SpannerClientLibraryConnectionFactory.class);
   }
 
   @Test
@@ -150,8 +153,9 @@ class SpannerConnectionFactoryProviderTest {
         ConnectionFactories.get("r2dbc:cloudspanner://spanner.googleapis.com:443/projects/"
             + "myproject/instances/myinstance/databases/mydatabase"
             + "?client-implementation=client-library&usePlainText=true");
-    assertThat(spannerConnectionFactory).isNotNull();
-    assertThat(spannerConnectionFactory).isInstanceOf(SpannerClientLibraryConnectionFactory.class);
+    assertThat(spannerConnectionFactory)
+        .isNotNull()
+        .isInstanceOf(SpannerClientLibraryConnectionFactory.class);
   }
 
   @Test
@@ -166,8 +170,9 @@ class SpannerConnectionFactoryProviderTest {
 
     ConnectionFactory spannerConnectionFactory =
         this.spannerConnectionFactoryProvider.create(optionsWithUrl);
-    assertThat(spannerConnectionFactory).isNotNull();
-    assertThat(spannerConnectionFactory).isInstanceOf(SpannerConnectionFactory.class);
+    assertThat(spannerConnectionFactory)
+        .isNotNull()
+        .isInstanceOf(SpannerConnectionFactory.class);
   }
 
   @Test
