@@ -304,8 +304,9 @@ class SpannerConnectionFactoryProviderTest {
 
     ConnectionFactory spannerConnectionFactory =
         customSpannerConnectionFactoryProvider.create(options);
-    assertThat(spannerConnectionFactory).isNotNull();
-    assertThat(spannerConnectionFactory).isInstanceOf(SpannerConnectionFactory.class);
+    assertThat(spannerConnectionFactory)
+        .isNotNull()
+        .isInstanceOf(SpannerConnectionFactory.class);
 
   }
 
