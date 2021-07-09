@@ -2,7 +2,7 @@
 
 This project contains:
 * An implementation of Java Reactive Relational Database Connectivity SPI [R2DBC](https://r2dbc.io/) for [Cloud Spanner](https://cloud.google.com/spanner/) based on the Cloud Spanner [client library](https://github.com/googleapis/java-spanner).
-* A [Spring Data R2DBC dialect for Cloud Spanner](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/tree/main/cloud-spanner-spring-data-r2dbc) dialect.
+* A [Spring Data R2DBC dialect for Cloud Spanner](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/tree/main/cloud-spanner-spring-data-r2dbc).
 * [Sample applications](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/tree/main/cloud-spanner-r2dbc-samples) to help you get started.
 
 ## Setup Instructions
@@ -42,7 +42,10 @@ dependencies {
 
 ### Usage
 
-After setting up the dependency and authentication, one can begin directly using the driver.
+After setting up the dependency and [authentication](#authentication), you can begin directly using the driver.
+
+The rest of this documentation will show examples of directly using the driver.
+In a real application, you should use one of R2DBC's user-friendly [client APIs](https://r2dbc.io/clients/) instead.
 
 The entry point to using the R2DBC driver is to first configure the R2DBC connection factory.
 
@@ -67,7 +70,7 @@ Publisher<? extends Connection> connectionPublisher = connectionFactory.create()
 You may specify the coordinates of your Cloud Spanner database using the `ConnectionFactories.get(String)` SPI method instead of
 specifying the `project`, `instance`, and `database` properties individually.
 
-A Cloud Spanner R2DBC URL is constructed using the following format:
+A Cloud Spanner R2DBC URL is constructed in the following format:
 
 ```
 r2dbc:cloudspanner://spanner.googleapis.com:443/projects/${PROJECT_NAME}/instances/${INSTANCE_NAME}/databases/${DB_NAME}
@@ -107,10 +110,9 @@ The driver allows the following options for authentication:
             .build();
     ```
 
-If no authentication options are provided, Application Default Credentials will be automatically inferred from the environment in which the application is running.
+In the absence of explicit authentication options, Application Default Credentials will be automatically inferred from the environment in which the application is running, unless the connection is in plain-text, indicating the use of Cloud Spanner emulator.
 For more information, see
 the [Google Cloud Platform Authentication documentation](https://cloud.google.com/docs/authentication/production#automatically)
-The only exception is when the connection is in plain-text, indicating the use of Cloud Spanner emulator, in which case no credentials will be used.
 
 
 #### Using Google Cloud SDK
@@ -130,7 +132,7 @@ Instructions:
 2. Once setup, run `gcloud auth application-default login` and login with your Google account
     credentials. 
 
-After completing the SDK configuration, the Cloud Spanner R2DBC driver will automatically pick up your credentials allowing you to access your Spanner database. 
+After completing the SDK configuration, the Cloud Spanner R2DBC driver will automatically pick up your credentials. 
 
 #### Using a Service Account
 
@@ -148,52 +150,15 @@ You can learn how to create a service account and authenticate your application 
 All connection options of primitive and String type can be passed through the connection URL in the `?key1=value1&key2=value2` format.
 Object-typed options can only be passed in programmatically.
 
-|===
-|Property name |Type |Allowed in URL connection |Default |Comments
-
-|`credentials`
-|String
-|Yes
-|null
-|The location of the credentials file to use for this connection
-
-|`oauthToken`
-|String
-|Yes
-|null
-|A valid pre-existing OAuth token to use for authentication
-
-|`google_credentials`
-|com.google.auth.oauth2.OAuth2Credentials
-|No
-|null
-|A pre-authenticated authentication object that can only be supplied with programmatic connection options
-
-|`usePlainText`
-|boolean
-|Yes
-|false
-|Turns off SSL and credentials use (only valid when using Cloud Spanner emulator)
-
-|`optimizerVersion`
-|String
-|Yes
-|null
-= ``|``Determines version of Cloud Spanner https://cloud.google.com/spanner/docs/query-optimizer/query-optimizer-versions[optimizer] to use in queries
-
-|`autocommit`
-|boolean
-|Yes
-|true  
-|Whether new connections are created in autocommit mode
-
-|`readonly`
-| Whether new connections start with a read-only transaction
-|Yes
-|false
-|Whether new connections start with a read-only transaction
-
-|===
+|Property name            |Type                              |Allowed in URL connection |Default |Comments|
+|-------------------------|-------|--------------------------|--------|--------|
+|`credentials`            |String |Yes                       |null    |The location of the credentials file to use for this connection
+|`oauthToken`             |String |Yes                       |null    |A valid pre-existing OAuth token to use for authentication
+|`google_credentials`     |com.google.auth.oauth2.OAuth2Credentials|No|null|A pre-authenticated authentication object that can only be supplied with programmatic connection options
+|`usePlainText`           |boolean|Yes                       |false   |Turns off SSL and credentials use (only valid when using Cloud Spanner emulator)
+|`optimizerVersion`       |String |Yes                       |null    |Determines version of Cloud Spanner https://cloud.google.com/spanner/docs/query-optimizer/query-optimizer-versions[optimizer] to use in queries
+|`autocommit`             |boolean|Yes                       |true    |Whether new connections are created in autocommit mode
+|`readonly`               |boolean|Yes                       |false   | Whether new connections start with a read-only transaction
 
 ## Mapping of Data Types
 
@@ -281,7 +246,7 @@ Cloud Spanner does not support nested transactions, so each transaction must be 
 For readonly transactions, either committing or rolling back will result in closing of the readonly transaction.
 
 
-## Autocommit Mode
+### Autocommit Mode
 
 The Spanner R2DBC driver can be used in autocommit mode in which statements are executed
 independently outside of a transaction.
