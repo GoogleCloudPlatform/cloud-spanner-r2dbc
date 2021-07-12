@@ -47,7 +47,7 @@ After setting up the dependency and [authentication](#authentication), you can b
 The rest of this documentation will show examples of directly using the driver.
 In a real application, you should use one of R2DBC's user-friendly [client APIs](https://r2dbc.io/clients/) instead.
 
-The entry point to using the R2DBC driver is to first configure the R2DBC connection factory.
+The entrypoint to using the R2DBC driver is to first configure the R2DBC connection factory.
 
 ```
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PROJECT;
