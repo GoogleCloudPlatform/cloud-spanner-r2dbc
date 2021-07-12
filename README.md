@@ -285,7 +285,7 @@ You must use the `map` or `getRowsUpdated` methods of the results to complete th
 ## Backpressure
 
 Backpressure on SQL SELECT queries is supported out of the box.
-Take care to ultimately always exhaust or cancel the query result `Publisher`, since not doing so may lead to objects not being deallocated properly.
+Take care to always ultimately exhaust or cancel the query result `Publisher`, since not doing so may lead to objects not being deallocated properly.
 
 ## Exception Handling
 
