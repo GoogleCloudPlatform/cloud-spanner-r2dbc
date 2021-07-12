@@ -158,7 +158,7 @@ Object-typed options can only be passed in programmatically.
 |`usePlainText`           |boolean|Yes                       |false   |Turns off SSL and credentials use (only valid when using Cloud Spanner emulator)
 |`optimizerVersion`       |String |Yes                       |null    |Determines version of Cloud Spanner https://cloud.google.com/spanner/docs/query-optimizer/query-optimizer-versions[optimizer] to use in queries
 |`autocommit`             |boolean|Yes                       |true    |Whether new connections are created in autocommit mode
-|`readonly`               |boolean|Yes                       |false   | Whether new connections start with a read-only transaction
+|`readonly`               |boolean|Yes                       |false   |Whether new connections start with a read-only transaction
 
 ## Mapping of Data Types
 
