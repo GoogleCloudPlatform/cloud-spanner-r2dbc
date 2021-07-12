@@ -47,7 +47,7 @@ After setting up the dependency and [authentication](#authentication), you can b
 The rest of this documentation will show examples of directly using the driver.
 In a real application, you should use one of R2DBC's user-friendly [client APIs](https://r2dbc.io/clients/) instead.
 
-The entrypoint to using the R2DBC driver is to first configure the R2DBC connection factory.
+To start using Cloud Spanner R2DBC driver, configure the R2DBC connection factory either programmatically, as shown below, or with a URL.
 
 ```
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.PROJECT;
@@ -67,8 +67,7 @@ Publisher<? extends Connection> connectionPublisher = connectionFactory.create()
 
 ### Connection URLs
 
-You may specify the coordinates of your Cloud Spanner database using the `ConnectionFactories.get(String)` SPI method instead of
-specifying the `project`, `instance`, and `database` properties individually.
+You may specify the coordinates of your Cloud Spanner database using the `ConnectionFactories.get(String)` SPI method instead of specifying the `project`, `instance`, and `database` properties individually.
 
 A Cloud Spanner R2DBC URL is constructed in the following format:
 
@@ -111,8 +110,7 @@ The driver allows the following options for authentication:
     ```
 
 In the absence of explicit authentication options, Application Default Credentials will be automatically inferred from the environment in which the application is running, unless the connection is in plain-text, indicating the use of Cloud Spanner emulator.
-For more information, see
-the [Google Cloud Platform Authentication documentation](https://cloud.google.com/docs/authentication/production#automatically)
+For more information, see the [Google Cloud Platform Authentication documentation](https://cloud.google.com/docs/authentication/production#automatically)
 
 
 #### Using Google Cloud SDK
@@ -120,26 +118,20 @@ the [Google Cloud Platform Authentication documentation](https://cloud.google.co
 Google Cloud SDK is a command line interface for Google Cloud Platform products and services.
 This is a convenient way of setting up authentication during local development.
 
-If you are using the SDK, the driver can automatically infer your account credentials from your
-SDK configuration.
+If you are using the SDK, the driver can automatically infer your account credentials from your SDK configuration.
 
 Instructions:
 
-1. Install the [Google Cloud SDK](https://cloud.google.com/sdk/) for command line and
-    follow the [Cloud SDK quickstart](https://cloud.google.com/sdk/docs/quickstarts)
-    for your operating system.
+1. Install the [Google Cloud SDK](https://cloud.google.com/sdk/) for command line and follow the [Cloud SDK quickstart](https://cloud.google.com/sdk/docs/quickstarts) for your operating system.
     
-2. Once setup, run `gcloud auth application-default login` and login with your Google account
-    credentials. 
+2. Once setup, run `gcloud auth application-default login` and login with your Google account credentials. 
 
 After completing the SDK configuration, the Cloud Spanner R2DBC driver will automatically pick up your credentials. 
 
 #### Using a Service Account
 
-A [Google Service Account](https://cloud.google.com/iam/docs/understanding-service-accounts) is a
-special type of Google Account intended to represent a non-human user that needs to authenticate
-and be authorized to access your Google Cloud resources. Each service account has an account key JSON file that you can use to provide credentials to your
-application.
+A [Google Service Account](https://cloud.google.com/iam/docs/understanding-service-accounts) is a special type of Google Account intended to represent a non-human user that needs to authenticate and be authorized to access your Google Cloud resources.
+Each service account has an account key JSON file that you can use to provide credentials to your application.
 
 You can learn how to create a service account and authenticate your application by following
 [these instructions](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually).
@@ -187,24 +179,21 @@ The R2DBC Cloud Spanner `Connection` object is a lightweight wrapper around the 
 
 The client library takes care of reconnecting lapsed Cloud Spanner sessions.
 
-If you'd like to ensure the current connection stays connected, you may keep a connection active by calling `validate(ValidationDepth.REMOTE)` on the `Connection` object and subscribing to the returned `Publisher`. Remote validation performs an inexpensive SQL query `SELECT 1` against the database. 
+If you'd like to ensure the current connection stays connected, you may keep a connection active by calling `validate(ValidationDepth.REMOTE)` on the `Connection` object and subscribing to the returned `Publisher`.
+Remote validation performs an inexpensive SQL query `SELECT 1` against the database. 
 
 ## Transactions
 
-In Cloud Spanner, a transaction represents a set of read and write statements that execute
-atomically at a single logical point in time across columns, rows, and tables in a database.
+In Cloud Spanner, a transaction represents a set of read and write statements that execute atomically at a single logical point in time across columns, rows, and tables in a database.
 
-Note: Transactional save points are unsupported in Cloud Spanner and are unimplemented by
-this R2DBC driver.
+Note: Transactional save points are unsupported in Cloud Spanner and are unimplemented by this R2DBC driver.
 
 ### Transaction Types
 
-Spanner offers [three transaction types](https://cloud.google.com/spanner/docs/transactions)
-in which to execute SQL statements:
+Spanner offers [three transaction types](https://cloud.google.com/spanner/docs/transactions) in which to execute SQL statements:
 
 - Read-Write: Supports reading and writing data into Cloud Spanner.
-    When you begin a transaction in the `Connection` object using `connection.beginTransaction()`,
-    a read-write transaction is started by default, unless the connection was created or altered to run in read-only mode.
+    When you begin a transaction in the `Connection` object using `connection.beginTransaction()`, a read-write transaction is started by default, unless the connection was created or altered to run in read-only mode.
     
     ```java
     Mono.from(connectionFactory.create())
@@ -220,8 +209,7 @@ in which to execute SQL statements:
     Invoking `beginReadonlyTransaction()` without parameters will begin a new strongly consistent readonly transaction, as does creating a new connection from a `ConnectionFactory` in read-only mode (`readonly=true`).
     
     To customize staleness, pass in a `TimestampBound` parameter.
-    See the [TransactionOptions documentation](https://cloud.google.com/spanner/docs/reference/rpc/google.spanner.v1#google.spanner.v1.TransactionOptions)
-    for more information about all of the transaction type settings that are available.
+    See the [TransactionOptions documentation](https://cloud.google.com/spanner/docs/reference/rpc/google.spanner.v1#google.spanner.v1.TransactionOptions) for more information about all of the transaction type settings that are available.
 
     ```java
     Mono.from(connectionFactory.create())
@@ -236,8 +224,7 @@ in which to execute SQL statements:
 
 
 - Partitioned DML: A transaction designed for bulk updates and deletes with certain restrictions.
-    See the [Partitioned DML documentation](https://cloud.google.com/spanner/docs/dml-partitioned)
-    for more information.
+    See the [Partitioned DML documentation](https://cloud.google.com/spanner/docs/dml-partitioned) for more information.
     This driver does not support Partitioned DML transactions at the time.
 
 
@@ -248,8 +235,7 @@ For readonly transactions, either committing or rolling back will result in clos
 
 ### Autocommit Mode
 
-The Spanner R2DBC driver can be used in autocommit mode in which statements are executed
-independently outside of a transaction.
+The Spanner R2DBC driver can be used in autocommit mode in which statements are executed independently outside of a transaction.
 
 You may immediately call `connection.createStatement(sql)` and begin executing SQL statements.
 Each statement will be executed as an independent unit of work.
@@ -303,15 +289,15 @@ Take care to ultimately always exhaust or cancel the query result `Publisher`, s
 
 ## Exception Handling
 
-The Cloud Spanner R2DBC propagates all exceptions down to the user. All exceptions thrown
-are wrapped by and propagated through two exception classes:
+The Cloud Spanner R2DBC propagates all exceptions down to the user.
+All exceptions thrown are wrapped by and propagated through two exception classes:
 
-- `R2dbcTransientException`: Errors caused by network problems or causes outside of the
-    user's control. The operations that fail due to these errors can be retried.
+- `R2dbcTransientException`: Errors caused by network problems or causes outside of the user's control.
+    The operations that fail due to these errors can be retried.
     
 - `R2dbcNonTransientException`: Errors caused by invalid operations or user error.
-    These include SQL syntax errors, invalid requests, performing invalid operations on the
-    Spanner driver, etc. These errors should not be retried.
+    These include SQL syntax errors, invalid requests, performing invalid operations on the Spanner driver, etc.
+    These errors should not be retried.
     
 The user may leverage reactive methods to retry operations which throw `R2dbcTransientException`.
 
