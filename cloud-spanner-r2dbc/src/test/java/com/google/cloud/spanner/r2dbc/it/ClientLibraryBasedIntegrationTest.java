@@ -67,7 +67,6 @@ class ClientLibraryBasedIntegrationTest {
               .option(DRIVER, DRIVER_NAME)
               .option(INSTANCE, DatabaseProperties.INSTANCE)
               .option(DATABASE, DatabaseProperties.DATABASE)
-              .option(Option.valueOf("client-implementation"), "client-library")
               .build());
 
   static TestDatabaseHelper dbHelper = new TestDatabaseHelper(connectionFactory);
@@ -644,7 +643,7 @@ class ClientLibraryBasedIntegrationTest {
   @Test
   void testConnectingThroughUrl() {
     ConnectionFactory urlBasedConnectionFactory =
-        ConnectionFactories.get(DatabaseProperties.URL + "?client-implementation=client-library");
+        ConnectionFactories.get(DatabaseProperties.URL);
     assertThat(urlBasedConnectionFactory).isInstanceOf(SpannerClientLibraryConnectionFactory.class);
     SpannerClientLibraryConnectionFactory sclConnectionFactory =
         (SpannerClientLibraryConnectionFactory) urlBasedConnectionFactory;
@@ -704,7 +703,7 @@ class ClientLibraryBasedIntegrationTest {
         DatabaseProperties.DATABASE);
 
     ConnectionFactory cf = ConnectionFactories.get(baseUrl
-        + "?client-implementation=client-library&autocommit=false");
+        + "?autocommit=false");
     StepVerifier.create(
         Mono.from(cf.create()).map(conn -> conn.isAutoCommit())
     ).expectNext(false)
@@ -720,7 +719,7 @@ class ClientLibraryBasedIntegrationTest {
         DatabaseProperties.DATABASE);
 
     ConnectionFactory cf = ConnectionFactories.get(baseUrl
-        + "?client-implementation=client-library&readonly=true");
+        + "?readonly=true");
     StepVerifier.create(
         Mono.from(cf.create()).map(conn -> ((SpannerConnection) conn).isInReadonlyTransaction())
     ).expectNext(true)
