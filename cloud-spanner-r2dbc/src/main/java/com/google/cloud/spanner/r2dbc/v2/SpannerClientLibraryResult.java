@@ -46,9 +46,6 @@ class SpannerClientLibraryResult implements Result {
 
   @Override
   public <T> Publisher<T> map(BiFunction<Row, RowMetadata, ? extends T> mappingFunction) {
-    if (this.resultRows == null) {
-      return Flux.empty();
-    }
 
     return this.resultRows.map(row -> {
       if (this.rowMetadata == null) {

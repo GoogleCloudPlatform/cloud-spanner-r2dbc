@@ -379,46 +379,6 @@ class ClientLibraryBasedIntegrationTest {
   }
 
   @Test
-  void ddlCreateAndDrop() {
-    String listTables = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name=@table";
-    String tableName = "test_table_" + this.random.nextInt(100000);
-
-    Connection conn = Mono.from(connectionFactory.create()).block();
-
-    StepVerifier.create(
-        Flux.from(conn.createStatement(listTables).bind("table", tableName).execute())
-            .flatMap(this::getFirstNumber)
-    ).expectNext(0L).as("Table not found before creation").verifyComplete();
-
-    StepVerifier.create(
-        Mono.from(conn.createStatement(
-            "CREATE TABLE " + tableName + " ("
-                + "  NAME STRING(256) NOT NULL,"
-                + "  START_YEAR INT64 NOT NULL"
-                + ") PRIMARY KEY (NAME)")
-            .execute()).flatMap(res -> Mono.from(res.getRowsUpdated()))
-    ).expectNext().as("DDL execution returns zero affected rows")
-    .verifyComplete();
-
-    StepVerifier.create(
-        Flux.from(conn.createStatement(listTables).bind("table", tableName).execute())
-            .flatMap(this::getFirstNumber)
-    ).expectNext(1L).as("Table found after creation").verifyComplete();
-
-    StepVerifier.create(
-        Flux.from(conn.createStatement("DROP TABLE " + tableName).execute())
-            .flatMap(res -> res.map(
-                (row, meta) -> "this should not happen because DDL does not return rows")))
-        .expectNext().as("DDL execution returns zero affected rows")
-        .verifyComplete();
-
-    StepVerifier.create(
-        Flux.from(conn.createStatement(listTables).bind("table", tableName).execute())
-            .flatMap(this::getFirstNumber)
-    ).expectNext(0L).as("Table not found after deletion").verifyComplete();
-  }
-
-  @Test
   void selectMultipleBoundParameterSetsNoTransaction() {
 
     String uuid1 = "params-no-transaction-" + this.random.nextInt();

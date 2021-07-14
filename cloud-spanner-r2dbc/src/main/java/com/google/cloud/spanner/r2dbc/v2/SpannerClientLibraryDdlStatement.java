@@ -67,7 +67,8 @@ class SpannerClientLibraryDdlStatement implements Statement {
 
   @Override
   public Mono<? extends Result> execute() {
-    return this.clientLibraryAdapter.runDdlStatement(this.query)
-        .map(unusedVoid -> new SpannerClientLibraryResult(Flux.empty(), 0));
+    return this.clientLibraryAdapter
+        .runDdlStatement(this.query)
+        .thenReturn(new SpannerClientLibraryResult(Flux.empty(), 0));
   }
 }
