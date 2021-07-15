@@ -18,8 +18,6 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.Statement;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -46,30 +44,12 @@ class SpannerClientLibraryDmlStatement extends AbstractSpannerClientLibraryState
 
   @Override
   protected Mono<SpannerClientLibraryResult> executeSingle(Statement statement) {
-    return this.clientLibraryAdapter
-        .runDmlStatement(statement)
-        .map(numRowsUpdated ->
-            new SpannerClientLibraryResult(Flux.empty(), longToInt(numRowsUpdated)));
+    return this.clientLibraryAdapter.runDmlStatement(statement);
   }
 
   @Override
   protected Flux<SpannerClientLibraryResult> executeMultiple(List<Statement> statements) {
-    return this.clientLibraryAdapter
-        .runBatchDml(statements)
-        .flatMapIterable(
-            numRowsArray -> LongStream.of(numRowsArray).boxed().collect(Collectors.toList()))
-        .map(numRows ->
-                      new SpannerClientLibraryResult(Flux.empty(), longToInt(numRows))
-        );
-  }
-
-  private int longToInt(Long numRows) {
-    if (numRows > Integer.MAX_VALUE) {
-      LOGGER.warn("Number of updated rows exceeds maximum integer value; actual rows updated = {}; "
-          + "returning max int value", numRows);
-      return Integer.MAX_VALUE;
-    }
-    return numRows.intValue();
+    return this.clientLibraryAdapter.runBatchDml(statements);
   }
 
 }
