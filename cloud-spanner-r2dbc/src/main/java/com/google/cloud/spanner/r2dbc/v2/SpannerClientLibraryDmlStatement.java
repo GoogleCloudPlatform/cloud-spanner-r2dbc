@@ -18,8 +18,6 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.Statement;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -27,9 +25,6 @@ import reactor.core.publisher.Mono;
  * Cloud Spanner implementation of R2DBC SPI for DML statements.
  */
 class SpannerClientLibraryDmlStatement extends AbstractSpannerClientLibraryStatement {
-
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(SpannerClientLibraryDmlStatement.class);
 
   /**
    * Creates a ready-to-run Cloud Spanner DML statement.

@@ -25,6 +25,7 @@ import io.r2dbc.spi.Result;
 import java.util.ArrayList;
 import java.util.List;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
 class SpannerBatch implements Batch {
 
@@ -37,9 +38,9 @@ class SpannerBatch implements Batch {
 
   @Override
   public Batch add(String sql) {
-    Assert.requireNonNull(sql, "SQL must not be null");
+    Assert.requireNonNull(sql, "SQL must not be null.");
     if (StatementParser.getStatementType(sql) != StatementType.DML) {
-      throw new IllegalArgumentException("Only DML statements are supported in batches");
+      throw new IllegalArgumentException("Only DML statements are supported in batches.");
     }
     this.statements.add(Statement.of(sql));
     return this;
@@ -47,6 +48,9 @@ class SpannerBatch implements Batch {
 
   @Override
   public Publisher<? extends Result> execute() {
+    if (this.statements.isEmpty()) {
+      return Mono.error(new IllegalStateException("Batch is empty."));
+    }
     return this.clientLibraryAdapter.runBatchDml(this.statements);
   }
 }
