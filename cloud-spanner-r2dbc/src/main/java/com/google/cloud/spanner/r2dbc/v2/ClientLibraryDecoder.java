@@ -104,7 +104,7 @@ class ClientLibraryDecoder {
     return SpannerClientLibraryConverters.convert(value, type);
   }
 
-  static Class getDefaultJavaType(Type spannerType) {
+  static Class<?> getDefaultJavaType(Type spannerType) {
     switch (spannerType.getCode()) {
       case BOOL: return Boolean.class;
       case INT64: return Long.class;
