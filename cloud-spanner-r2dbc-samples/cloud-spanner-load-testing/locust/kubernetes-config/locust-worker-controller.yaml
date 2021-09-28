@@ -20,7 +20,7 @@ metadata:
   labels:
     name: locust-worker
 spec:
-  replicas: 5
+  replicas: 20
   selector:
     matchLabels:
       app: locust-worker
@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
         - name: locust-worker
-          image: gcr.io/[PROJECT_ID]/locust-tasks:latest
+          image: gcr.io/elfel-spring/locust-tasks:latest
           env:
             - name: LOCUST_MODE
               value: worker

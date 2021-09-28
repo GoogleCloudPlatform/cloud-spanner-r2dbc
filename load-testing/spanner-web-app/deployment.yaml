@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: r2dbc-load-testing-with-sa
+  name: r2dbc-load-testing-with-sa
+  namespace: customcreds
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: r2dbc-load-testing-with-sa
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: r2dbc-load-testing-with-sa
+    spec:
+      serviceAccountName: r2dbc-load-testing-sa
+      containers:
+      - image: gcr.io/elfel-spring/r2dbc-load-testing
+        name: r2dbc-load-testing
+        resources: {}
+      nodeSelector:
+        cloud.google.com/gke-nodepool: webapp-pool
+status: {}

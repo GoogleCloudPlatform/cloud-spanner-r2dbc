@@ -1,7 +1,9 @@
 ## Creating GKE deployment (one time)
 1. Replace `[PROJECT_ID]` AND `[IMAGE_NAME]` in `deployment.yaml` with the previously created container image name.
 
-1. Draw the rest of the owl (TBD).
+2. Draw the rest of the owl (TBD).
+   kubectl apply -f deployment.yaml
+
 
 
 ## Deploying application under test

@@ -2,6 +2,30 @@ This image is roughly based on https://github.com/GoogleCloudPlatform/distribute
 
 It also creates tagged versions of the image, so it's easy to switch between different Locust task sets.
 
+
+## One time setup
+Follow https://github.com/GoogleCloudPlatform/distributed-load-testing-using-kubernetes
+
+TBD customization
+
+TARGET=<find IP address from the nodeport ("Cluster IP") of r2dbc-load-testing-with-sa-sevice from Pantheon UI>
+
+````
+
+$ sed -i -e "s/\[TARGET_HOST\]/$TARGET/g" kubernetes-config/locust-master-controller.yaml
+$ sed -i -e "s/\[TARGET_HOST\]/$TARGET/g" kubernetes-config/locust-worker-controller.yaml
+$ sed -i -e "s/\[PROJECT_ID\]/$PROJECT/g" kubernetes-config/locust-master-controller.yaml
+$ sed -i -e "s/\[PROJECT_ID\]/$PROJECT/g" kubernetes-config/locust-worker-controller.yaml
+
+$ kubectl apply -f kubernetes-config/locust-master-controller.yaml
+$ kubectl apply -f kubernetes-config/locust-master-service.yaml
+$ kubectl apply -f kubernetes-config/locust-worker-controller.yaml
+
+# scale up, so the number of workers is not a bottleneck
+# not needed anymore because deployments modified in locust-worker-controller.yaml
+#kubectl scale deployment/locust-worker --replicas=20 --namespace=customcreds
+````
+
 ## Redeploying
 
 1. Rebuild the image, unless an image with this tag already exists in the registry.
