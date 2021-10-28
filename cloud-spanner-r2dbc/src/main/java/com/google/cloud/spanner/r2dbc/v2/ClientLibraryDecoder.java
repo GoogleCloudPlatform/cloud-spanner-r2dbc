@@ -71,6 +71,7 @@ class ClientLibraryDecoder {
     decoders.put(Type.numeric(), AbstractStructReader::getBigDecimal);
     decoders.put(Type.array(Type.numeric()), AbstractStructReader::getBigDecimalList);
 
+    decoders.put(Type.json(), AbstractStructReader::getJson);
     return decoders;
   }
 
@@ -116,6 +117,7 @@ class ClientLibraryDecoder {
       case NUMERIC: return BigDecimal.class;
       case ARRAY: return Array.newInstance(getDefaultJavaType(spannerType.getArrayElementType()), 0)
           .getClass();
+      case JSON: return Json.class;
       default:
         return Object.class;
     }
