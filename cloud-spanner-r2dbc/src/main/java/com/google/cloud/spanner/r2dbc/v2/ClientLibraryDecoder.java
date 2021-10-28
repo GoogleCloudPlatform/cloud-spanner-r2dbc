@@ -117,7 +117,7 @@ class ClientLibraryDecoder {
       case NUMERIC: return BigDecimal.class;
       case ARRAY: return Array.newInstance(getDefaultJavaType(spannerType.getArrayElementType()), 0)
           .getClass();
-      case JSON: return Json.class;
+      case JSON: return JsonHolder.class;
       default:
         return Object.class;
     }

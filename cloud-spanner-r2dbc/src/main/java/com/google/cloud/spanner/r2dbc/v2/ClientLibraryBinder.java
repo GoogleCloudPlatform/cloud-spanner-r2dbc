@@ -48,6 +48,12 @@ class ClientLibraryBinder {
     binders.add(
         new ClientLibraryTypeBinderImpl<>(BigDecimal.class, (binder, val) -> binder.to(val)));
 
+    // json class should go here
+    binders.add(
+        new ClientLibraryTypeBinderImpl<>(
+            JsonHolder.class, (binder, val) -> binder.to(val.getJsonVal())));
+//    binders.add(new ClientLibraryTypeBinderImpl<>(Value.class, (binder, val) -> binder.to(val)));
+
     // There is technically one more supported type -  binder.to(Type type, @Nullable Struct value),
     // but it is not clear how r2dbc could pass both the type and the value
 

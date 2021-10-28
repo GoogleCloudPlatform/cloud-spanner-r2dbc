@@ -18,20 +18,20 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.r2dbc.ConversionFailureException;
 
-class StringToJsonConverter implements SpannerClientLibrariesConverter<Json> {
+class StringToJsonConverter implements SpannerClientLibrariesConverter<JsonHolder> {
 
   @Override
   public boolean canConvert(Class<?> inputClass, Class<?> resultClass) {
-    return inputClass == String.class && resultClass == Json.class;
+    return inputClass == String.class && resultClass == JsonHolder.class;
   }
 
   @Override
-  public Json convert(Object input) {
-    if (!canConvert(input.getClass(), Json.class)) {
+  public JsonHolder convert(Object input) {
+    if (!canConvert(input.getClass(), JsonHolder.class)) {
       throw new ConversionFailureException(
           String.format("Unable to convert %s to %s", ((Object) input.getClass()).getClass(),
-                  Json.class));
+                  JsonHolder.class));
     }
-    return new Json((String) input);
+    return new JsonHolder((String) input);
   }
 }
