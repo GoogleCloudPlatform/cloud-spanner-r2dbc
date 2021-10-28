@@ -71,7 +71,9 @@ public class SpringDataR2dbcApp {
     try {
       r2dbcClient.sql("CREATE TABLE BOOK ("
           + "  ID STRING(36) NOT NULL,"
-          + "  TITLE STRING(MAX) NOT NULL"
+          + "  TITLE STRING(MAX) NOT NULL,"
+          + "  PRICE INT64,"
+          + "  JSONFIELD JSON,"
           + ") PRIMARY KEY (ID)"
       ).fetch().rowsUpdated().block();
 

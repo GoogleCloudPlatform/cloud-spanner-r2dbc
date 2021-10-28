@@ -21,6 +21,7 @@ import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.IN
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
+import com.google.cloud.spanner.r2dbc.v2.JsonHolder;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -58,7 +59,14 @@ public class BookExampleApp {
     this.connection = Mono.from(this.connectionFactory.create()).block();
   }
 
+  /**
+   * Cleans up records created in sample.
+   */
   public void cleanup() {
+
+    Mono.from(this.connection.createStatement("DELETE FROM BOOKS where id is not null").execute())
+            .doOnSuccess(x -> System.out.println("Table rows deletion completed."))
+            .block();
     Mono.from(this.connection.close()).block();
   }
 
@@ -68,7 +76,9 @@ public class BookExampleApp {
   public void createTable() {
     Mono.from(this.connection.createStatement("CREATE TABLE BOOKS ("
             + "  ID STRING(20) NOT NULL,"
-            + "  TITLE STRING(MAX) NOT NULL"
+            + "  TITLE STRING(MAX) NOT NULL,"
+            + "  PRICE INT64,"
+            + "  JSONFIELD JSON"
             + ") PRIMARY KEY (ID)").execute())
         .doOnSuccess(x -> System.out.println("Table creation completed."))
         .block();
@@ -80,19 +90,44 @@ public class BookExampleApp {
   public void saveBooks() {
     Statement statement = this.connection.createStatement(
         "INSERT BOOKS "
-            + "(ID, TITLE)"
+            + "(ID, TITLE, PRICE)"
             + " VALUES "
-            + "(@id, @title)")
+            + "(@id, @title, @price)")
         .bind("id", "book1")
         .bind("title", "Book One")
+        .bind("price", 33)
         .add()
         .bind("id", "book2")
-        .bind("title", "Book Two");
+        .bind("title", "Book Two")
+        .bind("price", 45)
+        .add();
 
     Flux.concat(this.connection.beginTransaction(),
         Flux.from(statement.execute()).flatMapSequential(r -> Mono.from(r.getRowsUpdated())).then(),
         this.connection.commitTransaction()
     ).doOnComplete(() -> System.out.println("Insert books transaction committed."))
+        .blockLast();
+
+
+    Statement statement2 = this.connection.createStatement(
+            "INSERT BOOKS "
+                    + "(ID, TITLE, PRICE, JSONFIELD)"
+                    + " VALUES "
+                    + "(@id, @title, @price, @jsonfield)")
+            .bind("id", "book3")
+            .bind("title", "Book Three")
+            .bind("price", 133)
+            .bind("jsonfield", new JsonHolder("{\"rating\":9,\"series\":true}"))
+            .add();
+
+    Flux.concat(
+            this.connection.beginTransaction(),
+            Flux.from(statement2.execute())
+                .flatMapSequential(r -> Mono.from(r.getRowsUpdated()))
+                .then(),
+            this.connection.commitTransaction())
+        .doOnComplete(
+            () -> System.out.println("Insert 3rd book with JSON field transaction committed."))
         .blockLast();
   }
 
@@ -101,10 +136,23 @@ public class BookExampleApp {
    */
   public void retrieveBooks() {
     Flux.from(this.connection.createStatement("SELECT * FROM books").execute())
-        .flatMap(spannerResult -> spannerResult.map(
-            (r, meta) -> "Retrieved book: " + r.get("ID", String.class) + " " + r
-                .get("TITLE", String.class)
-        ))
+        .flatMap(
+            spannerResult ->
+                spannerResult.map(
+                    (r, meta) -> {
+                      if (r.get("JSONFIELD", JsonHolder.class) != null) {
+                        return "Retrieved book: "
+                            + r.get("ID", String.class)
+                            + "; Title: "
+                            + r.get("TITLE", String.class)
+                            + "; Extra Details: "
+                            + r.get("JSONFIELD", JsonHolder.class).getJsonVal().getJson();
+                      }
+                      return "Retrieved book: "
+                          + r.get("ID", String.class)
+                          + "; Title: "
+                          + r.get("TITLE", String.class);
+                    }))
         .doOnNext(System.out::println)
         .collectList()
         .block();

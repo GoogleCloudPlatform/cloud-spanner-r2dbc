@@ -48,8 +48,8 @@ public class SampleApplication {
 
     BookExampleApp bookExampleApp = new BookExampleApp(INSTANCE, DATABASE, PROJECT);
 
-    bookExampleApp.dropTableIfPresent();
-    bookExampleApp.createTable();
+    //    bookExampleApp.dropTableIfPresent();
+    //    bookExampleApp.createTable();
     bookExampleApp.saveBooks();
     bookExampleApp.retrieveBooks();
     bookExampleApp.cleanup();
