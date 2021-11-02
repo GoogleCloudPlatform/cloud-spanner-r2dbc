@@ -34,7 +34,7 @@ public class JsonHolder {
   }
 
   public String getJsonString() {
-    return jsonString;
+    return this.jsonString;
   }
 
   public static JsonHolder of(String jsonString) {
