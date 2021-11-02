@@ -72,7 +72,16 @@ class ClientLibraryBinder {
     if (!optionalBinder.isPresent()) {
       throw new BindingFailureException("Can't find a binder for type: " + valueClass);
     }
-    optionalBinder.get().bind(builder, name, isTypedNull(value) ? null : value);
+    if (!isTypedNull(value)) {
+      optionalBinder.get().bind(builder, name, value);
+    //    } else if (valueClass.getName().equals("com.google.cloud.spanner.Value$JsonImpl")) {
+    //      // TODO: change, not this specific
+    //
+    //      optionalBinder.get().bind(builder, name, Value.json(null));
+    } else {
+      optionalBinder.get().bind(builder, name, null);
+    }
+
   }
 
   private static boolean isTypedNull(Object value) {

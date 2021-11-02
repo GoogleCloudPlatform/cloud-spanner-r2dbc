@@ -99,6 +99,9 @@ class ClientLibraryDecoder {
   private static <T> T readAndConvert(Struct struct, int index,
       Map<Type, BiFunction<Struct, Integer, Object>> selectedCodecsMap, Class<T> type) {
     Object value = selectedCodecsMap.get(struct.getColumnType(index)).apply(struct, index);
+    if (struct.getColumnType(index) == Type.json()) {
+      return (T) SpannerClientLibraryConverters.convert(value, JsonHolder.class);
+    }
     if (type.isAssignableFrom(value.getClass())) {
       return (T) value;
     }

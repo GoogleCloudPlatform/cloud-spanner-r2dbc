@@ -18,18 +18,23 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.Value;
 
-/**
- * Wrapper class to hold Json value.
- */
+/** Wrapper class to hold Json value. */
 public class JsonHolder {
-  private Value jsonVal;
+  //  private Value jsonVal;
+  private String jsonString;
 
   public JsonHolder(String jsonString) {
-    this.jsonVal = Value.json(jsonString);
+    //    this.jsonVal = Value.json(jsonString);
+    this.jsonString = jsonString;
   }
 
   public Value getJsonVal() {
-    return this.jsonVal;
+    //    return this.jsonVal;
+    return Value.json(this.jsonString);
+  }
+
+  public String getJsonString() {
+    return jsonString;
   }
 
   public static JsonHolder of(String jsonString) {
@@ -38,6 +43,7 @@ public class JsonHolder {
 
   @Override
   public String toString() {
-    return this.jsonVal.getJson();
+    //    return this.jsonVal.getJson();
+    return this.jsonString;
   }
 }
