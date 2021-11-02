@@ -16,11 +16,23 @@
 
 package com.google.cloud.spanner.r2dbc.springdata;
 
+import com.google.cloud.spanner.Value;
+import com.google.cloud.spanner.r2dbc.v2.JsonHolder;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.data.convert.ReadingConverter;
+import org.springframework.data.convert.WritingConverter;
 import org.springframework.data.r2dbc.dialect.R2dbcDialect;
 import org.springframework.data.relational.core.dialect.AbstractDialect;
 import org.springframework.data.relational.core.dialect.LimitClause;
 import org.springframework.data.relational.core.dialect.LockClause;
 import org.springframework.data.relational.core.sql.LockOptions;
+import org.springframework.lang.NonNull;
 import org.springframework.r2dbc.core.binding.BindMarkersFactory;
 
 /**
@@ -86,5 +98,46 @@ public class SpannerR2dbcDialect extends AbstractDialect implements R2dbcDialect
   @Override
   public LockClause lock() {
     return LOCK_CLAUSE;
+  }
+
+  @WritingConverter
+  private enum JsonToValueConverter implements Converter<JsonHolder, Value> {
+
+    INSTANCE;
+
+    @Override
+    @NonNull
+    public Value convert(JsonHolder source) {
+      return Value.json(source.toString());
+    }
+  }
+
+  @ReadingConverter
+  private enum StringToJsonConverter implements Converter<String, JsonHolder> {
+
+    INSTANCE;
+
+    @Override
+    @NonNull
+    public JsonHolder convert(String source) {
+      return JsonHolder.of(source);
+    }
+  }
+
+  @Override
+  public Collection<Object> getConverters() {
+    //    Collection<Object> converters = R2dbcDialect.super.getConverters();
+    //    converters.add(JsonToStringConverter.INSTANCE);
+    List<Object> converters = new ArrayList<>();
+    //    converters.add(JsonToValueConverter.INSTANCE);
+    //    converters.add(StringToJsonConverter.INSTANCE);
+    return converters;
+  }
+
+  @Override
+  public Collection<? extends Class<?>> getSimpleTypes() {
+
+    return Arrays.asList(JsonHolder.class);
+    //    return Arrays.asList(Value.class);
   }
 }
