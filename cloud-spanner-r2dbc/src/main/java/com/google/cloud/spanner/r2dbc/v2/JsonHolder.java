@@ -17,6 +17,7 @@
 package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.Value;
+import com.google.common.base.Objects;
 
 /** Wrapper class to hold Json value. */
 public class JsonHolder {
@@ -45,5 +46,18 @@ public class JsonHolder {
   public String toString() {
     //    return this.jsonVal.getJson();
     return this.jsonString;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    JsonHolder that = (JsonHolder) o;
+    return Objects.equal(jsonString, that.jsonString);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(jsonString);
   }
 }

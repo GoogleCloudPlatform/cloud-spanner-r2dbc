@@ -128,10 +128,13 @@ class ClientLibraryDecoderTest {
             (Function<Object, Value>) (o) -> Value.numeric((BigDecimal) o)),
         arguments(
             List.class,
-            Arrays.asList(
-                BigDecimal.TEN, BigDecimal.ZERO),
-            (Function<Object, Value>) (o) -> Value.numericArray((Iterable<BigDecimal>) o))
-    );
+            Arrays.asList(BigDecimal.TEN, BigDecimal.ZERO),
+            (Function<Object, Value>) (o) -> Value.numericArray((Iterable<BigDecimal>) o)),
+        // Json
+        arguments(
+            JsonHolder.class,
+            JsonHolder.of("{\"rating\":9,\"open\":true}"),
+            (Function<Object, Value>) (o) -> Value.json(o == null ? null : o.toString())));
   }
 
   /**
@@ -172,10 +175,9 @@ class ClientLibraryDecoderTest {
         .isEqualTo(LocalDateTime.class);
     assertThat(ClientLibraryDecoder.getDefaultJavaType(Type.int64())).isEqualTo(Long.class);
     assertThat(ClientLibraryDecoder.getDefaultJavaType(Type.numeric())).isEqualTo(BigDecimal.class);
+    assertThat(ClientLibraryDecoder.getDefaultJavaType(Type.json())).isEqualTo(JsonHolder.class);
 
     // unknown type
     assertThat(ClientLibraryDecoder.getDefaultJavaType(Type.struct())).isEqualTo(Object.class);
   }
-
-
 }
