@@ -51,7 +51,8 @@ class ClientLibraryBinder {
 
     binders.add(
         new ClientLibraryTypeBinderImpl<>(
-            JsonHolder.class, (binder, val) -> binder.to(val == null ? Value.json(null): val.getJsonVal())));
+            JsonHolder.class,
+            (binder, val) -> binder.to(val == null ? Value.json(null) : val.getJsonVal())));
 
     // There is technically one more supported type -  binder.to(Type type, @Nullable Struct value),
     // but it is not clear how r2dbc could pass both the type and the value

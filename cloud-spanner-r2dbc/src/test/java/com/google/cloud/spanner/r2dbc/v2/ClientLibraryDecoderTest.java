@@ -134,16 +134,16 @@ class ClientLibraryDecoderTest {
 
   static Stream<Arguments> data2() {
     return Stream.of(
-            arguments(
-                    String.class,
-                    "a regular string",
-                    (Function<Object, Value>) (o) -> Value.string((String) o)),
-            arguments(
-                    JsonHolder.class,
-                    JsonHolder.of("{\"rating\":9,\"open\":true}"),
-                    (Function<Object, Value>) (o) -> Value.json(o == null ? null : o.toString()))
-            );
-  };
+        arguments(
+            String.class,
+            "a regular string",
+            (Function<Object, Value>) (o) -> Value.string((String) o)),
+        arguments(
+            JsonHolder.class,
+            JsonHolder.of("{\"rating\":9,\"open\":true}"),
+            (Function<Object, Value>) (o) -> Value.json(o == null ? null : o.toString())));
+  }
+
   /**
    * Validates that every supported type converts to expected value.
    */
@@ -151,13 +151,6 @@ class ClientLibraryDecoderTest {
   @MethodSource("data")
   void codecsTest(Class<?> type, Object value, Function<Object, Value> valueBuilder) {
     codecsTest(type, value, valueBuilder, null, null);
-  }
-
-  @ParameterizedTest
-  @MethodSource("data2")
-  void jsonStringCodecsTest(Class<?> type, Object value, Function<Object, Value> valueBuilder) {
-    codecsTest(type, value, valueBuilder, null, null);
-    codecsTest(Object.class, value, valueBuilder, null, null);
   }
 
   @ParameterizedTest
@@ -175,6 +168,13 @@ class ClientLibraryDecoderTest {
       assertThatThrownBy(() -> ClientLibraryDecoder.decode(row, 0, type))
           .isInstanceOf(exception.getClass()).hasMessage(exception.getMessage());
     }
+  }
+
+  @ParameterizedTest
+  @MethodSource("data2")
+  void jsonStringCodecsTest(Class<?> type, Object value, Function<Object, Value> valueBuilder) {
+    codecsTest(type, value, valueBuilder, null, null);
+    codecsTest(Object.class, value, valueBuilder, null, null);
   }
 
   @Test

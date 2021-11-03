@@ -16,11 +16,13 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.cloud.spanner.Value;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import static org.assertj.core.api.Assertions.assertThat;
+
 
 class JsonHolderTest {
 

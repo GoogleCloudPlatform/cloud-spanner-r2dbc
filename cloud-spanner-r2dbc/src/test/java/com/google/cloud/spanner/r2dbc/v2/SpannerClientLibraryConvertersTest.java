@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.google.cloud.spanner.r2dbc.v2;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.google.cloud.spanner.r2dbc.ConversionFailureException;
 import org.junit.jupiter.api.Test;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 class SpannerClientLibraryConvertersTest {
 
@@ -36,6 +38,7 @@ class SpannerClientLibraryConvertersTest {
 
     assertThatThrownBy(
             () -> SpannerClientLibraryConverters.convert(Integer.MAX_VALUE + 1L, Integer.class))
-        .isInstanceOf(ConversionFailureException.class).hasMessage("2147483648 is out of range for Integer");
+        .isInstanceOf(ConversionFailureException.class)
+        .hasMessage("2147483648 is out of range for Integer");
   }
 }

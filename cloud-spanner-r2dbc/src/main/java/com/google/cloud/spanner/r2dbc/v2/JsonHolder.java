@@ -27,7 +27,7 @@ public class JsonHolder {
     this.jsonString = jsonString;
   }
 
-   protected Value getJsonVal() {
+  protected Value getJsonVal() {
     return Value.json(this.jsonString);
   }
 
@@ -42,14 +42,18 @@ public class JsonHolder {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     JsonHolder that = (JsonHolder) o;
-    return Objects.equal(jsonString, that.jsonString);
+    return Objects.equal(this.jsonString, that.jsonString);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(jsonString);
+    return Objects.hashCode(this.jsonString);
   }
 }
