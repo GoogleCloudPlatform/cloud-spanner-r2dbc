@@ -21,21 +21,14 @@ import com.google.common.base.Objects;
 
 /** Wrapper class to hold Json value. */
 public class JsonHolder {
-  //  private Value jsonVal;
   private String jsonString;
 
   public JsonHolder(String jsonString) {
-    //    this.jsonVal = Value.json(jsonString);
     this.jsonString = jsonString;
   }
 
-  public Value getJsonVal() {
-    //    return this.jsonVal;
+   protected Value getJsonVal() {
     return Value.json(this.jsonString);
-  }
-
-  public String getJsonString() {
-    return this.jsonString;
   }
 
   public static JsonHolder of(String jsonString) {
@@ -44,7 +37,6 @@ public class JsonHolder {
 
   @Override
   public String toString() {
-    //    return this.jsonVal.getJson();
     return this.jsonString;
   }
 
