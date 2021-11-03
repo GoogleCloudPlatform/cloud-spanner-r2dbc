@@ -20,6 +20,7 @@ import com.google.cloud.ByteArray;
 import com.google.cloud.Date;
 import com.google.cloud.Timestamp;
 import com.google.cloud.spanner.Statement;
+import com.google.cloud.spanner.Value;
 import com.google.cloud.spanner.r2dbc.BindingFailureException;
 import com.google.cloud.spanner.r2dbc.statement.TypedNull;
 import com.google.cloud.spanner.r2dbc.util.Assert;
@@ -48,12 +49,9 @@ class ClientLibraryBinder {
     binders.add(
         new ClientLibraryTypeBinderImpl<>(BigDecimal.class, (binder, val) -> binder.to(val)));
 
-    // json class should go here
     binders.add(
         new ClientLibraryTypeBinderImpl<>(
-            JsonHolder.class, (binder, val) -> binder.to(val.getJsonVal())));
-    //    binders.add(new ClientLibraryTypeBinderImpl<>(Value.class, (binder, val) ->
-    // binder.to(val)));
+            JsonHolder.class, (binder, val) -> binder.to(val == null ? Value.json(null): val.getJsonVal())));
 
     // There is technically one more supported type -  binder.to(Type type, @Nullable Struct value),
     // but it is not clear how r2dbc could pass both the type and the value
@@ -74,10 +72,6 @@ class ClientLibraryBinder {
     }
     if (!isTypedNull(value)) {
       optionalBinder.get().bind(builder, name, value);
-    //    } else if (valueClass.getName().equals("com.google.cloud.spanner.Value$JsonImpl")) {
-    //      // TODO: change, not this specific
-    //
-    //      optionalBinder.get().bind(builder, name, Value.json(null));
     } else {
       optionalBinder.get().bind(builder, name, null);
     }
