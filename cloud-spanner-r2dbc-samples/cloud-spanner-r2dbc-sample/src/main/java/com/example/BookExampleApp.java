@@ -146,7 +146,7 @@ public class BookExampleApp {
                             + "; Title: "
                             + r.get("TITLE", String.class)
                             + "; Extra Details: "
-                            + r.get("JSONFIELD", JsonHolder.class).getJsonVal().getJson();
+                            + r.get("JSONFIELD", JsonHolder.class).toString();
                       }
                       return "Retrieved book: "
                           + r.get("ID", String.class)
