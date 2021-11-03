@@ -129,14 +129,21 @@ class ClientLibraryDecoderTest {
         arguments(
             List.class,
             Arrays.asList(BigDecimal.TEN, BigDecimal.ZERO),
-            (Function<Object, Value>) (o) -> Value.numericArray((Iterable<BigDecimal>) o)),
-        // Json
-        arguments(
-            JsonHolder.class,
-            JsonHolder.of("{\"rating\":9,\"open\":true}"),
-            (Function<Object, Value>) (o) -> Value.json(o == null ? null : o.toString())));
+            (Function<Object, Value>) (o) -> Value.numericArray((Iterable<BigDecimal>) o)));
   }
 
+  static Stream<Arguments> data2() {
+    return Stream.of(
+            arguments(
+                    String.class,
+                    "a regular string",
+                    (Function<Object, Value>) (o) -> Value.string((String) o)),
+            arguments(
+                    JsonHolder.class,
+                    JsonHolder.of("{\"rating\":9,\"open\":true}"),
+                    (Function<Object, Value>) (o) -> Value.json(o == null ? null : o.toString()))
+            );
+  };
   /**
    * Validates that every supported type converts to expected value.
    */
@@ -144,6 +151,13 @@ class ClientLibraryDecoderTest {
   @MethodSource("data")
   void codecsTest(Class<?> type, Object value, Function<Object, Value> valueBuilder) {
     codecsTest(type, value, valueBuilder, null, null);
+  }
+
+  @ParameterizedTest
+  @MethodSource("data2")
+  void jsonStringCodecsTest(Class<?> type, Object value, Function<Object, Value> valueBuilder) {
+    codecsTest(type, value, valueBuilder, null, null);
+    codecsTest(Object.class, value, valueBuilder, null, null);
   }
 
   @ParameterizedTest
