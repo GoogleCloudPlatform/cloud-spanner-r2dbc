@@ -225,18 +225,16 @@ class ClientLibraryBasedIntegrationTest {
                         conn.createStatement(query)
                                 .bind("uuid", "abc")
                                 .bind("title", "and now about metadata")
-                                .bind("extra", JsonHolder.of("{\"rating\":9,\"open\":true}"))
+                                .bind("extra", JsonHolder.of("{\"b\":9,\"a\":true}"))
                                 .execute())
                         .flatMapMany(rs -> rs.getRowsUpdated())
         ).expectNext(1).verifyComplete();
 
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT * FROM BOOKS").execute())
-                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get("EXTRA", JsonHolder.class))))
-        .expectNextMatches(
-            t ->
-                t.equals(JsonHolder.of("{\"rating\":9,\"open\":true}"))
-                    || t.equals(JsonHolder.of("{\"open\":true,\"rating\":9}")))
+                .flatMapMany(rs -> rs.map((row, meta) -> row.get("EXTRA", JsonHolder.class))))
+        // Members of a JSON object are sorted lexicographically.
+        .expectNext(JsonHolder.of("{\"a\":true,\"b\":9}"))
         .verifyComplete();
     }
 
