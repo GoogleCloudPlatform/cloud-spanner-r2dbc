@@ -132,7 +132,7 @@ class ClientLibraryDecoderTest {
             (Function<Object, Value>) (o) -> Value.numericArray((Iterable<BigDecimal>) o)));
   }
 
-  static Stream<Arguments> data2() {
+  static Stream<Arguments> dataWithJson() {
     return Stream.of(
         arguments(
             String.class,
@@ -171,7 +171,7 @@ class ClientLibraryDecoderTest {
   }
 
   @ParameterizedTest
-  @MethodSource("data2")
+  @MethodSource("dataWithJson")
   void jsonStringCodecsTest(Class<?> type, Object value, Function<Object, Value> valueBuilder) {
     codecsTest(type, value, valueBuilder, null, null);
     codecsTest(Object.class, value, valueBuilder, null, null);
