@@ -28,6 +28,7 @@ import com.google.cloud.spanner.SpannerException;
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.Type;
 import com.google.cloud.spanner.r2dbc.api.SpannerConnection;
+import com.google.cloud.spanner.r2dbc.v2.JsonHolder;
 import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryConnectionFactory;
 import io.r2dbc.spi.Closeable;
 import io.r2dbc.spi.ColumnMetadata;
@@ -212,6 +213,32 @@ class ClientLibraryBasedIntegrationTest {
         ).flatMapMany(rs -> rs.map((row, rmeta) -> row.get(1, BigDecimal.class))))
         .expectNext(new BigDecimal("123.99")).verifyComplete();
   }
+
+    @Test
+    void testJsonFieldInsert() {
+        Connection conn = Mono.from(connectionFactory.create()).block();
+        String query = "INSERT BOOKS (UUID, TITLE, EXTRA) "
+                + "VALUES (@uuid, @title, @extra)";
+
+        StepVerifier.create(
+                Mono.from(
+                        conn.createStatement(query)
+                                .bind("uuid", "abc")
+                                .bind("title", "and now about metadata")
+                                .bind("extra", JsonHolder.of("{\"rating\":9,\"open\":true}"))
+                                .execute())
+                        .flatMapMany(rs -> rs.getRowsUpdated())
+        ).expectNext(1).verifyComplete();
+
+    StepVerifier.create(
+            Mono.from(conn.createStatement("SELECT * FROM BOOKS").execute())
+                .flatMapMany(rs -> rs.map((row, rmeta) -> row.get("EXTRA", JsonHolder.class))))
+        .expectNextMatches(
+            t ->
+                t.equals(JsonHolder.of("{\"rating\":9,\"open\":true}"))
+                    || t.equals(JsonHolder.of("{\"open\":true,\"rating\":9}")))
+        .verifyComplete();
+    }
 
   @Test
   void testTransactionSingleStatementCommitted() {
