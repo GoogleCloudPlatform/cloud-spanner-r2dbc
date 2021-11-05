@@ -168,7 +168,7 @@ Cloud Spanner R2DBC Driver supports the following types:
 |`STRING`        |`java.lang.String`   |
 |`JSON`          |`com.google.cloud.spanner.r2dbc.v2.JsonWrapper`   |
 |`TIMESTAMP`     |`java.time.LocalDateTime` |
-|`ARRAY`         |Array-Variant of the corresponding Java type (e.g. `Long[]` for `ARRAY<INT64>`)|
+|`ARRAY`         |Array-Variant of the corresponding Java type (e.g. `Long[]` for `ARRAY<INT64>`) `ARRAY<JSON>` is not supported.|
 
 Null values mapping is supported in both directions. 
 
