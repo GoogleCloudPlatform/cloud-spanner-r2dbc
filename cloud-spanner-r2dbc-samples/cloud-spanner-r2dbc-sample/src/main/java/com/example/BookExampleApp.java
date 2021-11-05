@@ -59,14 +59,7 @@ public class BookExampleApp {
     this.connection = Mono.from(this.connectionFactory.create()).block();
   }
 
-  /**
-   * Cleans up records created in sample.
-   */
   public void cleanup() {
-
-    Mono.from(this.connection.createStatement("DELETE FROM BOOKS where id is not null").execute())
-            .doOnSuccess(x -> System.out.println("Table rows deletion completed."))
-            .block();
     Mono.from(this.connection.close()).block();
   }
 
@@ -77,7 +70,6 @@ public class BookExampleApp {
     Mono.from(this.connection.createStatement("CREATE TABLE BOOKS ("
             + "  ID STRING(20) NOT NULL,"
             + "  TITLE STRING(MAX) NOT NULL,"
-            + "  PRICE INT64,"
             + "  JSONFIELD JSON"
             + ") PRIMARY KEY (ID)").execute())
         .doOnSuccess(x -> System.out.println("Table creation completed."))
@@ -90,16 +82,14 @@ public class BookExampleApp {
   public void saveBooks() {
     Statement statement = this.connection.createStatement(
         "INSERT BOOKS "
-            + "(ID, TITLE, PRICE)"
+            + "(ID, TITLE)"
             + " VALUES "
-            + "(@id, @title, @price)")
+            + "(@id, @title)")
         .bind("id", "book1")
         .bind("title", "Book One")
-        .bind("price", 33)
         .add()
         .bind("id", "book2")
         .bind("title", "Book Two")
-        .bind("price", 45)
         .add();
 
     Flux.concat(this.connection.beginTransaction(),
@@ -111,12 +101,11 @@ public class BookExampleApp {
 
     Statement statement2 = this.connection.createStatement(
             "INSERT BOOKS "
-                    + "(ID, TITLE, PRICE, JSONFIELD)"
+                    + "(ID, TITLE, JSONFIELD)"
                     + " VALUES "
-                    + "(@id, @title, @price, @jsonfield)")
+                    + "(@id, @title, @jsonfield)")
             .bind("id", "book3")
             .bind("title", "Book Three")
-            .bind("price", 133)
             .bind("jsonfield", new JsonHolder("{\"rating\":9,\"series\":true}"))
             .add();
 
