@@ -28,7 +28,7 @@ import com.google.cloud.spanner.SpannerException;
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.Type;
 import com.google.cloud.spanner.r2dbc.api.SpannerConnection;
-import com.google.cloud.spanner.r2dbc.v2.JsonHolder;
+import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import com.google.cloud.spanner.r2dbc.v2.SpannerClientLibraryConnectionFactory;
 import io.r2dbc.spi.Closeable;
 import io.r2dbc.spi.ColumnMetadata;
@@ -224,7 +224,7 @@ class ClientLibraryBasedIntegrationTest {
                     conn.createStatement(query)
                         .bind("uuid", "abc")
                         .bind("title", "testing json field write and read")
-                        .bind("extra", JsonHolder.of("{\"b\":9,\"a\":true}"))
+                        .bind("extra", JsonWrapper.of("{\"b\":9,\"a\":true}"))
                         .execute())
                 .flatMapMany(rs -> rs.getRowsUpdated()))
         .expectNext(1)
@@ -232,9 +232,9 @@ class ClientLibraryBasedIntegrationTest {
 
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT * FROM BOOKS").execute())
-                .flatMapMany(rs -> rs.map((row, meta) -> row.get("EXTRA", JsonHolder.class))))
+                .flatMapMany(rs -> rs.map((row, meta) -> row.get("EXTRA", JsonWrapper.class))))
         // Members of a JSON object are sorted lexicographically.
-        .expectNext(JsonHolder.of("{\"a\":true,\"b\":9}"))
+        .expectNext(JsonWrapper.of("{\"a\":true,\"b\":9}"))
         .verifyComplete();
   }
 

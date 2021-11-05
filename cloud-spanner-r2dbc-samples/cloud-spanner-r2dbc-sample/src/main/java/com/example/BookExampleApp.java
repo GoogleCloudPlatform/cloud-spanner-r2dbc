@@ -21,7 +21,7 @@ import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.IN
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
-import com.google.cloud.spanner.r2dbc.v2.JsonHolder;
+import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -106,7 +106,7 @@ public class BookExampleApp {
                     + "(@id, @title, @jsonfield)")
             .bind("id", "book3")
             .bind("title", "Book Three")
-            .bind("jsonfield", new JsonHolder("{\"rating\":9,\"series\":true}"))
+            .bind("jsonfield", new JsonWrapper("{\"rating\":9,\"series\":true}"))
             .add();
 
     Flux.concat(
@@ -129,13 +129,13 @@ public class BookExampleApp {
             spannerResult ->
                 spannerResult.map(
                     (r, meta) -> {
-                      if (r.get("JSONFIELD", JsonHolder.class) != null) {
+                      if (r.get("JSONFIELD", JsonWrapper.class) != null) {
                         return "Retrieved book: "
                             + r.get("ID", String.class)
                             + "; Title: "
                             + r.get("TITLE", String.class)
                             + "; Extra Details: "
-                            + r.get("JSONFIELD", JsonHolder.class).toString();
+                            + r.get("JSONFIELD", JsonWrapper.class).toString();
                       }
                       return "Retrieved book: "
                           + r.get("ID", String.class)

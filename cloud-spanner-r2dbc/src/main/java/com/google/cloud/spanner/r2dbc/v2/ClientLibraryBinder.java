@@ -51,7 +51,7 @@ class ClientLibraryBinder {
 
     binders.add(
         new ClientLibraryTypeBinderImpl<>(
-            JsonHolder.class,
+            JsonWrapper.class,
             (binder, val) -> binder.to(val == null ? Value.json(null) : val.getJsonVal())));
 
     // There is technically one more supported type -  binder.to(Type type, @Nullable Struct value),

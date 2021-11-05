@@ -17,11 +17,12 @@
 package com.google.cloud.spanner.r2dbc.springdata;
 
 import com.google.cloud.spanner.Value;
-import com.google.cloud.spanner.r2dbc.v2.JsonHolder;
+import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.ReadingConverter;
 import org.springframework.data.convert.WritingConverter;
@@ -99,26 +100,26 @@ public class SpannerR2dbcDialect extends AbstractDialect implements R2dbcDialect
   }
 
   @WritingConverter
-  private enum JsonToValueConverter implements Converter<JsonHolder, Value> {
+  private enum JsonToValueConverter implements Converter<JsonWrapper, Value> {
 
     INSTANCE;
 
     @Override
     @NonNull
-    public Value convert(JsonHolder source) {
+    public Value convert(JsonWrapper source) {
       return Value.json(source.toString());
     }
   }
 
   @ReadingConverter
-  private enum StringToJsonConverter implements Converter<String, JsonHolder> {
+  private enum StringToJsonConverter implements Converter<String, JsonWrapper> {
 
     INSTANCE;
 
     @Override
     @NonNull
-    public JsonHolder convert(String source) {
-      return JsonHolder.of(source);
+    public JsonWrapper convert(String source) {
+      return JsonWrapper.of(source);
     }
   }
 
@@ -135,7 +136,7 @@ public class SpannerR2dbcDialect extends AbstractDialect implements R2dbcDialect
   @Override
   public Collection<? extends Class<?>> getSimpleTypes() {
 
-    return Arrays.asList(JsonHolder.class);
+    return Arrays.asList(JsonWrapper.class);
     //    return Arrays.asList(Value.class);
   }
 }

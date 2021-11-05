@@ -155,8 +155,8 @@ class ClientLibraryTypeBindersTest {
   @Test
   void jsonBinderTest() {
     ClientLibraryBinder.bind(
-        this.statementBuilder, "a", JsonHolder.of("{\"rating\":9,\"open\":true}"));
-    ClientLibraryBinder.bind(this.statementBuilder, "b", new TypedNull(JsonHolder.class));
+        this.statementBuilder, "a", JsonWrapper.of("{\"rating\":9,\"open\":true}"));
+    ClientLibraryBinder.bind(this.statementBuilder, "b", new TypedNull(JsonWrapper.class));
     verify(this.valueBinder).to(Value.json("{\"rating\":9,\"open\":true}"));
     verify(this.valueBinder).to(Value.json(null));
     verifyNoMoreInteractions(this.valueBinder);

@@ -24,21 +24,21 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 
-class JsonHolderTest {
+class JsonWrapperTest {
 
-  static Stream<JsonHolder> values() {
-    return Stream.of(JsonHolder.of("json-string"), new JsonHolder("json-string"));
+  static Stream<JsonWrapper> values() {
+    return Stream.of(JsonWrapper.of("json-string"), new JsonWrapper("json-string"));
   }
 
   @MethodSource("values")
   @ParameterizedTest
-  void testConsumeToString(JsonHolder json) {
+  void testConsumeToString(JsonWrapper json) {
     assertThat(json.toString()).isEqualTo("json-string");
   }
 
   @MethodSource("values")
   @ParameterizedTest
-  void testConsume2(JsonHolder json) {
+  void testConsume2(JsonWrapper json) {
     assertThat(json.getJsonVal()).isInstanceOf(Value.class);
   }
 }

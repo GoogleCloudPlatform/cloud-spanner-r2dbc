@@ -28,9 +28,9 @@ class SpannerClientLibraryConvertersTest {
   void convertTest() {
     assertThat(
             SpannerClientLibraryConverters.convert(
-                "{\"rating\":9,\"open\":true}", JsonHolder.class))
-        .isInstanceOf(JsonHolder.class)
-        .isEqualTo(JsonHolder.of("{\"rating\":9,\"open\":true}"));
+                "{\"rating\":9,\"open\":true}", JsonWrapper.class))
+        .isInstanceOf(JsonWrapper.class)
+        .isEqualTo(JsonWrapper.of("{\"rating\":9,\"open\":true}"));
 
     assertThat(SpannerClientLibraryConverters.convert(12345L, Integer.class))
         .isInstanceOf(Integer.class)

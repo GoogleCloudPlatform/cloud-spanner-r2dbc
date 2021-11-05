@@ -20,10 +20,10 @@ import com.google.cloud.spanner.Value;
 import com.google.common.base.Objects;
 
 /** Wrapper class to hold Json value. */
-public class JsonHolder {
+public class JsonWrapper {
   private String jsonString;
 
-  public JsonHolder(String jsonString) {
+  public JsonWrapper(String jsonString) {
     this.jsonString = jsonString;
   }
 
@@ -31,8 +31,8 @@ public class JsonHolder {
     return Value.json(this.jsonString);
   }
 
-  public static JsonHolder of(String jsonString) {
-    return new JsonHolder(jsonString);
+  public static JsonWrapper of(String jsonString) {
+    return new JsonWrapper(jsonString);
   }
 
   @Override
@@ -48,7 +48,7 @@ public class JsonHolder {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    JsonHolder that = (JsonHolder) o;
+    JsonWrapper that = (JsonWrapper) o;
     return Objects.equal(this.jsonString, that.jsonString);
   }
 

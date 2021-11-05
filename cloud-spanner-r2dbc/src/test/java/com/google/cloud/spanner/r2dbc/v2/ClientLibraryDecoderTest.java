@@ -139,8 +139,8 @@ class ClientLibraryDecoderTest {
             "a regular string",
             (Function<Object, Value>) (o) -> Value.string((String) o)),
         arguments(
-            JsonHolder.class,
-            JsonHolder.of("{\"rating\":9,\"open\":true}"),
+            JsonWrapper.class,
+            JsonWrapper.of("{\"rating\":9,\"open\":true}"),
             (Function<Object, Value>) (o) -> Value.json(o == null ? null : o.toString())));
   }
 
@@ -189,7 +189,7 @@ class ClientLibraryDecoderTest {
         .isEqualTo(LocalDateTime.class);
     assertThat(ClientLibraryDecoder.getDefaultJavaType(Type.int64())).isEqualTo(Long.class);
     assertThat(ClientLibraryDecoder.getDefaultJavaType(Type.numeric())).isEqualTo(BigDecimal.class);
-    assertThat(ClientLibraryDecoder.getDefaultJavaType(Type.json())).isEqualTo(JsonHolder.class);
+    assertThat(ClientLibraryDecoder.getDefaultJavaType(Type.json())).isEqualTo(JsonWrapper.class);
 
     // unknown type
     assertThat(ClientLibraryDecoder.getDefaultJavaType(Type.struct())).isEqualTo(Object.class);

@@ -16,7 +16,7 @@
 
 package com.example;
 
-import com.google.cloud.spanner.r2dbc.v2.JsonHolder;
+import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,7 @@ import java.util.Map;
 
 @Component
 @WritingConverter
-public class MapToJsonConverter implements Converter<Map<String, Object>, JsonHolder> {
+public class MapToJsonConverter implements Converter<Map<String, Object>, JsonWrapper> {
 
   private final Gson gson;
 
@@ -38,11 +38,11 @@ public class MapToJsonConverter implements Converter<Map<String, Object>, JsonHo
   }
 
   @Override
-  public JsonHolder convert(Map<String, Object> source) {
+  public JsonWrapper convert(Map<String, Object> source) {
     try {
-      return JsonHolder.of(gson.toJson(source));
+      return JsonWrapper.of(gson.toJson(source));
     } catch (JsonParseException e) {
-      return JsonHolder.of("");
+      return JsonWrapper.of("");
     }
   }
 }

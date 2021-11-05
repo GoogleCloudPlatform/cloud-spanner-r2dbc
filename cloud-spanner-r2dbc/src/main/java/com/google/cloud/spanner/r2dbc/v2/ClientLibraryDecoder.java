@@ -99,10 +99,10 @@ class ClientLibraryDecoder {
   private static <T> T readAndConvert(Struct struct, int index,
       Map<Type, BiFunction<Struct, Integer, Object>> selectedCodecsMap, Class<T> type) {
     Object value = selectedCodecsMap.get(struct.getColumnType(index)).apply(struct, index);
-    // need to convert to String to JsonHolder when invoked from Spring Data with type =
+    // need to convert to String to JsonWrapper when invoked from Spring Data with type =
     // Object.class
     if (struct.getColumnType(index) == Type.json()) {
-      return (T) SpannerClientLibraryConverters.convert(value, JsonHolder.class);
+      return (T) SpannerClientLibraryConverters.convert(value, JsonWrapper.class);
     }
     if (type.isAssignableFrom(value.getClass())) {
       return (T) value;
@@ -122,7 +122,7 @@ class ClientLibraryDecoder {
       case NUMERIC: return BigDecimal.class;
       case ARRAY: return Array.newInstance(getDefaultJavaType(spannerType.getArrayElementType()), 0)
           .getClass();
-      case JSON: return JsonHolder.class;
+      case JSON: return JsonWrapper.class;
       default:
         return Object.class;
     }
