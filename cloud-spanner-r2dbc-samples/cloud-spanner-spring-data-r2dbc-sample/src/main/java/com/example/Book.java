@@ -16,11 +16,10 @@
 
 package com.example;
 
-import com.google.cloud.spanner.r2dbc.v2.JsonHolder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
-
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -36,9 +35,11 @@ public class Book {
   @Column("TITLE")
   private String title;
 
-  private long price;
+  @Column("PRICE")
+  private int price;
 
-  private JsonHolder jsonField;
+  @Column("EXTRADETAILS")
+  private Map<String, String> extraDetails;
 
   public Book(String id, String title) {
     this.id = id;
@@ -46,12 +47,16 @@ public class Book {
     Random random = new Random();
     this.price = random.nextInt(150);
   }
-  public Book(String id, String title, String jsonString) {
+
+  public Book(String id, String title, Map<String, String> extraDetails) {
     this.id = id;
     this.title = title;
     Random random = new Random();
     this.price = random.nextInt(150);
-    this.jsonField = new JsonHolder(jsonString);
+    this.extraDetails = extraDetails;
+  }
+
+  public Book() {
   }
 
   public String getId() {
@@ -66,7 +71,17 @@ public class Book {
     return price;
   }
 
-  public JsonHolder getJsonField() {
-    return jsonField;
+  public Map<String, String> getExtraDetails() {
+    return extraDetails;
+  }
+
+  @Override
+  public String toString() {
+    return "Book{" +
+            "id='" + id + '\'' +
+            ", title='" + title + '\'' +
+            ", price=" + price +
+            ", extraDetails=" +(extraDetails == null ? "" : extraDetails.toString()) +
+            '}';
   }
 }

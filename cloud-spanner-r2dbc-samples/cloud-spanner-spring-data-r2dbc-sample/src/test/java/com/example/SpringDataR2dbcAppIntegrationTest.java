@@ -18,7 +18,7 @@ public class SpringDataR2dbcAppIntegrationTest {
 
   @DynamicPropertySource
   static void registerProperties(DynamicPropertyRegistry registry) {
-    registry.add("gcp.project", () -> ServiceOptions.getDefaultProjectId());
+    registry.add("gcp.project", () -> System.getProperty("gcp.project", ServiceOptions.getDefaultProjectId()));
     registry.add("spanner.database", () -> System.getProperty("spanner.database","testdb"));
     registry.add("spanner.instance", () -> System.getProperty("spanner.instance", "reactivetest"));
   }
@@ -49,6 +49,20 @@ public class SpringDataR2dbcAppIntegrationTest {
     this.webTestClient.get().uri("/search/"  +id.get()).exchange()
         .expectBody(Book.class).value(book -> {
       assertThat(book.getTitle()).isEqualTo("Call of the wild");
+    });
+
+    this.webTestClient.post().uri("/addJson").body(Mono.just("Call of the wild II/8/yes"), String.class)
+            .exchange().expectStatus().is2xxSuccessful();
+
+    this.webTestClient.get().uri("/list").exchange()
+            .expectBody(Book[].class).value(books -> {
+      assertThat(books).hasSize(2);
+      for (Book book : books) {
+        if (book.getTitle().equals("Call of the wild II")) {
+          assertThat(book.getExtraDetails().get("rating")).isEqualTo("8");
+          assertThat(book.getExtraDetails().get("series")).isEqualTo("yes");
+        }
+      }
     });
   }
 

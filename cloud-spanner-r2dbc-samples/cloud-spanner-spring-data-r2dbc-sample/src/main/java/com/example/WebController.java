@@ -16,7 +16,11 @@
 
 package com.example;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import com.google.common.base.Splitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,6 +63,21 @@ public class WebController {
         .then();
   }
 
+  @PostMapping("/addJson")
+  public Mono<Void> addBookJson(@RequestBody String content) {
+    List<String> contentSplit = Splitter.on('/').splitToList(content);
+    String bookTitle = contentSplit.get(0);
+    String bookRating = contentSplit.get(1);
+    String bookSeries = contentSplit.get(2);
+    Map<String, String> jsonField = new HashMap<>();
+    jsonField.put("rating", bookRating);
+    jsonField.put("series", bookSeries);
+    return r2dbcEntityTemplate
+        .insert(Book.class)
+        .using(new Book(UUID.randomUUID().toString(), bookTitle, jsonField))
+        .log()
+        .then();
+  }
 
   @GetMapping("/search/{id}")
   public Mono<Book> searchBooks(@PathVariable String id) {
