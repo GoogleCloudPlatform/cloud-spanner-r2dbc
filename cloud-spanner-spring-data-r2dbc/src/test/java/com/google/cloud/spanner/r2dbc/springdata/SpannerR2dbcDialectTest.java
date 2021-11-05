@@ -66,6 +66,7 @@ class SpannerR2dbcDialectTest {
     assertThat(lock.getLock(lockOptions)).isEmpty();
     assertThat(lock.getClausePosition()).isSameAs(LockClause.Position.AFTER_FROM_TABLE);
   }
+
   @Test
   void testSimpleType() {
     SpannerR2dbcDialect dialect = new SpannerR2dbcDialect();

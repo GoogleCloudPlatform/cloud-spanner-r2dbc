@@ -214,21 +214,21 @@ class ClientLibraryBasedIntegrationTest {
         .expectNext(new BigDecimal("123.99")).verifyComplete();
   }
 
-    @Test
-    void testJsonFieldInsert() {
-        Connection conn = Mono.from(connectionFactory.create()).block();
-        String query = "INSERT BOOKS (UUID, TITLE, EXTRA) "
-                + "VALUES (@uuid, @title, @extra)";
+  @Test
+  void testJsonFieldInsert() {
+    Connection conn = Mono.from(connectionFactory.create()).block();
+    String query = "INSERT BOOKS (UUID, TITLE, EXTRA) " + "VALUES (@uuid, @title, @extra)";
 
-        StepVerifier.create(
-                Mono.from(
-                        conn.createStatement(query)
-                                .bind("uuid", "abc")
-                                .bind("title", "and now about metadata")
-                                .bind("extra", JsonHolder.of("{\"b\":9,\"a\":true}"))
-                                .execute())
-                        .flatMapMany(rs -> rs.getRowsUpdated())
-        ).expectNext(1).verifyComplete();
+    StepVerifier.create(
+            Mono.from(
+                    conn.createStatement(query)
+                        .bind("uuid", "abc")
+                        .bind("title", "testing json field write and read")
+                        .bind("extra", JsonHolder.of("{\"b\":9,\"a\":true}"))
+                        .execute())
+                .flatMapMany(rs -> rs.getRowsUpdated()))
+        .expectNext(1)
+        .verifyComplete();
 
     StepVerifier.create(
             Mono.from(conn.createStatement("SELECT * FROM BOOKS").execute())
@@ -236,7 +236,32 @@ class ClientLibraryBasedIntegrationTest {
         // Members of a JSON object are sorted lexicographically.
         .expectNext(JsonHolder.of("{\"a\":true,\"b\":9}"))
         .verifyComplete();
-    }
+  }
+
+  @Test
+  void testWrongFieldTypeInsert() {
+    Connection conn = Mono.from(connectionFactory.create()).block();
+    String query = "INSERT BOOKS (UUID, TITLE, EXTRA) " + "VALUES (@uuid, @title, @extra)";
+
+    StepVerifier.create(
+            Mono.from(
+                    conn.createStatement(query)
+                        .bind("uuid", "abc")
+                        .bind("title", "test wrong typed insert")
+                        .bind("extra", "a regular string")
+                        .execute())
+                .flatMapMany(rs -> rs.map((r, metadata) -> "unused result")))
+        .expectErrorMatches(
+            throwable ->
+                throwable instanceof SpannerException
+                    && throwable
+                        .getMessage()
+                        .startsWith(
+                            "INVALID_ARGUMENT: io.grpc.StatusRuntimeException: "
+                                + "INVALID_ARGUMENT: Value has type STRING which "
+                                + "cannot be inserted into column EXTRA, which has type JSON"))
+        .verify();
+  }
 
   @Test
   void testTransactionSingleStatementCommitted() {
