@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.spanner.Value;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -32,13 +33,30 @@ class JsonWrapperTest {
 
   @MethodSource("values")
   @ParameterizedTest
-  void testConsumeToString(JsonWrapper json) {
+  void testGetUnderlyingString(JsonWrapper json) {
     assertThat(json).hasToString("json-string");
   }
 
   @MethodSource("values")
   @ParameterizedTest
-  void testConsume2(JsonWrapper json) {
+  void testGetSpannerValue(JsonWrapper json) {
     assertThat(json.getJsonVal()).isInstanceOf(Value.class);
+  }
+
+  @Test
+  void testEquals() {
+    String jsonString = "a json string";
+    JsonWrapper json1 = JsonWrapper.of(jsonString);
+    JsonWrapper json2 = JsonWrapper.of("a json string");
+    assertThat(json1).isEqualTo(json1).isNotEqualTo(null).isNotEqualTo(jsonString).isEqualTo(json2);
+  }
+
+  @Test
+  void testHashCode() {
+    JsonWrapper json1 =
+        JsonWrapper.of("object with same underlying string should have same hash code.");
+    JsonWrapper json2 =
+        JsonWrapper.of("object with same underlying string should have same hash code.");
+    assertThat(json1).hasSameHashCodeAs(json2);
   }
 }
