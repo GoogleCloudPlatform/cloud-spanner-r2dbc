@@ -33,7 +33,7 @@ class JsonWrapperTest {
   @MethodSource("values")
   @ParameterizedTest
   void testConsumeToString(JsonWrapper json) {
-    assertThat(json.toString()).isEqualTo("json-string");
+    assertThat(json).hasToString("json-string");
   }
 
   @MethodSource("values")
