@@ -74,7 +74,6 @@ public class SpringDataR2dbcApp {
               "CREATE TABLE BOOK ("
                   + "  ID STRING(36) NOT NULL,"
                   + "  TITLE STRING(MAX) NOT NULL,"
-                  + "  PRICE INT64,"
                   + "  EXTRADETAILS JSON,"
                   + ") PRIMARY KEY (ID)")
           .fetch()

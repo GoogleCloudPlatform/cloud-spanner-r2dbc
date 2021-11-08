@@ -20,7 +20,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 import java.util.Map;
-import java.util.Random;
 
 /**
  * Book entity.
@@ -35,24 +34,17 @@ public class Book {
   @Column("TITLE")
   private String title;
 
-  @Column("PRICE")
-  private int price;
-
   @Column("EXTRADETAILS")
   private Map<String, String> extraDetails;
 
   public Book(String id, String title) {
     this.id = id;
     this.title = title;
-    Random random = new Random();
-    this.price = random.nextInt(150);
   }
 
   public Book(String id, String title, Map<String, String> extraDetails) {
     this.id = id;
     this.title = title;
-    Random random = new Random();
-    this.price = random.nextInt(150);
     this.extraDetails = extraDetails;
   }
 
@@ -67,9 +59,6 @@ public class Book {
     return this.title;
   }
 
-  public long getPrice() {
-    return price;
-  }
 
   public Map<String, String> getExtraDetails() {
     return extraDetails;
@@ -80,7 +69,6 @@ public class Book {
     return "Book{" +
             "id='" + id + '\'' +
             ", title='" + title + '\'' +
-            ", price=" + price +
             ", extraDetails=" +(extraDetails == null ? "" : extraDetails.toString()) +
             '}';
   }

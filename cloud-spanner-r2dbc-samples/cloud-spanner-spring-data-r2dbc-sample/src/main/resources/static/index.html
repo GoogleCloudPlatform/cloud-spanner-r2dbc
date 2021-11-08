@@ -9,9 +9,9 @@
       if (books) {
         for (let book of books) {
           if (!book.extraDetails) {
-            el.value += (book.title + "(" + book.id + ") $ " + book.price +"\n");
+            el.value += (book.title + "(" + book.id + "); \n");
           } else {
-            el.value += (book.title + "(" + book.id + ") $ " + book.price +
+            el.value += (book.title + "(" + book.id + ")" +
             "; rating: " + book.extraDetails.rating + "; is series: " + book.extraDetails.series +"\n");
           }
         }
