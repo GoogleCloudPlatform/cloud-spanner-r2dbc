@@ -32,6 +32,12 @@ class SpannerClientLibraryConvertersTest {
         .isInstanceOf(JsonWrapper.class)
         .isEqualTo(JsonWrapper.of("{\"rating\":9,\"open\":true}"));
 
+    assertThatThrownBy(() -> SpannerClientLibraryConverters.convert(1234L, JsonWrapper.class))
+        .isInstanceOf(ConversionFailureException.class)
+        .hasMessage(
+            "Unable to convert class java.lang.Long "
+                + "to class com.google.cloud.spanner.r2dbc.v2.JsonWrapper");
+
     assertThat(SpannerClientLibraryConverters.convert(12345L, Integer.class))
         .isInstanceOf(Integer.class)
         .isEqualTo(12345);
