@@ -16,9 +16,8 @@
 
 package com.google.cloud.spanner.r2dbc.springdata.it.entities;
 
-import org.springframework.data.relational.core.mapping.Column;
-
 import java.util.Map;
+import org.springframework.data.relational.core.mapping.Column;
 
 /**
  * Example entity.
@@ -28,23 +27,22 @@ public class Person {
   @Column("NAME")
   private String name;
 
-  @Column("START_YEAR")
-  private long startYear;
+  @Column("BIRTH_YEAR")
+  private long birthYear;
 
   @Column("EXTRAS")
-//  private JsonWrapper extras;
   private Map<String, String> extras;
 
-  public Person(String name, long startYear) {
+  /**
+   * Constructor.
+   *
+   * @param name name
+   * @param birthYear birth year.
+   * @param extras extra info stored in Map.
+   */
+  public Person(String name, long birthYear, Map<String, String> extras) {
     this.name = name;
-    this.startYear = startYear;
-  }
-
-  public Person() {}
-
-  public Person(String name, long startYear, Map<String, String> extras) {
-    this.name = name;
-    this.startYear = startYear;
+    this.birthYear = birthYear;
     this.extras = extras;
   }
 
@@ -56,16 +54,16 @@ public class Person {
     this.name = name;
   }
 
-  public long getStartYear() {
-    return this.startYear;
+  public long getBirthYear() {
+    return this.birthYear;
   }
 
-  public void setStartYear(long startYear) {
-    this.startYear = startYear;
+  public void setBirthYear(long birthYear) {
+    this.birthYear = birthYear;
   }
 
   public Map<String, String> getExtras() {
-    return extras;
+    return this.extras;
   }
 
   public void setExtras(Map<String, String> extras) {
@@ -76,11 +74,12 @@ public class Person {
   public String toString() {
     return "President{"
         + "name='"
-        + this.name + '\''
-        + ", startYear="
-        + this.startYear
-            + ", extras="
-            + this.getExtras()==null? " " : this.getExtras().toString()
-            + '}';
+        + this.name
+        + '\''
+        + ", birthYear="
+        + this.birthYear
+        + ", extras="
+        + (this.getExtras() == null ? " " : this.getExtras().toString())
+        + '}';
   }
 }
