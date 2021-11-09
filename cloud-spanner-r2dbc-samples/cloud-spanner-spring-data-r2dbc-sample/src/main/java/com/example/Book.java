@@ -37,6 +37,9 @@ public class Book {
   @Column("EXTRADETAILS")
   private Map<String, String> extraDetails;
 
+  @Column("REVIEWS")
+  private Review review;
+
   public Book(String id, String title) {
     this.id = id;
     this.title = title;
@@ -46,6 +49,11 @@ public class Book {
     this.id = id;
     this.title = title;
     this.extraDetails = extraDetails;
+  }
+  public Book(String id, String title, Review review) {
+    this.id = id;
+    this.title = title;
+    this.review = review;
   }
 
   public Book() {
@@ -62,6 +70,10 @@ public class Book {
 
   public Map<String, String> getExtraDetails() {
     return extraDetails;
+  }
+
+  public Review getReview() {
+    return review;
   }
 
   @Override

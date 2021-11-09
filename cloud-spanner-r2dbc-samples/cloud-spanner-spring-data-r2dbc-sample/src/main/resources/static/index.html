@@ -8,11 +8,14 @@
       el.value += extraText;
       if (books) {
         for (let book of books) {
-          if (!book.extraDetails) {
+          if (!book.extraDetails && !book.review) {
             el.value += (book.title + "(" + book.id + "); \n");
-          } else {
+          } else if (book.extraDetails) {
             el.value += (book.title + "(" + book.id + ")" +
             "; rating: " + book.extraDetails.rating + "; is series: " + book.extraDetails.series +"\n");
+          } else if (book.review) {
+            el.value += (book.title + "(" + book.id + ")" +
+            "; reviewer: " + book.review.reviewerId + "; review: " + book.review.reviewerContent +"\n");
           }
         }
       }
@@ -67,7 +70,7 @@
         appendOutput("Please provide non-empty series");
         return false;
       }
-      fetch('/addJson', {
+      fetch('/add-json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
         body: newTitle + "/" + rating + "/" + series
@@ -82,6 +85,40 @@
 
       return false;
     }
+
+
+    function addJsonCustomClass() {
+      const newTitle = document.getElementById('newBookTitle').value;
+      const reviewer = document.getElementById('reviewer').value;
+      const review = document.getElementById('review').value;
+      if (!newTitle) {
+        appendOutput("Please provide non-empty title");
+        return false;
+      }
+      if (!reviewer) {
+        appendOutput("Please provide non-empty reviewer");
+        return false;
+      }
+      if (!review) {
+        appendOutput("Please provide non-empty review");
+        return false;
+      }
+      fetch('/add-json-custom-class', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json'},
+        body: newTitle + "/" + reviewer + "/" + review
+      }).then(response => {
+         if (response.ok) {
+           appendOutput("Added book.");
+         } else {
+           appendOutput("Failed to add book.");
+         }
+       });
+
+
+      return false;
+    }
+
 
     function findBookById() {
       const id = document.getElementById('bookId').value;
@@ -127,6 +164,11 @@
   <div class="buttonLink">
     Rating: <input id="rating" name="rating"/> Is series: <input id="series" name="series"/>
     <a class="buttonLink" href="/" onClick="return addBookJson();">Add Book With Extra Details</a>
+  </div>
+
+  <div class="buttonLink">
+    Reviewer: <input id="reviewer" name="rating"/> Review: <input id="review" name="series"/>
+    <a class="buttonLink" href="/" onClick="return addJsonCustomClass();">Add Book With Review</a>
   </div>
 
   <div class="buttonLink">

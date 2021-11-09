@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.ServiceOptions;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,7 +15,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-public class SpringDataR2dbcAppIntegrationTest {
+class SpringDataR2dbcAppIntegrationTest {
 
   @DynamicPropertySource
   static void registerProperties(DynamicPropertyRegistry registry) {
@@ -26,9 +27,14 @@ public class SpringDataR2dbcAppIntegrationTest {
   @Autowired
   private WebTestClient webTestClient;
 
+  @AfterEach
+  void deleteRecords() {
+    this.webTestClient.get().uri("delete-all").exchange().expectStatus().is2xxSuccessful();
+  }
+
   @Test
-  public void testAllWebEndpoints() {
-    
+  void testBasicWebEndpoints() {
+
     // initially empty table
     this.webTestClient.get().uri("/list").exchange()
         .expectBody(Book[].class).isEqualTo(new Book[0]);
@@ -50,20 +56,35 @@ public class SpringDataR2dbcAppIntegrationTest {
         .expectBody(Book.class).value(book -> {
       assertThat(book.getTitle()).isEqualTo("Call of the wild");
     });
+  }
 
-    this.webTestClient.post().uri("/addJson").body(Mono.just("Call of the wild II/8/yes"), String.class)
+  @Test
+  void testJsonWebEndpoints() {
+
+    this.webTestClient.post().uri("/add-json").body(Mono.just("Call of the wild II/8/yes"), String.class)
             .exchange().expectStatus().is2xxSuccessful();
 
-    this.webTestClient.get().uri("/list").exchange()
-            .expectBody(Book[].class).value(books -> {
-      assertThat(books).hasSize(2);
-      for (Book book : books) {
-        if (book.getTitle().equals("Call of the wild II")) {
-          assertThat(book.getExtraDetails().get("rating")).isEqualTo("8");
-          assertThat(book.getExtraDetails().get("series")).isEqualTo("yes");
-        }
-      }
-    });
+    this.webTestClient.post().uri("/add-json-custom-class").body(Mono.just("Call of the wild III/John/Good read."), String.class)
+            .exchange().expectStatus().is2xxSuccessful();
+
+    this.webTestClient
+        .get()
+        .uri("/list")
+        .exchange()
+        .expectBody(Book[].class)
+        .value(
+            books -> {
+              assertThat(books).hasSize(2);
+              for (Book book : books) {
+                if (book.getTitle().equals("Call of the wild II")) {
+                  assertThat(book.getExtraDetails()).containsEntry("rating", "8");
+                  assertThat(book.getExtraDetails()).containsEntry("series", "yes");
+                }
+                if (book.getTitle().equals("Call of the wild III")) {
+                  assertThat(book.getReview()).isEqualTo(new Review("John", "Good read."));
+                }
+              }
+            });
   }
 
 }

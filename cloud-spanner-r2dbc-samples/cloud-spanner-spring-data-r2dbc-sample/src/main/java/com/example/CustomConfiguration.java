@@ -16,15 +16,20 @@
 
 package com.example;
 
+import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 import io.r2dbc.spi.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.data.convert.ReadingConverter;
+import org.springframework.data.convert.WritingConverter;
 import org.springframework.data.r2dbc.config.AbstractR2dbcConfiguration;
 import org.springframework.data.r2dbc.convert.R2dbcCustomConversions;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +51,8 @@ public class CustomConfiguration extends AbstractR2dbcConfiguration {
     List<Converter<?, ?>> converters = new ArrayList<>();
     converters.add(applicationContext.getBean(JsonToMapConverter.class));
     converters.add(applicationContext.getBean(MapToJsonConverter.class));
+    converters.add(applicationContext.getBean(JsonToReviewsConverter.class));
+    converters.add(applicationContext.getBean(ReviewsToJsonConverter.class));
     return new R2dbcCustomConversions(getStoreConversions(), converters);
   }
 
@@ -53,4 +60,47 @@ public class CustomConfiguration extends AbstractR2dbcConfiguration {
   public Gson gson() {
     return new Gson();
   }
+
+  @Component
+  @ReadingConverter
+  public class JsonToReviewsConverter implements Converter<JsonWrapper, Review> {
+
+    private final Gson gson;
+
+    @Autowired
+    public JsonToReviewsConverter(Gson gson) {
+      this.gson = gson;
+    }
+
+    @Override
+    public Review convert(JsonWrapper json) {
+      try {
+        return gson.fromJson(json.toString(), Review.class);
+      } catch (JsonParseException e) {
+        return new Review();
+      }
+    }
+  }
+
+  @Component
+  @WritingConverter
+  public class ReviewsToJsonConverter implements Converter<Review, JsonWrapper> {
+
+    private final Gson gson;
+
+    @Autowired
+    public ReviewsToJsonConverter(Gson gson) {
+      this.gson = gson;
+    }
+
+    @Override
+    public JsonWrapper convert(Review source) {
+      try {
+        return JsonWrapper.of(gson.toJson(source));
+      } catch (JsonParseException e) {
+        return JsonWrapper.of("");
+      }
+    }
+  }
+
 }

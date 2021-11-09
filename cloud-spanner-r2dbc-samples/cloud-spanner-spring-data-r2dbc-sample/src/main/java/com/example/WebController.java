@@ -19,6 +19,7 @@ package com.example;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
 import com.google.common.base.Splitter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +64,7 @@ public class WebController {
         .then();
   }
 
-  @PostMapping("/addJson")
+  @PostMapping("/add-json")
   public Mono<Void> addBookJson(@RequestBody String content) {
     List<String> contentSplit = Splitter.on('/').splitToList(content);
     String bookTitle = contentSplit.get(0);
@@ -77,6 +78,29 @@ public class WebController {
         .using(new Book(UUID.randomUUID().toString(), bookTitle, jsonField))
         .log()
         .then();
+  }
+
+  @PostMapping("/add-json-custom-class")
+  public Mono<Void> addBookJsonCustomClass(@RequestBody String content) {
+    List<String> contentSplit = Splitter.on('/').splitToList(content);
+    String bookTitle = contentSplit.get(0);
+    String reviewerId = contentSplit.get(1);
+    String reviewerContent = contentSplit.get(2);
+    Review jsonField = new Review();
+    jsonField.setReviewerId(reviewerId);
+    jsonField.setReviewerContent(reviewerContent);
+    return r2dbcEntityTemplate
+            .insert(Book.class)
+            .using(new Book(UUID.randomUUID().toString(), bookTitle, jsonField))
+            .log()
+            .then();
+  }
+
+  @GetMapping("/delete-all")
+  public Mono<Void> deleteAll() {
+    return r2dbcEntityTemplate
+            .select(Book.class)
+            .all().flatMap(x -> r2dbcEntityTemplate.delete(x)).log().then();
   }
 
   @GetMapping("/search/{id}")
