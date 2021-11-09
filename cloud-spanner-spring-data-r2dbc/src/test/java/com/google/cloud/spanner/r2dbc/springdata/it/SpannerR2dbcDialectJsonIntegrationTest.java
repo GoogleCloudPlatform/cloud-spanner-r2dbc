@@ -65,9 +65,9 @@ import reactor.test.StepVerifier;
  * system properties.
  */
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = SpannerR2dbcDialectIntegrationTestWithJson.TestConfiguration.class)
+@ContextConfiguration(classes = SpannerR2dbcDialectJsonIntegrationTest.TestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class SpannerR2dbcDialectIntegrationTestWithJson {
+class SpannerR2dbcDialectJsonIntegrationTest {
 
   private static final String PROJECT_NAME =
       System.getProperty("gcp.project", ServiceOptions.getDefaultProjectId());
