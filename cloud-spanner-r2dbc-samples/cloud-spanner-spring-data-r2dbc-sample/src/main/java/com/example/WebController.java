@@ -24,6 +24,7 @@ import java.util.UUID;
 import com.google.common.base.Splitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -64,12 +65,13 @@ public class WebController {
         .then();
   }
 
-  @PostMapping("/add-json")
-  public Mono<Void> addBookJson(@RequestBody String content) {
-    List<String> contentSplit = Splitter.on('/').splitToList(content);
-    String bookTitle = contentSplit.get(0);
-    String bookRating = contentSplit.get(1);
-    String bookSeries = contentSplit.get(2);
+  @PostMapping(value = "/add-json",
+          consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
+          produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+  public Mono<Void> addBookJson(@RequestBody PostBody content) {
+    String bookTitle = content.input1;
+    String bookRating = content.input2;
+    String bookSeries = content.input3;
     Map<String, String> jsonField = new HashMap<>();
     jsonField.put("rating", bookRating);
     jsonField.put("series", bookSeries);
@@ -80,12 +82,13 @@ public class WebController {
         .then();
   }
 
-  @PostMapping("/add-json-custom-class")
-  public Mono<Void> addBookJsonCustomClass(@RequestBody String content) {
-    List<String> contentSplit = Splitter.on('/').splitToList(content);
-    String bookTitle = contentSplit.get(0);
-    String reviewerId = contentSplit.get(1);
-    String reviewerContent = contentSplit.get(2);
+  @PostMapping(value = "/add-json-custom-class",
+          consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
+          produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+  public Mono<Void> addBookJsonCustomClass(@RequestBody PostBody content) {
+    String bookTitle = content.input1;
+    String reviewerId = content.input2;
+    String reviewerContent = content.input3;
     Review jsonField = new Review();
     jsonField.setReviewerId(reviewerId);
     jsonField.setReviewerContent(reviewerContent);
@@ -96,6 +99,9 @@ public class WebController {
             .then();
   }
 
+  /**
+   * For test cleanup.
+   */
   @GetMapping("/delete-all")
   public Mono<Void> deleteAll() {
     return r2dbcEntityTemplate
@@ -106,6 +112,21 @@ public class WebController {
   @GetMapping("/search/{id}")
   public Mono<Book> searchBooks(@PathVariable String id) {
     return r2dbcRepository.findById(id);
+  }
+
+  /**
+   * Class used as post body
+   */
+  static class PostBody {
+    String input1;
+    String input2;
+    String input3;
+
+    public PostBody(String input1, String input2, String input3) {
+      this.input1 = input1;
+      this.input2 = input2;
+      this.input3 = input3;
+    }
   }
 
 }

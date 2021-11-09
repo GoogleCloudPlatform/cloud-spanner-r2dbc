@@ -70,10 +70,11 @@
         appendOutput("Please provide non-empty series");
         return false;
       }
+      const bodyContent =  "{\"input1\" : \"" + newTitle + "\", \"input2\" : \"" + rating + "\", \"input3\" : \"" + series + "\"}";
       fetch('/add-json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
-        body: newTitle + "/" + rating + "/" + series
+        body: bodyContent
       }).then(response => {
          if (response.ok) {
            appendOutput("Added book.");
@@ -103,10 +104,11 @@
         appendOutput("Please provide non-empty review");
         return false;
       }
+      const bodyContent =  "{\"input1\" : \"" + newTitle + "\", \"input2\" : \"" + reviewer + "\", \"input3\" : \"" + review + "\"}";
       fetch('/add-json-custom-class', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
-        body: newTitle + "/" + reviewer + "/" + review
+        body: bodyContent
       }).then(response => {
          if (response.ok) {
            appendOutput("Added book.");

@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -60,11 +62,12 @@ class SpringDataR2dbcAppIntegrationTest {
 
   @Test
   void testJsonWebEndpoints() {
-
-    this.webTestClient.post().uri("/add-json").body(Mono.just("Call of the wild II/8/yes"), String.class)
+    this.webTestClient.post().uri("/add-json").header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .body(Mono.just("{\"input1\" : \"Call of the wild II\", \"input2\" : \"8\", \"input3\" : \"yes\"}"), String.class)
             .exchange().expectStatus().is2xxSuccessful();
 
-    this.webTestClient.post().uri("/add-json-custom-class").body(Mono.just("Call of the wild III/John/Good read."), String.class)
+    this.webTestClient.post().uri("/add-json-custom-class").header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .body(Mono.just("{\"input1\" : \"Call of the wild III\", \"input2\" : \"John\", \"input3\" : \"Good read.\"}"), String.class)
             .exchange().expectStatus().is2xxSuccessful();
 
     this.webTestClient
