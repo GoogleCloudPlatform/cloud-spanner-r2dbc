@@ -66,7 +66,7 @@ public class WebController {
   }
 
   @PostMapping(value = "/add-json",
-          consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+          consumes = MediaType.APPLICATION_JSON_VALUE)
   public Mono<Void> addBookJson(@RequestBody PostBody content) {
     String bookTitle = content.input1;
     String bookRating = content.input2;
@@ -82,7 +82,7 @@ public class WebController {
   }
 
   @PostMapping(value = "/add-json-custom-class",
-          consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+          consumes = MediaType.APPLICATION_JSON_VALUE)
   public Mono<Void> addBookJsonCustomClass(@RequestBody PostBody content) {
     String bookTitle = content.input1;
     String reviewerId = content.input2;
