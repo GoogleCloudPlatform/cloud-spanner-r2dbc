@@ -66,35 +66,33 @@ public class WebController {
   }
 
   @PostMapping(value = "/add-json",
-          consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
-          produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+          consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
   public Mono<Void> addBookJson(@RequestBody PostBody content) {
     String bookTitle = content.input1;
     String bookRating = content.input2;
     String bookSeries = content.input3;
-    Map<String, String> jsonField = new HashMap<>();
-    jsonField.put("rating", bookRating);
-    jsonField.put("series", bookSeries);
+    Map<String, String> extraDetails = new HashMap<>();
+    extraDetails.put("rating", bookRating);
+    extraDetails.put("series", bookSeries);
     return r2dbcEntityTemplate
         .insert(Book.class)
-        .using(new Book(UUID.randomUUID().toString(), bookTitle, jsonField))
+        .using(new Book(UUID.randomUUID().toString(), bookTitle, extraDetails))
         .log()
         .then();
   }
 
   @PostMapping(value = "/add-json-custom-class",
-          consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
-          produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+          consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
   public Mono<Void> addBookJsonCustomClass(@RequestBody PostBody content) {
     String bookTitle = content.input1;
     String reviewerId = content.input2;
     String reviewerContent = content.input3;
-    Review jsonField = new Review();
-    jsonField.setReviewerId(reviewerId);
-    jsonField.setReviewerContent(reviewerContent);
+    Review review = new Review();
+    review.setReviewerId(reviewerId);
+    review.setReviewerContent(reviewerContent);
     return r2dbcEntityTemplate
             .insert(Book.class)
-            .using(new Book(UUID.randomUUID().toString(), bookTitle, jsonField))
+            .using(new Book(UUID.randomUUID().toString(), bookTitle, review))
             .log()
             .then();
   }
@@ -104,9 +102,7 @@ public class WebController {
    */
   @GetMapping("/delete-all")
   public Mono<Void> deleteAll() {
-    return r2dbcEntityTemplate
-            .select(Book.class)
-            .all().flatMap(x -> r2dbcEntityTemplate.delete(x)).log().then();
+    return r2dbcRepository.findAll().flatMap(x -> r2dbcRepository.delete(x)).log().then();
   }
 
   @GetMapping("/search/{id}")
