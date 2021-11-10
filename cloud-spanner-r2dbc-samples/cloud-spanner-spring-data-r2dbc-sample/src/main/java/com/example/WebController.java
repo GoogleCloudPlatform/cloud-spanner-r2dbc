@@ -60,39 +60,17 @@ public class WebController {
   @PostMapping("/add")
   public Mono<Void> addBook(@RequestBody String bookTitle) {
     return r2dbcEntityTemplate.insert(Book.class)
-        .using(new Book(UUID.randomUUID().toString(), bookTitle))
+        .using(new Book(bookTitle, null, null))
         .log()
         .then();
   }
 
-  @PostMapping(value = "/add-json",
+  @PostMapping(value = "/add-book-with-json",
           consumes = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<Void> addBookJson(@RequestBody PostBody content) {
-    String bookTitle = content.input1;
-    String bookRating = content.input2;
-    String bookSeries = content.input3;
-    Map<String, String> extraDetails = new HashMap<>();
-    extraDetails.put("rating", bookRating);
-    extraDetails.put("series", bookSeries);
-    return r2dbcEntityTemplate
-        .insert(Book.class)
-        .using(new Book(UUID.randomUUID().toString(), bookTitle, extraDetails))
-        .log()
-        .then();
-  }
-
-  @PostMapping(value = "/add-json-custom-class",
-          consumes = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<Void> addBookJsonCustomClass(@RequestBody PostBody content) {
-    String bookTitle = content.input1;
-    String reviewerId = content.input2;
-    String reviewerContent = content.input3;
-    Review review = new Review();
-    review.setReviewerId(reviewerId);
-    review.setReviewerContent(reviewerContent);
+  public Mono<Void> addBookJson(@RequestBody Book book) {
     return r2dbcEntityTemplate
             .insert(Book.class)
-            .using(new Book(UUID.randomUUID().toString(), bookTitle, review))
+            .using(book)
             .log()
             .then();
   }
@@ -108,21 +86,6 @@ public class WebController {
   @GetMapping("/search/{id}")
   public Mono<Book> searchBooks(@PathVariable String id) {
     return r2dbcRepository.findById(id);
-  }
-
-  /**
-   * Class used as post body
-   */
-  static class PostBody {
-    String input1;
-    String input2;
-    String input3;
-
-    public PostBody(String input1, String input2, String input3) {
-      this.input1 = input1;
-      this.input2 = input2;
-      this.input3 = input3;
-    }
   }
 
 }

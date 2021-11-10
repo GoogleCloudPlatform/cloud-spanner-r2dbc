@@ -62,13 +62,31 @@ class SpringDataR2dbcAppIntegrationTest {
 
   @Test
   void testJsonWebEndpoints() {
-    this.webTestClient.post().uri("/add-json").header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .body(Mono.just("{\"input1\" : \"Call of the wild II\", \"input2\" : \"8\", \"input3\" : \"yes\"}"), String.class)
-            .exchange().expectStatus().is2xxSuccessful();
+    this.webTestClient
+        .post()
+        .uri("/add-book-with-json")
+        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+        .body(
+            Mono.just(
+                "{\"title\":\"Call of the wild II\",\"extraDetails\":"
+                    + "{\"rating\":\"8\",\"series\":\"yes\"},\"review\":null}"),
+            String.class)
+        .exchange()
+        .expectStatus()
+        .is2xxSuccessful();
 
-    this.webTestClient.post().uri("/add-json-custom-class").header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .body(Mono.just("{\"input1\" : \"Call of the wild III\", \"input2\" : \"John\", \"input3\" : \"Good read.\"}"), String.class)
-            .exchange().expectStatus().is2xxSuccessful();
+    this.webTestClient
+        .post()
+        .uri("/add-book-with-json")
+        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+        .body(
+            Mono.just(
+                "{\"title\":\"Call of the wild III\",\"extraDetails\":null,"
+                    + "\"review\":{\"reviewerId\":\"John\",\"reviewerContent\":\"Good read.\"}}"),
+            String.class)
+        .exchange()
+        .expectStatus()
+        .is2xxSuccessful();
 
     this.webTestClient
         .get()
@@ -89,5 +107,4 @@ class SpringDataR2dbcAppIntegrationTest {
               }
             });
   }
-
 }

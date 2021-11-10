@@ -70,8 +70,9 @@
         appendOutput("Please provide non-empty series");
         return false;
       }
-      const bodyContent =  "{\"input1\" : \"" + newTitle + "\", \"input2\" : \"" + rating + "\", \"input3\" : \"" + series + "\"}";
-      fetch('/add-json', {
+      const bodyContent =  "{\"title\":\"" + newTitle + "\",\"extraDetails\":"
+      + "{\"rating\":\"" + rating + "\",\"series\":\"" + series + "\"},\"review\":null}";
+      fetch('/add-book-with-json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
         body: bodyContent
@@ -104,8 +105,9 @@
         appendOutput("Please provide non-empty review");
         return false;
       }
-      const bodyContent =  "{\"input1\" : \"" + newTitle + "\", \"input2\" : \"" + reviewer + "\", \"input3\" : \"" + review + "\"}";
-      fetch('/add-json-custom-class', {
+      const bodyContent =  "{\"title\":\"" + newTitle + "\",\"extraDetails\":null,"
+      + "\"review\":{\"reviewerId\":\"" + reviewer + "\",\"reviewerContent\":\"" + review + "\"}}";
+      fetch('/add-book-with-json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
         body: bodyContent

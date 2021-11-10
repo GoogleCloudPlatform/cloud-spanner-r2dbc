@@ -20,6 +20,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Book entity.
@@ -40,23 +41,11 @@ public class Book {
   @Column("REVIEWS")
   private Review review;
 
-  public Book(String id, String title) {
-    this.id = id;
-    this.title = title;
-  }
-
-  public Book(String id, String title, Map<String, String> extraDetails) {
-    this.id = id;
+  public Book(String title, Map<String, String> extraDetails, Review review) {
+    this.id = UUID.randomUUID().toString();
     this.title = title;
     this.extraDetails = extraDetails;
-  }
-  public Book(String id, String title, Review review) {
-    this.id = id;
-    this.title = title;
     this.review = review;
-  }
-
-  public Book() {
   }
 
   public String getId() {
