@@ -47,6 +47,36 @@
       return false;
     }
 
+    function updateBook() {
+      const newTitle = document.getElementById('newBookTitleForUpdate').value;
+      const oldId = document.getElementById('bookIdForUpdate').value;
+
+      if (!oldId) {
+        appendOutput("Please provide non-empty id");
+        return false;
+      }
+      if (!newTitle) {
+        appendOutput("Please provide non-empty title");
+        return false;
+      }
+
+      const url = '/update/' + oldId + '/' + encodeURIComponent(newTitle);
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-url'},
+
+      }).then(response => {
+         if (response.ok) {
+           appendOutput("Added book.");
+         } else {
+           appendOutput("Failed to add book.");
+         }
+       });
+
+      console.log("updating book; new title = " + newTitle + "; old ID = " + oldId);
+      return false;
+    }
+
     function findBookById() {
       const id = document.getElementById('bookId').value;
       if (!id) {
@@ -85,6 +115,13 @@
   <div class="buttonLink">
   New Book Title: <input id="newBookTitle" name="newBookTitle"/> <a class="buttonLink" href="/" onClick="return addBook();">Add Book</a>
   </div>
+
+  <div class="buttonLink">
+    Existing Book ID: <input id="bookIdForUpdate" name="bookId"/> <br/>
+    New Book Title:
+    <input id="newBookTitleForUpdate" name="newBookTitle"/> <a class="buttonLink" href="/" onClick="return updateBook();">Update Book Title</a>
+  </div>
+
 
   <div class="buttonLink">
     Search for: <input id="bookId" name="bookId"/> <a class="buttonLink" href="/" onClick="return findBookById();">Find Books</a>

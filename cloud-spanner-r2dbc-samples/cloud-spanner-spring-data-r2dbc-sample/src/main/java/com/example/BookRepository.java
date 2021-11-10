@@ -17,11 +17,11 @@
 package com.example;
 
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Flux;
 
 /**
  * Spring Data repository for books.
- * <p>Query derivation is not supported yet.</p>
  */
 interface BookRepository extends ReactiveCrudRepository<Book, String> {
-
+  public Flux<Book> findByTitleContaining(String partialTitle);
 }

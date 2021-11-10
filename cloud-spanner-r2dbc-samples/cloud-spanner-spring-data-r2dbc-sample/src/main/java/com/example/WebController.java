@@ -19,6 +19,7 @@ package com.example;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -59,10 +60,22 @@ public class WebController {
         .then();
   }
 
+  @PostMapping("/update/{id}/{title}")
+  public Mono<Void> updateBookTitle(@PathVariable String id, @PathVariable("title") String newTitle) {
+
+    Book book = new Book(id, newTitle);
+    return r2dbcEntityTemplate.update(book).then();
+  }
+
 
   @GetMapping("/search/{id}")
   public Mono<Book> searchBooks(@PathVariable String id) {
     return r2dbcRepository.findById(id);
+  }
+
+  @GetMapping("/title/{partialTitle}")
+  public Flux<Book> findByTitlePrefix(@PathVariable String partialTitle) {
+    return r2dbcRepository.findByTitleContaining(partialTitle);
   }
 
 }
