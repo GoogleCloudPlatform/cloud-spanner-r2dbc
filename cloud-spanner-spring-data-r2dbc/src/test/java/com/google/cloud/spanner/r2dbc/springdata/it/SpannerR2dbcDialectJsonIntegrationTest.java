@@ -101,21 +101,21 @@ class SpannerR2dbcDialectJsonIntegrationTest {
 
     this.databaseClient = this.r2dbcEntityTemplate.getDatabaseClient();
 
-    //    if (SpannerTestUtils.tableExists(connection, "PERSON")) {
-    //      this.databaseClient.sql("DROP TABLE PERSON").fetch().rowsUpdated().block();
-    //    }
-    //
-    //    this.databaseClient
-    //        .sql(
-    //            "CREATE TABLE PERSON ("
-    //                + "  NAME STRING(256) NOT NULL,"
-    //                + "  BIRTH_YEAR INT64 NOT NULL,"
-    //                + "  EXTRAS JSON,"
-    //                + "  ADDRESS JSON"
-    //                + ") PRIMARY KEY (NAME)")
-    //        .fetch()
-    //        .rowsUpdated()
-    //        .block();
+        if (SpannerTestUtils.tableExists(connection, "PERSON")) {
+          this.databaseClient.sql("DROP TABLE PERSON").fetch().rowsUpdated().block();
+        }
+
+        this.databaseClient
+            .sql(
+                "CREATE TABLE PERSON ("
+                    + "  NAME STRING(256) NOT NULL,"
+                    + "  BIRTH_YEAR INT64 NOT NULL,"
+                    + "  EXTRAS JSON,"
+                    + "  ADDRESS JSON"
+                    + ") PRIMARY KEY (NAME)")
+            .fetch()
+            .rowsUpdated()
+            .block();
   }
 
   @AfterEach
