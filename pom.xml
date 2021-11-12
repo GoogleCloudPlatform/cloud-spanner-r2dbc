@@ -85,10 +85,10 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <skip.surefire.tests>${skipTests}</skip.surefire.tests>
 
-    <google-cloud-bom.version>23.1.0</google-cloud-bom.version>
+    <google-cloud-bom.version>24.0.0</google-cloud-bom.version>
 
     <r2dbc.version>0.8.6.RELEASE</r2dbc.version>
-    <reactor.version>2020.0.12</reactor.version>
+    <reactor.version>2020.0.13</reactor.version>
 
     <mockito.version>4.0.0</mockito.version>
     <slf4j.version>1.7.32</slf4j.version>
@@ -253,7 +253,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>9.0.1</version>
+            <version>9.1</version>
           </dependency>
         </dependencies>
         <executions>
