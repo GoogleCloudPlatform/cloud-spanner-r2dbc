@@ -49,10 +49,8 @@ public class CustomConfiguration extends AbstractR2dbcConfiguration {
   @Override
   public R2dbcCustomConversions r2dbcCustomConversions() {
     List<Converter<?, ?>> converters = new ArrayList<>();
-    converters.add(applicationContext.getBean(JsonToMapConverter.class));
-    converters.add(applicationContext.getBean(MapToJsonConverter.class));
-    converters.add(applicationContext.getBean(JsonToReviewsConverter.class));
-    converters.add(applicationContext.getBean(ReviewsToJsonConverter.class));
+    converters.add(this.applicationContext.getBean(JsonToReviewsConverter.class));
+    converters.add(this.applicationContext.getBean(ReviewsToJsonConverter.class));
     return new R2dbcCustomConversions(getStoreConversions(), converters);
   }
 
@@ -75,7 +73,7 @@ public class CustomConfiguration extends AbstractR2dbcConfiguration {
     @Override
     public Review convert(JsonWrapper json) {
       try {
-        return gson.fromJson(json.toString(), Review.class);
+        return this.gson.fromJson(json.toString(), Review.class);
       } catch (JsonParseException e) {
         return new Review();
       }
@@ -96,7 +94,7 @@ public class CustomConfiguration extends AbstractR2dbcConfiguration {
     @Override
     public JsonWrapper convert(Review source) {
       try {
-        return JsonWrapper.of(gson.toJson(source));
+        return JsonWrapper.of(this.gson.toJson(source));
       } catch (JsonParseException e) {
         return JsonWrapper.of("");
       }

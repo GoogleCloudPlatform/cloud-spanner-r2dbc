@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Google LLC
+ * Copyright 2020-2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import org.springframework.data.relational.core.mapping.Column;
 /**
  * Example entity.
  */
-public class Person {
+public class Person<T> {
 
   @Column("NAME")
   private String name;
@@ -31,7 +31,10 @@ public class Person {
   private long birthYear;
 
   @Column("EXTRAS")
-  private Map<String, String> extras;
+  private Map<String, T> extras;
+
+  @Column("ADDRESS")
+  private Address address;
 
   /**
    * Constructor.
@@ -40,10 +43,11 @@ public class Person {
    * @param birthYear birth year.
    * @param extras extra info stored in Map.
    */
-  public Person(String name, long birthYear, Map<String, String> extras) {
+  public Person(String name, long birthYear, Map<String, T> extras, Address address) {
     this.name = name;
     this.birthYear = birthYear;
     this.extras = extras;
+    this.address = address;
   }
 
   public String getName() {
@@ -62,12 +66,20 @@ public class Person {
     this.birthYear = birthYear;
   }
 
-  public Map<String, String> getExtras() {
+  public Map<String, T> getExtras() {
     return this.extras;
   }
 
-  public void setExtras(Map<String, String> extras) {
+  public void setExtras(Map<String, T> extras) {
     this.extras = extras;
+  }
+
+  public Address getAddress() {
+    return this.address;
+  }
+
+  public void setAddress(Address address) {
+    this.address = address;
   }
 
   @Override

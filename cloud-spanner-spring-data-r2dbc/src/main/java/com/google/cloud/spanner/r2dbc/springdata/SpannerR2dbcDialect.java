@@ -17,6 +17,7 @@
 package com.google.cloud.spanner.r2dbc.springdata;
 
 import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
+import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.Collection;
 import org.springframework.data.r2dbc.dialect.R2dbcDialect;
@@ -35,6 +36,8 @@ public class SpannerR2dbcDialect extends AbstractDialect implements R2dbcDialect
       BindMarkersFactory.named("@", "val", 32);
 
   public static final String SQL_LIMIT = "LIMIT ";
+
+  private Gson gson = new Gson();
 
   private static final LimitClause LIMIT_CLAUSE = new LimitClause() {
     @Override
@@ -95,4 +98,10 @@ public class SpannerR2dbcDialect extends AbstractDialect implements R2dbcDialect
   public Collection<? extends Class<?>> getSimpleTypes() {
     return Arrays.asList(JsonWrapper.class);
   }
+
+  @Override
+  public Collection<Object> getConverters() {
+    return Arrays.asList(new JsonToMapConverter(this.gson), new MapToJsonConverter(this.gson));
+  }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google LLC
+ * Copyright 2021-2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,36 +14,35 @@
  * limitations under the License.
  */
 
-package com.example;
+package com.google.cloud.spanner.r2dbc.springdata;
 
 import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.data.convert.ReadingConverter;
-import org.springframework.stereotype.Component;
+import org.springframework.data.convert.WritingConverter;
 
-import java.util.HashMap;
-import java.util.Map;
-
-@Component
-@ReadingConverter
-public class JsonToMapConverter implements Converter<JsonWrapper, Map<String, Object>> {
+/**
+ * Map to JsonWrapper Converter.
+ */
+@WritingConverter
+public class MapToJsonConverter implements Converter<Map<Object, Object>, JsonWrapper> {
 
   private final Gson gson;
 
   @Autowired
-  public JsonToMapConverter(Gson gson) {
+  public MapToJsonConverter(Gson gson) {
     this.gson = gson;
   }
 
   @Override
-  public Map<String, Object> convert(JsonWrapper json) {
+  public JsonWrapper convert(Map<Object, Object> source) {
     try {
-      return gson.fromJson(json.toString(), Map.class);
+      return JsonWrapper.of(this.gson.toJson(source));
     } catch (JsonParseException e) {
-      return new HashMap<>();
+      return JsonWrapper.of("");
     }
   }
 }
