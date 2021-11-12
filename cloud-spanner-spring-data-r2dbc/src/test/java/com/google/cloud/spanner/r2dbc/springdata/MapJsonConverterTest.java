@@ -20,15 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.math.DoubleMath;
 import com.google.gson.Gson;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/**
- * Test for converters.
- */
-public class MapJsonConverterTest {
+/** Test for converters. */
+class MapJsonConverterTest {
   private Gson gson = new Gson();
 
   @Test
@@ -37,11 +34,13 @@ public class MapJsonConverterTest {
     Map<Object, Object> map =
         converter.convert(
             JsonWrapper.of("{\"a\":\"a string\",\"b\":9, \"c\" : 12.537, \"d\" : true}"));
-    assertThat(map).isInstanceOf(Map.class).hasSize(4);
-    assertThat(map.get("a")).isEqualTo("a string");
-    assertThat(map.get("b")).isEqualTo(9.0);
-    assertThat(DoubleMath.fuzzyEquals((Double) map.get("c"), 12.537, 1e-5)).isTrue();
-    assertThat(map.get("d")).isEqualTo(true);
+    assertThat(map)
+        .isInstanceOf(Map.class)
+        .hasSize(4)
+        .containsEntry("a", "a string")
+        .containsEntry("b", 9.0)
+        .containsEntry("c", 12.537)
+        .containsEntry("d", true);
   }
 
   @Test
