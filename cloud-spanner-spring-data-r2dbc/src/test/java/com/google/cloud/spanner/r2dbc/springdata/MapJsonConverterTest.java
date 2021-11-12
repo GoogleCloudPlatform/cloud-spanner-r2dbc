@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Test for converters.
  */
-public class ConverterTest {
+public class MapJsonConverterTest {
   private Gson gson = new Gson();
 
   @Test

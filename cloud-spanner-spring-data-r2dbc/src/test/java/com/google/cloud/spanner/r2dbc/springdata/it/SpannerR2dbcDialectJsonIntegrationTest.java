@@ -101,21 +101,21 @@ class SpannerR2dbcDialectJsonIntegrationTest {
 
     this.databaseClient = this.r2dbcEntityTemplate.getDatabaseClient();
 
-        if (SpannerTestUtils.tableExists(connection, "PERSON")) {
-          this.databaseClient.sql("DROP TABLE PERSON").fetch().rowsUpdated().block();
-        }
+    if (SpannerTestUtils.tableExists(connection, "PERSON")) {
+      this.databaseClient.sql("DROP TABLE PERSON").fetch().rowsUpdated().block();
+    }
 
-        this.databaseClient
-            .sql(
-                "CREATE TABLE PERSON ("
-                    + "  NAME STRING(256) NOT NULL,"
-                    + "  BIRTH_YEAR INT64 NOT NULL,"
-                    + "  EXTRAS JSON,"
-                    + "  ADDRESS JSON"
-                    + ") PRIMARY KEY (NAME)")
-            .fetch()
-            .rowsUpdated()
-            .block();
+    this.databaseClient
+        .sql(
+            "CREATE TABLE PERSON ("
+                + "  NAME STRING(256) NOT NULL,"
+                + "  BIRTH_YEAR INT64 NOT NULL,"
+                + "  EXTRAS JSON,"
+                + "  ADDRESS JSON"
+                + ") PRIMARY KEY (NAME)")
+        .fetch()
+        .rowsUpdated()
+        .block();
   }
 
   @AfterEach
@@ -288,47 +288,5 @@ class SpannerR2dbcDialectJsonIntegrationTest {
         }
       }
     }
-    //
-    //    @Component
-    //    @ReadingConverter
-    //    public class JsonToMapConverter implements Converter<JsonWrapper, Map<String, String>> {
-    //
-    //      private final Gson gson;
-    //
-    //      @Autowired
-    //      public JsonToMapConverter(Gson gson) {
-    //        this.gson = gson;
-    //      }
-    //
-    //      @Override
-    //      public Map<String, String> convert(JsonWrapper json) {
-    //        try {
-    //          return this.gson.fromJson(json.toString(), Map.class);
-    //        } catch (JsonParseException e) {
-    //          return new HashMap<>();
-    //        }
-    //      }
-    //    }
-    //
-    //    @Component
-    //    @WritingConverter
-    //    public class MapToJsonConverter implements Converter<Map<String, String>, JsonWrapper> {
-    //
-    //      private final Gson gson;
-    //
-    //      @Autowired
-    //      public MapToJsonConverter(Gson gson) {
-    //        this.gson = gson;
-    //      }
-    //
-    //      @Override
-    //      public JsonWrapper convert(Map<String, String> source) {
-    //        try {
-    //          return JsonWrapper.of(this.gson.toJson(source));
-    //        } catch (JsonParseException e) {
-    //          return JsonWrapper.of("");
-    //        }
-    //      }
-    //    }
   }
 }

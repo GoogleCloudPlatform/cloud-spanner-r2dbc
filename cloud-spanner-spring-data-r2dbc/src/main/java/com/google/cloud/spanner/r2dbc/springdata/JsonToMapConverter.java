@@ -25,11 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.ReadingConverter;
 
-/**
- * JsonWrapper to Map converter.
- */
+/** JsonWrapper to Map converter. */
 @ReadingConverter
-public class JsonToMapConverter implements Converter<JsonWrapper, Map<Object, Object>> {
+public class JsonToMapConverter<K, V> implements Converter<JsonWrapper, Map<K, V>> {
 
   private final Gson gson;
 
@@ -39,7 +37,7 @@ public class JsonToMapConverter implements Converter<JsonWrapper, Map<Object, Ob
   }
 
   @Override
-  public Map<Object, Object> convert(JsonWrapper json) {
+  public Map<K, V> convert(JsonWrapper json) {
     try {
       return this.gson.fromJson(json.toString(), Map.class);
     } catch (JsonParseException e) {

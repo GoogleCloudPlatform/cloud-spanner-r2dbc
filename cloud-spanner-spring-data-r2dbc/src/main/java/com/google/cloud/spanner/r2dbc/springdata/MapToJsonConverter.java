@@ -28,7 +28,7 @@ import org.springframework.data.convert.WritingConverter;
  * Map to JsonWrapper Converter.
  */
 @WritingConverter
-public class MapToJsonConverter implements Converter<Map<Object, Object>, JsonWrapper> {
+public class MapToJsonConverter<K, V> implements Converter<Map<K, V>, JsonWrapper> {
 
   private final Gson gson;
 
@@ -38,7 +38,7 @@ public class MapToJsonConverter implements Converter<Map<Object, Object>, JsonWr
   }
 
   @Override
-  public JsonWrapper convert(Map<Object, Object> source) {
+  public JsonWrapper convert(Map<K, V> source) {
     try {
       return JsonWrapper.of(this.gson.toJson(source));
     } catch (JsonParseException e) {
