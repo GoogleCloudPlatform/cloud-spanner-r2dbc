@@ -182,7 +182,7 @@ Null values mapping is supported in both directions.
   String jsonString = jsonWrapper.toString();
 ```
 
-If using Spring Data, custom converters can be used to allow Json conversion directly to/from collections or user-defined types. Examples of using `Map` and custom class `Review` for Json field are provided in the [Spring Data sample application](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/tree/main/cloud-spanner-r2dbc-samples/cloud-spanner-spring-data-r2dbc-sample)
+If using Spring Data, default converters to/from `Map` are ready to use out-of-box for key,  value type of `String`, `Boolean` and `Double`. Custom converters can be used to allow Json conversion directly to/from collections or user-defined types. Examples of using `Map` and custom class `Review` for Json field are provided in the [Spring Data sample application](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/tree/main/cloud-spanner-r2dbc-samples/cloud-spanner-spring-data-r2dbc-sample)
 
 See [Cloud Spanner documentation](https://cloud.google.com/spanner/docs/data-types) to learn more about Spanner types.
 
