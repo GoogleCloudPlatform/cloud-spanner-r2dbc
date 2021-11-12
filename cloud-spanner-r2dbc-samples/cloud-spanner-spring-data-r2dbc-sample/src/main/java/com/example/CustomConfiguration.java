@@ -54,11 +54,6 @@ public class CustomConfiguration extends AbstractR2dbcConfiguration {
     return new R2dbcCustomConversions(getStoreConversions(), converters);
   }
 
-  @Bean
-  public Gson gson() {
-    return new Gson();
-  }
-
   @Component
   @ReadingConverter
   public class JsonToReviewsConverter implements Converter<JsonWrapper, Review> {
