@@ -17,10 +17,12 @@
 package com.google.cloud.spanner.r2dbc.springdata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -31,23 +33,29 @@ class MapJsonConverterTest {
   @Test
   void jsonToMapConverterTest() {
     JsonToMapConverter converter = new JsonToMapConverter(this.gson);
-    Map<Object, Object> map =
+    Map<Object, Object> resultMap =
         converter.convert(
             JsonWrapper.of("{\"a\":\"a string\",\"b\":9, \"c\" : 12.537, \"d\" : true}"));
-    assertThat(map)
+    assertThat(resultMap)
         .isInstanceOf(Map.class)
         .hasSize(4)
         .containsEntry("a", "a string")
         .containsEntry("b", 9.0)
         .containsEntry("c", 12.537)
         .containsEntry("d", true);
+
+    // Convert should fail: duplicate keys not allowed
+    assertThatThrownBy(
+            () -> converter.convert(JsonWrapper.of("{\"a\":\"a string\","
+                    + "\"a\":\"another string\"}")))
+        .isInstanceOf(JsonSyntaxException.class);
   }
 
   @Test
   void mapToJsonConverterTest() {
     MapToJsonConverter converter = new MapToJsonConverter(this.gson);
-    Map<Object, Object> articles = ImmutableMap.of("a", "a string", "b", 9, "c", 12.537, "d", true);
-    assertThat(converter.convert(articles))
+    Map<Object, Object> mapToConvert = ImmutableMap.of("a", "a string", "b", 9, "c", 12.537, "d", true);
+    assertThat(converter.convert(mapToConvert))
         .isEqualTo(JsonWrapper.of("{\"a\":\"a string\",\"b\":9,\"c\":12.537,\"d\":true}"));
   }
 }

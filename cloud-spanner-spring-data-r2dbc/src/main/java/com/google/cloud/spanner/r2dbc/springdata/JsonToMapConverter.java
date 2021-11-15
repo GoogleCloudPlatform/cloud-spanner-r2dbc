@@ -19,7 +19,6 @@ package com.google.cloud.spanner.r2dbc.springdata;
 import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
-import java.util.HashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.converter.Converter;
@@ -37,11 +36,7 @@ public class JsonToMapConverter<K, V> implements Converter<JsonWrapper, Map<K, V
   }
 
   @Override
-  public Map<K, V> convert(JsonWrapper json) {
-    try {
-      return this.gson.fromJson(json.toString(), Map.class);
-    } catch (JsonParseException e) {
-      return new HashMap<>();
-    }
+  public Map<K, V> convert(JsonWrapper json) throws JsonParseException {
+    return this.gson.fromJson(json.toString(), Map.class);
   }
 }
