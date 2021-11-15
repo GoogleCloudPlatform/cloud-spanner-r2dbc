@@ -145,13 +145,15 @@ public class BookExampleApp {
    */
   public String describeBook(Row r) {
     StringBuilder stringBuilder = new StringBuilder();
-    stringBuilder.append("Retrieved book: ");
-    stringBuilder.append(r.get("ID", String.class));
-    stringBuilder.append("; Title: ");
-    stringBuilder.append(r.get("TITLE", String.class));
+    stringBuilder
+        .append("Retrieved book: ")
+        .append(r.get("ID", String.class))
+        .append("; Title: ")
+        .append(r.get("TITLE", String.class));
     if (r.get("EXTRADETAILS", JsonWrapper.class) != null) {
-      stringBuilder.append("; Extra Details: ");
-      stringBuilder.append(r.get("EXTRADETAILS", JsonWrapper.class).toString());
+      stringBuilder
+          .append("; Extra Details: ")
+          .append(r.get("EXTRADETAILS", JsonWrapper.class).toString());
     }
     return stringBuilder.toString();
   }

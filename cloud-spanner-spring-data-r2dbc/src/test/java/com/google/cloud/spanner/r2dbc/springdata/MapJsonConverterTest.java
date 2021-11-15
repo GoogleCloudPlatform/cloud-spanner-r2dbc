@@ -54,7 +54,8 @@ class MapJsonConverterTest {
   @Test
   void mapToJsonConverterTest() {
     MapToJsonConverter converter = new MapToJsonConverter(this.gson);
-    Map<Object, Object> mapToConvert = ImmutableMap.of("a", "a string", "b", 9, "c", 12.537, "d", true);
+    Map<Object, Object> mapToConvert =
+        ImmutableMap.of("a", "a string", "b", 9, "c", 12.537, "d", true);
     assertThat(converter.convert(mapToConvert))
         .isEqualTo(JsonWrapper.of("{\"a\":\"a string\",\"b\":9,\"c\":12.537,\"d\":true}"));
   }
