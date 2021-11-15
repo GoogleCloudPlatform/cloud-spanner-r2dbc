@@ -32,9 +32,9 @@ class MapJsonConverterTest {
 
   @Test
   void jsonToMapConverterTest() {
-    JsonToMapConverter converter = new JsonToMapConverter(this.gson);
+    JsonToMapConverter jsonToMapConverter = new JsonToMapConverter(this.gson);
     Map<Object, Object> resultMap =
-        converter.convert(
+        jsonToMapConverter.convert(
             JsonWrapper.of("{\"a\":\"a string\",\"b\":9, \"c\" : 12.537, \"d\" : true}"));
     assertThat(resultMap)
         .isInstanceOf(Map.class)
@@ -45,18 +45,19 @@ class MapJsonConverterTest {
         .containsEntry("d", true);
 
     // Convert should fail: duplicate keys not allowed
+    JsonWrapper invalidJsonToConvert = JsonWrapper.of("{\"a\":\"a string\","
+            + " \"a\":\"another string\"}");
     assertThatThrownBy(
-            () -> converter.convert(JsonWrapper.of("{\"a\":\"a string\","
-                    + "\"a\":\"another string\"}")))
+            () -> jsonToMapConverter.convert(invalidJsonToConvert))
         .isInstanceOf(JsonSyntaxException.class);
   }
 
   @Test
   void mapToJsonConverterTest() {
-    MapToJsonConverter converter = new MapToJsonConverter(this.gson);
+    MapToJsonConverter mapToJsonConverter = new MapToJsonConverter(this.gson);
     Map<Object, Object> mapToConvert =
         ImmutableMap.of("a", "a string", "b", 9, "c", 12.537, "d", true);
-    assertThat(converter.convert(mapToConvert))
+    assertThat(mapToJsonConverter.convert(mapToConvert))
         .isEqualTo(JsonWrapper.of("{\"a\":\"a string\",\"b\":9,\"c\":12.537,\"d\":true}"));
   }
 }
