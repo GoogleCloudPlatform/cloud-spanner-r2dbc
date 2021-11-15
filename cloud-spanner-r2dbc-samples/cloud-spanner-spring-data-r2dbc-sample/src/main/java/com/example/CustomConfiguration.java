@@ -88,11 +88,7 @@ public class CustomConfiguration extends AbstractR2dbcConfiguration {
 
     @Override
     public JsonWrapper convert(Review source) {
-      try {
         return JsonWrapper.of(this.gson.toJson(source));
-      } catch (JsonParseException e) {
-        return JsonWrapper.of("");
-      }
     }
   }
 
