@@ -101,7 +101,7 @@ public class SpannerR2dbcDialect extends AbstractDialect implements R2dbcDialect
 
   @Override
   public Collection<Object> getConverters() {
-    return Arrays.asList(new JsonToMapConverter(this.gson), new MapToJsonConverter(this.gson));
+    return Arrays.asList(new JsonToMapConverter<>(this.gson), new MapToJsonConverter<>(this.gson));
   }
 
 }
