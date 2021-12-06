@@ -29,7 +29,6 @@ jobs:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-unified-${{ steps.date.outputs.date }}
       - name: Set Up Authentication
-        id: auth
         uses: google-github-actions/auth@v0.4.0
         with:
           credentials_json: ${{ secrets.CLOUD_SPANNER_R2DBC_CI_SA_KEY }}
