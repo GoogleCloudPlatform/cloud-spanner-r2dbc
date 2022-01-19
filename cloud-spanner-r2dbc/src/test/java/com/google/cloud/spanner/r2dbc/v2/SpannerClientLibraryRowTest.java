@@ -22,7 +22,7 @@ import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.Value;
 import org.junit.jupiter.api.Test;
 
-public class SpannerClientLibraryRowTest {
+class SpannerClientLibraryRowTest {
 
   @Test
   void nonNullStructRequired() {

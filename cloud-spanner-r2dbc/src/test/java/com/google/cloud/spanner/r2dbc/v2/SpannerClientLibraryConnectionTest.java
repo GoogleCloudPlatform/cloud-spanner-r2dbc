@@ -27,7 +27,6 @@ import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.TimestampBound;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.IsolationLevel;
-import io.r2dbc.spi.TransactionDefinition;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
