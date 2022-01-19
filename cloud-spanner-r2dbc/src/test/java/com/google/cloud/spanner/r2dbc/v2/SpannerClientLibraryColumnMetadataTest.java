@@ -71,8 +71,8 @@ class SpannerClientLibraryColumnMetadataTest {
   @Test
   void getTypeNotSupported() {
     StructField field = StructField.of("col1", Type.string());
-    assertThatThrownBy(() -> new SpannerClientLibraryColumnMetadata(field).getType())
-        .isInstanceOf(UnsupportedOperationException.class
-        );
+    SpannerClientLibraryColumnMetadata metadata = new SpannerClientLibraryColumnMetadata(field);
+    assertThatThrownBy(() -> metadata.getType())
+        .isInstanceOf(UnsupportedOperationException.class);
   }
 }
