@@ -51,17 +51,17 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public Publisher<Void> beginTransaction(TransactionDefinition definition) {
-    throw new UnsupportedOperationException();
+    return Mono.error(new UnsupportedOperationException());
   }
 
   @Override
   public Publisher<Void> setLockWaitTimeout(Duration timeout) {
-    throw new UnsupportedOperationException();
+    return Mono.error(new UnsupportedOperationException());
   }
 
   @Override
   public Publisher<Void> setStatementTimeout(Duration timeout) {
-    throw new UnsupportedOperationException();
+    return Mono.error(new UnsupportedOperationException());
   }
 
   @Override

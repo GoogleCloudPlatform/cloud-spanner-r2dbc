@@ -65,6 +65,6 @@ class SpannerClientLibraryResult implements Result {
   @Override
   public <T> Publisher<T> flatMap(
       Function<Segment, ? extends Publisher<? extends T>> mappingFunction) {
-    throw new UnsupportedOperationException();
+    return Mono.error(new UnsupportedOperationException());
   }
 }
