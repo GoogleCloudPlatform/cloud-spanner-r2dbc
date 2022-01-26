@@ -147,12 +147,8 @@ class ClientLibraryBasedIntegrationTest {
 
     StepVerifier.create(
         Mono.from(conn.createStatement("SELECT AUTHOR, PRICE FROM BOOKS LIMIT 1").execute())
-            .flatMapMany(rs -> rs.map((row, rmeta) -> {
-              List<ColumnMetadata> list = new ArrayList<>();
-              rmeta.getColumnMetadatas().forEach(list::add);
-              return list;
-            })))
-        .assertNext(metadataList -> {
+            .flatMapMany(rs -> rs.map((row, rmeta) -> rmeta.getColumnMetadatas()))
+        ).assertNext(metadataList -> {
           assertEquals(2, metadataList.size());
           assertEquals("AUTHOR", metadataList.get(0).getName());
           assertEquals("PRICE", metadataList.get(1).getName());
