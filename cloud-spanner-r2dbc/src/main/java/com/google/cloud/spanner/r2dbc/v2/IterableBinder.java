@@ -22,19 +22,18 @@ import com.google.cloud.spanner.r2dbc.SpannerType;
 
 /**
  * Binds {@link Iterable} values to statement parameters, using Spanner type information as a hint.
- *
- * @param <T> a typed {@link Iterable}
  */
-class IterableBinder<T extends Iterable<?>> implements ClientLibraryTypeBinder<T> {
+class IterableBinder implements ClientLibraryTypeBinder<Iterable<?>> {
 
   @Override
-  public boolean canBind(Class<T> type, SpannerType spannerType) {
+  public boolean canBind(Class<Iterable<?>> type, SpannerType spannerType) {
     // Handling all iterables regardless of SpannerType will allow more useful error messages.
     return Iterable.class.isAssignableFrom(type);
   }
 
   @Override
-  public void bind(Statement.Builder builder, String name, T value, SpannerType spannerType) {
+  public void bind(
+      Statement.Builder builder, String name, Iterable<?> value, SpannerType spannerType) {
     if (spannerType == null) {
       throw new BindingFailureException(
           "When binding collections, Parameters.in(SpannerType.of(Type.array(...))) must be used.");

@@ -174,7 +174,8 @@ class SpannerTypeTest {
 
     SpannerType spannerType = SpannerType.of(Type.array(Type.struct()));
 
-    assertThatThrownBy(() -> spannerType.bindIterable(this.mockBinder, new ArrayList<>()))
+    List<String> valueList = new ArrayList<>();
+    assertThatThrownBy(() -> spannerType.bindIterable(this.mockBinder, valueList))
         .isInstanceOf(BindingFailureException.class)
         .hasMessage("Array binder not found for type ARRAY<STRUCT<>>");
 

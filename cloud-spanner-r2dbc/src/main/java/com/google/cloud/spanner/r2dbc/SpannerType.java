@@ -26,7 +26,7 @@ import com.google.cloud.spanner.Type;
 import com.google.cloud.spanner.Type.Code;
 import com.google.cloud.spanner.ValueBinder;
 import java.math.BigDecimal;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 /**
@@ -51,9 +51,8 @@ public abstract class SpannerType implements io.r2dbc.spi.Type {
    *
    * @param binder a {@link ValueBinder} from a call to {@code Statement.Builder.bind(String)}
    * @param value {@link Iterable} value to bind
-   * @param <T> a typed {@link Iterable}
    */
-  public <T extends Iterable> void bindIterable(ValueBinder<Statement.Builder> binder, T value) {
+  public void bindIterable(ValueBinder<Statement.Builder> binder, Iterable<?> value) {
     if (!this.isArray()) {
       throw new BindingFailureException("Iterable cannot be bound to a non-array Spanner type.");
     }
@@ -93,7 +92,7 @@ public abstract class SpannerType implements io.r2dbc.spi.Type {
   }
 
   private static Map<Code, Class<?>> buildTypeMap() {
-    Map<Code, Class<?>> map = new HashMap<>();
+    Map<Code, Class<?>> map = new EnumMap<>(Code.class);
     map.put(Code.BOOL, Boolean.class);
     map.put(Code.BYTES, ByteArray.class);
     map.put(Code.DATE, Date.class);
@@ -109,7 +108,7 @@ public abstract class SpannerType implements io.r2dbc.spi.Type {
   }
 
   private static Map<Code, IterableStatementBinder> buildArrayBinderMap() {
-    Map<Code, IterableStatementBinder> map = new HashMap<>();
+    Map<Code, IterableStatementBinder> map = new EnumMap<>(Code.class);
     map.put(Code.BOOL, (b, i) -> b.toBoolArray((Iterable<Boolean>) i));
     map.put(Code.INT64, (b, i) -> b.toInt64Array((Iterable<Long>) i));
     map.put(Code.NUMERIC, (b, i) -> b.toNumericArray((Iterable<BigDecimal>) i));

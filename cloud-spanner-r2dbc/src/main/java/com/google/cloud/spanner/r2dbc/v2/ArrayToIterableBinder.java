@@ -36,9 +36,10 @@ class ArrayToIterableBinder<T> implements ClientLibraryTypeBinder<T[]> {
 
   private Class<T[]> type;
 
-  private BiConsumer<ValueBinder, Iterable<T>> bindingConsumer;
+  private BiConsumer<ValueBinder<Statement.Builder>, Iterable<T>> bindingConsumer;
 
-  ArrayToIterableBinder(Class<T[]> type, BiConsumer<ValueBinder, Iterable<T>> bindingConsumer) {
+  ArrayToIterableBinder(Class<T[]> type,
+      BiConsumer<ValueBinder<Statement.Builder>, Iterable<T>> bindingConsumer) {
     this.type = type;
     this.bindingConsumer = bindingConsumer;
   }
