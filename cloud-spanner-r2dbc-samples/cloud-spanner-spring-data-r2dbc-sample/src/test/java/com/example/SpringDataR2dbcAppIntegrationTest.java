@@ -75,7 +75,7 @@ class SpringDataR2dbcAppIntegrationTest {
   void testJsonWebEndpoints() {
     this.webTestClient
         .post()
-        .uri("/add-book")
+        .uri("/add")
         .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
         .body(
             Mono.just(
@@ -88,7 +88,7 @@ class SpringDataR2dbcAppIntegrationTest {
 
     this.webTestClient
         .post()
-        .uri("/add-book")
+        .uri("/add")
         .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
         .body(
             Mono.just(
