@@ -22,10 +22,14 @@ import com.google.cloud.Timestamp;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Value;
 import com.google.cloud.spanner.r2dbc.BindingFailureException;
+import com.google.cloud.spanner.r2dbc.SpannerType;
 import com.google.cloud.spanner.r2dbc.statement.TypedNull;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import io.r2dbc.spi.Parameter;
+import io.r2dbc.spi.Type;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -54,8 +58,38 @@ class ClientLibraryBinder {
             JsonWrapper.class,
             (binder, val) -> binder.to(val == null ? Value.json(null) : val.getJsonVal())));
 
-    // There is technically one more supported type -  binder.to(Type type, @Nullable Struct value),
-    // but it is not clear how r2dbc could pass both the type and the value
+    // Primitive arrays
+    binders.add(new ClientLibraryTypeBinderImpl<>(
+        boolean[].class, (binder, val) -> binder.toBoolArray(val)));
+    binders.add(new ClientLibraryTypeBinderImpl<>(
+        long[].class, (binder, val) -> binder.toInt64Array(val)));
+    binders.add(new ClientLibraryTypeBinderImpl<>(
+        double[].class, (binder, val) -> binder.toFloat64Array(val)));
+
+    // Primitive arrays that have to expand element size to 64 bits to match Spanner types.
+    binders.add(new ClientLibraryTypeBinderImpl<>(
+        int[].class, (binder, val) -> binder.toInt64Array(Arrays.asList(val))));
+    binders.add(new ClientLibraryTypeBinderImpl<>(
+        float[].class, (binder, val) -> binder.toFloat64Array(Arrays.asList(val))));
+
+    // Object arrays
+    binders.add(new ArrayToIterableBinder<>(Boolean[].class,
+        (binder, iterable) -> binder.toBoolArray(iterable)));
+    binders.add(new ArrayToIterableBinder<>(ByteArray[].class,
+        (binder, iterable) -> binder.toBytesArray(iterable)));
+    binders.add(new ArrayToIterableBinder<>(
+        Date[].class, (binder, iterable) -> binder.toDateArray(iterable)));
+    binders.add(new ArrayToIterableBinder<>(String[].class,
+        (binder, iterable) -> binder.toStringArray(iterable)));
+    binders.add(new ArrayToIterableBinder<>(
+        Timestamp[].class, (binder, iterable) -> binder.toTimestampArray(iterable)));
+    binders.add(new ArrayToIterableBinder<>(
+        BigDecimal[].class, (binder, iterable) -> binder.toNumericArray(iterable)));
+
+    // STRUCT not supported
+
+    // Binds collections to Spanner array, if an element type hint is available.
+    binders.add(new IterableBinder());
 
     return binders;
   }
@@ -64,19 +98,35 @@ class ClientLibraryBinder {
     Assert.requireNonNull(name, "Column name must not be null");
     Assert.requireNonNull(value, "Value must not be null");
 
-    Class<?> valueClass = isTypedNull(value) ? ((TypedNull) value).getType() : value.getClass();
+    Object finalValue;
+    Class<?> valueClass;
 
-    Optional<ClientLibraryTypeBinder> optionalBinder =
-        binders.stream().filter(e -> e.canBind(valueClass)).findFirst();
+    final SpannerType spannerType;
+
+    if (value instanceof Parameter) {
+      Parameter param = (Parameter) value;
+      finalValue = param.getValue();
+      Type type = param.getType();
+      spannerType = type instanceof SpannerType ? (SpannerType) param.getType() : null;
+      valueClass = type.getJavaType();
+    } else if (isTypedNull(value)) {
+      finalValue = null;
+      valueClass = ((TypedNull) value).getType();
+      spannerType = null;
+    } else {
+      finalValue = value;
+      valueClass = value.getClass();
+      spannerType = null;
+    }
+
+    Optional<ClientLibraryTypeBinder> optionalBinder = binders.stream()
+        .filter(e -> e.canBind(valueClass, spannerType))
+        .findFirst();
     if (!optionalBinder.isPresent()) {
       throw new BindingFailureException("Can't find a binder for type: " + valueClass);
     }
-    if (!isTypedNull(value)) {
-      optionalBinder.get().bind(builder, name, value);
-    } else {
-      optionalBinder.get().bind(builder, name, null);
-    }
 
+    optionalBinder.get().bind(builder, name, finalValue, spannerType);
   }
 
   private static boolean isTypedNull(Object value) {

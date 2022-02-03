@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import com.google.cloud.spanner.Statement.Builder;
 import com.google.cloud.spanner.ValueBinder;
+import com.google.cloud.spanner.r2dbc.SpannerType;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import java.util.function.BiConsumer;
 
@@ -34,14 +35,14 @@ class ClientLibraryTypeBinderImpl<T> implements ClientLibraryTypeBinder<T> {
   }
 
   @Override
-  public boolean canBind(Class<T> type) {
+  public boolean canBind(Class<T> type, SpannerType unusedSpannerType) {
     Assert.requireNonNull(type, "type to encode must not be null");
 
     return this.type.isAssignableFrom(type);
   }
 
   @Override
-  public void bind(Builder builder, String name, T value) {
+  public void bind(Builder builder, String name, T value, SpannerType unusedSpannerType) {
     this.bindingConsumer.accept(builder.bind(name), value);
   }
 }
