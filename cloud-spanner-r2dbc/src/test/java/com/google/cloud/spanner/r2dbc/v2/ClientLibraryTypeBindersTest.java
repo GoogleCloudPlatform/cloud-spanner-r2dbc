@@ -65,7 +65,7 @@ class ClientLibraryTypeBindersTest {
 
     TypedNull randNull = new TypedNull(Random.class);
     assertThatThrownBy(
-        () -> ClientLibraryBinder.bind(this.statementBuilder, "valueColumn", randNull))
+        () -> ClientLibraryBinder.bind(this.statementBuilder, "nullColumn", randNull))
           .isInstanceOf(BindingFailureException.class)
           .hasMessageContaining("Can't find a binder for type: class java.util.Random");
   }
