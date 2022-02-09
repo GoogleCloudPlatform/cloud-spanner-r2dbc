@@ -39,37 +39,37 @@ class ClientLibraryBinder {
   private static List<ClientLibraryTypeBinder> buildBinders() {
     List<ClientLibraryTypeBinder> binders = new ArrayList<>();
     binders.add(
-        new ClientLibraryTypeBinderImpl<>(Integer.class,
+        new SingleTypeBinder<>(Integer.class,
             (binder, val) -> binder.to(longFromInteger(val))));
-    binders.add(new ClientLibraryTypeBinderImpl<>(Long.class, (binder, val) -> binder.to(val)));
-    binders.add(new ClientLibraryTypeBinderImpl<>(Double.class, (binder, val) -> binder.to(val)));
-    binders.add(new ClientLibraryTypeBinderImpl<>(Boolean.class, (binder, val) -> binder.to(val)));
+    binders.add(new SingleTypeBinder<>(Long.class, (binder, val) -> binder.to(val)));
+    binders.add(new SingleTypeBinder<>(Double.class, (binder, val) -> binder.to(val)));
+    binders.add(new SingleTypeBinder<>(Boolean.class, (binder, val) -> binder.to(val)));
     binders.add(
-        new ClientLibraryTypeBinderImpl<>(ByteArray.class, (binder, val) -> binder.to(val)));
-    binders.add(new ClientLibraryTypeBinderImpl<>(Date.class, (binder, val) -> binder.to(val)));
-    binders.add(new ClientLibraryTypeBinderImpl<>(String.class, (binder, val) -> binder.to(val)));
+        new SingleTypeBinder<>(ByteArray.class, (binder, val) -> binder.to(val)));
+    binders.add(new SingleTypeBinder<>(Date.class, (binder, val) -> binder.to(val)));
+    binders.add(new SingleTypeBinder<>(String.class, (binder, val) -> binder.to(val)));
     binders.add(
-        new ClientLibraryTypeBinderImpl<>(Timestamp.class, (binder, val) -> binder.to(val)));
+        new SingleTypeBinder<>(Timestamp.class, (binder, val) -> binder.to(val)));
     binders.add(
-        new ClientLibraryTypeBinderImpl<>(BigDecimal.class, (binder, val) -> binder.to(val)));
+        new SingleTypeBinder<>(BigDecimal.class, (binder, val) -> binder.to(val)));
 
     binders.add(
-        new ClientLibraryTypeBinderImpl<>(
+        new SingleTypeBinder<>(
             JsonWrapper.class,
             (binder, val) -> binder.to(val == null ? Value.json(null) : val.getJsonVal())));
 
     // Primitive arrays
-    binders.add(new ClientLibraryTypeBinderImpl<>(
+    binders.add(new SingleTypeBinder<>(
         boolean[].class, (binder, val) -> binder.toBoolArray(val)));
-    binders.add(new ClientLibraryTypeBinderImpl<>(
+    binders.add(new SingleTypeBinder<>(
         long[].class, (binder, val) -> binder.toInt64Array(val)));
-    binders.add(new ClientLibraryTypeBinderImpl<>(
+    binders.add(new SingleTypeBinder<>(
         double[].class, (binder, val) -> binder.toFloat64Array(val)));
 
     // Primitive arrays that have to expand element size to 64 bits to match Spanner types.
-    binders.add(new ClientLibraryTypeBinderImpl<>(
+    binders.add(new SingleTypeBinder<>(
         int[].class, (binder, val) -> binder.toInt64Array(Arrays.asList(val))));
-    binders.add(new ClientLibraryTypeBinderImpl<>(
+    binders.add(new SingleTypeBinder<>(
         float[].class, (binder, val) -> binder.toFloat64Array(Arrays.asList(val))));
 
     // Object arrays

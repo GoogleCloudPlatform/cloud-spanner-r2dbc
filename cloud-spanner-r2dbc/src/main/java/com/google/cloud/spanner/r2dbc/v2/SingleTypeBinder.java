@@ -22,13 +22,13 @@ import com.google.cloud.spanner.r2dbc.SpannerType;
 import com.google.cloud.spanner.r2dbc.util.Assert;
 import java.util.function.BiConsumer;
 
-class ClientLibraryTypeBinderImpl<T> implements ClientLibraryTypeBinder<T> {
+class SingleTypeBinder<T> implements ClientLibraryTypeBinder<T> {
 
   private Class<T> type;
 
   private BiConsumer<ValueBinder, T> bindingConsumer;
 
-  public ClientLibraryTypeBinderImpl(
+  public SingleTypeBinder(
       Class<T> type, BiConsumer<ValueBinder, T> bindingConsumer) {
     this.type = type;
     this.bindingConsumer = bindingConsumer;
