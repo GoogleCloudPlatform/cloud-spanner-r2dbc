@@ -32,7 +32,7 @@ import java.util.function.BiConsumer;
  *
  * @param <T> Array element type
  */
-class ArrayToIterableBinder<T> implements ClientLibraryTypeBinder<T[]> {
+class ArrayToIterableBinder<T> implements ClientLibraryTypeBinder {
 
   private Class<T[]> type;
 
@@ -45,18 +45,18 @@ class ArrayToIterableBinder<T> implements ClientLibraryTypeBinder<T[]> {
   }
 
   @Override
-  public boolean canBind(Class<T[]> type, SpannerType unusedSpannerType) {
+  public boolean canBind(Class<?> type, SpannerType unusedSpannerType) {
     Assert.requireNonNull(type, "type to encode must not be null");
 
     return this.type.equals(type);
   }
 
   @Override
-  public void bind(Statement.Builder builder, String name, T[] value, SpannerType unusedType) {
+  public void bind(Statement.Builder builder, String name, Object value, SpannerType unusedType) {
     if (value == null) {
       this.bindingConsumer.accept(builder.bind(name), null);
     } else {
-      this.bindingConsumer.accept(builder.bind(name), Arrays.asList(value));
+      this.bindingConsumer.accept(builder.bind(name), Arrays.asList((T[]) value));
     }
   }
 }
