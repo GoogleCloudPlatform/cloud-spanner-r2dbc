@@ -16,6 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
+import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Statement.Builder;
 import com.google.cloud.spanner.ValueBinder;
 import com.google.cloud.spanner.r2dbc.SpannerType;
@@ -26,10 +27,10 @@ class SingleTypeBinder<T> implements ClientLibraryTypeBinder {
 
   private Class<T> type;
 
-  private BiConsumer<ValueBinder, T> bindingConsumer;
+  private BiConsumer<ValueBinder<Statement.Builder>, T> bindingConsumer;
 
   public SingleTypeBinder(
-      Class<T> type, BiConsumer<ValueBinder, T> bindingConsumer) {
+      Class<T> type, BiConsumer<ValueBinder<Statement.Builder>, T> bindingConsumer) {
     this.type = type;
     this.bindingConsumer = bindingConsumer;
   }

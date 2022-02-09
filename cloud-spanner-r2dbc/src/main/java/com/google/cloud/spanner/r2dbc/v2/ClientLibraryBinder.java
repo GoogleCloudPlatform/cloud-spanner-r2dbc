@@ -29,7 +29,6 @@ import io.r2dbc.spi.Parameter;
 import io.r2dbc.spi.Type;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,9 +67,9 @@ class ClientLibraryBinder {
 
     // Primitive arrays that have to expand element size to 64 bits to match Spanner types.
     binders.add(new SingleTypeBinder<>(
-        int[].class, (binder, val) -> binder.toInt64Array(Arrays.asList(val))));
+        int[].class, (binder, val) -> binder.toInt64Array(toLongArray(val))));
     binders.add(new SingleTypeBinder<>(
-        float[].class, (binder, val) -> binder.toFloat64Array(Arrays.asList(val))));
+        float[].class, (binder, val) -> binder.toFloat64Array(toDoubleArray(val))));
 
     // Object arrays
     binders.add(new ArrayToIterableBinder<>(Boolean[].class,
@@ -92,6 +91,28 @@ class ClientLibraryBinder {
     binders.add(new IterableBinder());
 
     return binders;
+  }
+
+  private static long[] toLongArray(int[] input) {
+    if (input == null) {
+      return new long[0];
+    }
+    long[] output = new long[input.length];
+    for (int i = 0; i < input.length; i++) {
+      output[i] = input[i];
+    }
+    return output;
+  }
+
+  private static double[] toDoubleArray(float[] input) {
+    if (input == null) {
+      return new double[0];
+    }
+    double[] output = new double[input.length];
+    for (int i = 0; i < input.length; i++) {
+      output[i] = input[i];
+    }
+    return output;
   }
 
   static void bind(Statement.Builder builder, String name, Object value) {

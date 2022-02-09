@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.withPrecision;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -150,6 +151,55 @@ class ClientLibraryTypeBindersTest {
     ClientLibraryBinder.bind(this.statementBuilder, "valueColumn", 123);
     verify(this.valueBinder).to((Long) 123L);
     verifyNoMoreInteractions(this.valueBinder);
+  }
+
+  @Test
+  void integerArrayBindsAsLongArray() {
+    int[] arrayValue = new int[] { 1, 2, 3 };
+
+    ClientLibraryBinder.bind(this.statementBuilder, "valueColumn", arrayValue);
+
+    ArgumentCaptor<long[]> captor = ArgumentCaptor.forClass(long[].class);
+    verify(this.valueBinder).toInt64Array(captor.capture());
+    long[] actual = captor.getValue();
+    assertThat(actual).containsExactly(1L, 2L, 3L);
+  }
+
+  @Test
+  void nullIntegerArrayBindsAsLong() {
+
+    ClientLibraryBinder.bind(this.statementBuilder, "nullColumn", new TypedNull(int[].class));
+
+    ArgumentCaptor<long[]> captor = ArgumentCaptor.forClass(long[].class);
+    verify(this.nullBinder).toInt64Array(captor.capture());
+    long[] actual = captor.getValue();
+    assertThat(actual).isEmpty();
+  }
+
+  @Test
+  void floatArrayBindsAsDoubleArray() {
+    float[] arrayValue = new float[] { 11.1f, 12.2f, 13.3f };
+
+    ClientLibraryBinder.bind(this.statementBuilder, "valueColumn", arrayValue);
+
+    ArgumentCaptor<double[]> captor = ArgumentCaptor.forClass(double[].class);
+    verify(this.valueBinder).toFloat64Array(captor.capture());
+    double[] actual = captor.getValue();
+    assertThat(actual).containsExactly(
+        new double[] {11.1, 12.2, 13.3},
+        withPrecision(0.01)
+    );
+  }
+
+  @Test
+  void nullFloatArrayBindsAsDouble() {
+
+    ClientLibraryBinder.bind(this.statementBuilder, "nullColumn", new TypedNull(float[].class));
+
+    ArgumentCaptor<double[]> captor = ArgumentCaptor.forClass(double[].class);
+    verify(this.nullBinder).toFloat64Array(captor.capture());
+    double[] actual = captor.getValue();
+    assertThat(actual).isEmpty();
   }
 
   @Test
