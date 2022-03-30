@@ -22,6 +22,7 @@ import com.google.common.base.Objects;
  * Example custom class entity field.
  */
 public class Address {
+
   String homeAddress;
   String workAddress;
   Integer homeZipCode;

@@ -14,30 +14,20 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc.springdata;
+package com.google.cloud.spanner.r2dbc.springdata.converter;
 
-import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
-import com.google.gson.Gson;
-import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.google.cloud.Timestamp;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.data.convert.WritingConverter;
+import org.springframework.data.convert.ReadingConverter;
 
-/**
- * Map to JsonWrapper Converter.
- */
-@WritingConverter
-public class MapToJsonConverter<K, V> implements Converter<Map<K, V>, JsonWrapper> {
-
-  private final Gson gson;
-
-  @Autowired
-  public MapToJsonConverter(Gson gson) {
-    this.gson = gson;
-  }
+/** {@link Timestamp} to {@link LocalDateTime} reading converter. */
+@ReadingConverter
+public class TimestampToLocalDateTimeConverter implements Converter<Timestamp, LocalDateTime> {
 
   @Override
-  public JsonWrapper convert(Map<K, V> source) {
-    return JsonWrapper.of(this.gson.toJson(source));
+  public LocalDateTime convert(Timestamp row) {
+    return OffsetDateTime.parse(row.toString()).toLocalDateTime();
   }
 }

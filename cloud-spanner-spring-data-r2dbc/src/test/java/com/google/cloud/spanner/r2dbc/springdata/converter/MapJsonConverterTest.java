@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc.springdata;
+package com.google.cloud.spanner.r2dbc.springdata.converter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

@@ -16,6 +16,15 @@
 
 package com.google.cloud.spanner.r2dbc.springdata;
 
+import com.google.cloud.ByteArray;
+import com.google.cloud.Date;
+import com.google.cloud.Timestamp;
+import com.google.cloud.spanner.r2dbc.springdata.converter.DateToLocalDateConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.JsonToMapConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.LocalDateTimeToTimestampConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.LocalDateToDateConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.MapToJsonConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.TimestampToLocalDateTimeConverter;
 import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import com.google.gson.Gson;
 import java.util.Arrays;
@@ -97,12 +106,22 @@ public class SpannerR2dbcDialect extends AbstractDialect implements R2dbcDialect
 
   @Override
   public Collection<? extends Class<?>> getSimpleTypes() {
-    return Arrays.asList(JsonWrapper.class);
+    return Arrays.asList(
+      JsonWrapper.class,
+      Timestamp.class,
+      ByteArray.class,
+      Date.class);
   }
 
   @Override
   public Collection<Object> getConverters() {
-    return Arrays.asList(new JsonToMapConverter<>(this.gson), new MapToJsonConverter<>(this.gson));
+    return Arrays.asList(
+      new JsonToMapConverter<>(this.gson),
+      new MapToJsonConverter<>(this.gson),
+      new LocalDateToDateConverter(),
+      new DateToLocalDateConverter(),
+      new LocalDateTimeToTimestampConverter(),
+      new TimestampToLocalDateTimeConverter());
   }
 
   @Override

@@ -54,32 +54,16 @@ public class Person<T> {
     return this.name;
   }
 
-  public void setName(String name) {
-    this.name = name;
-  }
-
   public long getBirthYear() {
     return this.birthYear;
-  }
-
-  public void setBirthYear(long birthYear) {
-    this.birthYear = birthYear;
   }
 
   public Map<String, T> getExtras() {
     return this.extras;
   }
 
-  public void setExtras(Map<String, T> extras) {
-    this.extras = extras;
-  }
-
   public Address getAddress() {
     return this.address;
-  }
-
-  public void setAddress(Address address) {
-    this.address = address;
   }
 
   @Override

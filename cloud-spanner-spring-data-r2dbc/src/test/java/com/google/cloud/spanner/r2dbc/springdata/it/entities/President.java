@@ -16,6 +16,8 @@
 
 package com.google.cloud.spanner.r2dbc.springdata.it.entities;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import org.springframework.data.relational.core.mapping.Column;
 
 /**
@@ -27,35 +29,40 @@ public class President {
   private String name;
 
   @Column("START_YEAR")
-  private long startYear;
+  private int startYear;
 
-  public President(String name, long startYear) {
+  @Column("START_DATE")
+  private LocalDate startDate;
+
+  @Column("CREATED_AT")
+  private LocalDateTime createdAt;
+
+  /**
+   * Constructor.
+   *
+   * @param name name
+   * @param createdAt createdAt
+   */
+  public President(String name, LocalDateTime createdAt) {
     this.name = name;
-    this.startYear = startYear;
+    this.startYear = createdAt.getYear();
+    this.startDate = createdAt.toLocalDate();
+    this.createdAt = createdAt;
   }
 
   public String getName() {
     return this.name;
   }
 
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public long getStartYear() {
+  public int getStartYear() {
     return this.startYear;
   }
 
-  public void setStartYear(long startYear) {
-    this.startYear = startYear;
+  public LocalDate getStartDate() {
+    return this.startDate;
   }
 
-  @Override
-  public String toString() {
-    return "President{"
-        + "name='"
-        + this.name + '\''
-        + ", startYear="
-        + this.startYear + '}';
+  public LocalDateTime getCreatedAt() {
+    return this.createdAt;
   }
 }

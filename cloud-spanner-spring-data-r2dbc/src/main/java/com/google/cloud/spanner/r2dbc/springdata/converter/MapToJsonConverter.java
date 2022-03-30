@@ -14,29 +14,30 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc.springdata;
+package com.google.cloud.spanner.r2dbc.springdata.converter;
 
 import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.data.convert.ReadingConverter;
+import org.springframework.data.convert.WritingConverter;
 
-/** JsonWrapper to Map converter. */
-@ReadingConverter
-public class JsonToMapConverter<K, V> implements Converter<JsonWrapper, Map<K, V>> {
+/**
+ * Map to JsonWrapper Converter.
+ */
+@WritingConverter
+public class MapToJsonConverter<K, V> implements Converter<Map<K, V>, JsonWrapper> {
 
   private final Gson gson;
 
   @Autowired
-  public JsonToMapConverter(Gson gson) {
+  public MapToJsonConverter(Gson gson) {
     this.gson = gson;
   }
 
   @Override
-  public Map<K, V> convert(JsonWrapper json) throws JsonSyntaxException {
-    return this.gson.fromJson(json.toString(), Map.class);
+  public JsonWrapper convert(Map<K, V> source) {
+    return JsonWrapper.of(this.gson.toJson(source));
   }
 }

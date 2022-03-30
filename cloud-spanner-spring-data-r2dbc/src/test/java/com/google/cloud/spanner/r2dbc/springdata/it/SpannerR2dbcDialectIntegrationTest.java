@@ -27,12 +27,12 @@ import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
@@ -45,39 +45,34 @@ import reactor.test.StepVerifier;
 /**
  * Integration tests for the Spring Data R2DBC dialect.
  *
- * <p>By default, the test is configured to run tests in the `reactivetest` instance on the
- * `testdb` database. This can be configured by overriding the `spanner.instance` and
- * `spanner.database` system properties.
+ * <p>By default, the test is configured to run tests in the `reactivetest` instance on the `testdb`
+ * database. This can be configured by overriding the `spanner.instance` and `spanner.database`
+ * system properties.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SpannerR2dbcDialectIntegrationTest {
-
-  private static final Logger logger =
-      LoggerFactory.getLogger(SpannerR2dbcDialectIntegrationTest.class);
 
   private static final String DRIVER_NAME = "spanner";
 
   private static final String TEST_INSTANCE =
       System.getProperty("spanner.instance", "reactivetest");
 
-  private static final String TEST_DATABASE =
-      System.getProperty("spanner.database", "testdb");
+  private static final String TEST_DATABASE = System.getProperty("spanner.database", "testdb");
 
   private static final ConnectionFactory connectionFactory =
-      ConnectionFactories.get(ConnectionFactoryOptions.builder()
-          .option(Option.valueOf("project"), ServiceOptions.getDefaultProjectId())
-          .option(DRIVER, DRIVER_NAME)
-          .option(INSTANCE, TEST_INSTANCE)
-          .option(DATABASE, TEST_DATABASE)
-          .build());
+      ConnectionFactories.get(
+          ConnectionFactoryOptions.builder()
+              .option(Option.valueOf("project"), ServiceOptions.getDefaultProjectId())
+              .option(DRIVER, DRIVER_NAME)
+              .option(INSTANCE, TEST_INSTANCE)
+              .option(DATABASE, TEST_DATABASE)
+              .build());
 
   private DatabaseClient databaseClient;
 
   private R2dbcEntityTemplate r2dbcEntityTemplate;
 
-  /**
-   * Initializes the integration test environment for the Spanner R2DBC dialect.
-   */
+  /** Initializes the integration test environment for the Spanner R2DBC dialect. */
   @BeforeAll
   public void initializeTestEnvironment() {
     Connection connection = Mono.from(connectionFactory.create()).block();
@@ -86,17 +81,17 @@ class SpannerR2dbcDialectIntegrationTest {
     this.databaseClient = this.r2dbcEntityTemplate.getDatabaseClient();
 
     if (SpannerTestUtils.tableExists(connection, "PRESIDENT")) {
-      this.databaseClient.sql("DROP TABLE PRESIDENT")
-          .fetch()
-          .rowsUpdated()
-          .block();
+      this.databaseClient.sql("DROP TABLE PRESIDENT").fetch().rowsUpdated().block();
     }
 
-    this.databaseClient.sql(
-        "CREATE TABLE PRESIDENT ("
-            + "  NAME STRING(256) NOT NULL,"
-            + "  START_YEAR INT64 NOT NULL"
-            + ") PRIMARY KEY (NAME)")
+    this.databaseClient
+        .sql(
+            "CREATE TABLE PRESIDENT ("
+                + "  NAME STRING(256) NOT NULL,"
+                + "  START_YEAR INT64 NOT NULL,"
+                + "  START_DATE DATE NOT NULL,"
+                + "  CREATED_AT TIMESTAMP NOT NULL,"
+                + ") PRIMARY KEY (NAME)")
         .fetch()
         .rowsUpdated()
         .block();
@@ -105,41 +100,38 @@ class SpannerR2dbcDialectIntegrationTest {
   @AfterEach
   public void cleanupTableAfterTest() {
     this.databaseClient
-            .sql("DELETE FROM PRESIDENT where NAME is not null")
-            .fetch()
-            .rowsUpdated()
-            .block();
+        .sql("DELETE FROM PRESIDENT where NAME is not null")
+        .fetch()
+        .rowsUpdated()
+        .block();
   }
 
   @Test
   void testReadWrite() {
-    insertPresident(new President("Bill Clinton", 1992));
+    insertPresident(new President("Bill Clinton", LocalDateTime.parse("1992-01-01T00:00:00")));
 
-    this.r2dbcEntityTemplate.select(President.class)
+    this.r2dbcEntityTemplate
+        .select(President.class)
         .first()
         .as(StepVerifier::create)
         .expectNextMatches(
-            president -> president.getName().equals("Bill Clinton")
-                && president.getStartYear() == 1992)
+            president ->
+                president.getName().equals("Bill Clinton")
+                    && president.getStartYear() == 1992
+                    && president.getStartDate() == LocalDate.parse("1992-01-01")
+                    && president.getCreatedAt() == LocalDateTime.parse("1992-01-01T00:00:00"))
         .verifyComplete();
   }
 
   @Test
   void testLimitOffsetSupport() {
-    insertPresident(new President("Bill Clinton", 1992));
-    insertPresident(new President("Joe Smith", 1996));
-    insertPresident(new President("Bob", 2000));
-    insertPresident(new President("Hello", 2004));
-    insertPresident(new President("George Washington", 2008));
+    insertPresidents();
 
-    this.r2dbcEntityTemplate.select(President.class)
-        .matching(
-            Query.empty()
-                .sort(Sort.by(Direction.ASC, "name"))
-                .with(PageRequest.of(0, 2))
-        )
+    this.r2dbcEntityTemplate
+        .select(President.class)
+        .matching(Query.empty().sort(Sort.by(Direction.ASC, "name")).with(PageRequest.of(0, 2)))
         // Get the page at index 1; 2 elements per page.
-        //.page()
+        // .page()
         .all()
         .as(StepVerifier::create)
         .expectNextMatches(president -> president.getName().equals("Bill Clinton"))
@@ -149,22 +141,24 @@ class SpannerR2dbcDialectIntegrationTest {
 
   @Test
   void testRowMap() {
-    insertPresident(new President("Bill Clinton", 1992));
-    insertPresident(new President("Joe Smith", 1996));
-    insertPresident(new President("Bob", 2000));
-    insertPresident(new President("Hello", 2004));
-    insertPresident(new President("George Washington", 2008));
+    insertPresidents();
 
-    this.r2dbcEntityTemplate.select(President.class)
-        .matching(
-            Query.empty()
-                .sort(Sort.by(Direction.ASC, "name")))
+    this.r2dbcEntityTemplate
+        .select(President.class)
+        .matching(Query.empty().sort(Sort.by(Direction.ASC, "name")))
         .all()
-        .map(president -> president.getName())
+        .map(President::getName)
         .as(StepVerifier::create)
-        .expectNext(
-            "Bill Clinton", "Bob", "George Washington", "Hello", "Joe Smith")
+        .expectNext("Bill Clinton", "Bob", "George Washington", "Hello", "Joe Smith")
         .verifyComplete();
+  }
+
+  private void insertPresidents() {
+    insertPresident(new President("Bill Clinton", LocalDateTime.parse("1992-01-01T00:00:00")));
+    insertPresident(new President("Joe Smith", LocalDateTime.parse("1996-01-01T00:00:00")));
+    insertPresident(new President("Bob", LocalDateTime.parse("2000-01-01T00:00:00")));
+    insertPresident(new President("Hello", LocalDateTime.parse("2004-01-01T00:00:00")));
+    insertPresident(new President("George Washington", LocalDateTime.parse("2008-01-01T00:00:00")));
   }
 
   private void insertPresident(President president) {

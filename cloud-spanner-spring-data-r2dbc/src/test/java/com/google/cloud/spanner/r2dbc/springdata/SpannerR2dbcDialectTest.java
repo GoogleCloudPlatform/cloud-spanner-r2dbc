@@ -20,8 +20,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.cloud.ByteArray;
+import com.google.cloud.Date;
+import com.google.cloud.Timestamp;
+import com.google.cloud.spanner.r2dbc.springdata.converter.DateToLocalDateConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.JsonToMapConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.LocalDateTimeToTimestampConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.LocalDateToDateConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.MapToJsonConverter;
+import com.google.cloud.spanner.r2dbc.springdata.converter.TimestampToLocalDateTimeConverter;
 import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
 import java.util.Collection;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.mapping.model.SimpleTypeHolder;
 import org.springframework.data.relational.core.dialect.LimitClause;
@@ -57,9 +67,7 @@ class SpannerR2dbcDialectTest {
   void lockStringAlwaysEmpty() {
     SpannerR2dbcDialect dialect = new SpannerR2dbcDialect();
     Table table = SQL.table("aTable");
-    Select sql = Select.builder().select(table.column("aColumn"))
-        .from(table)
-        .build();
+    Select sql = Select.builder().select(table.column("aColumn")).from(table).build();
     LockOptions lockOptions = new LockOptions(LockMode.PESSIMISTIC_READ, sql.getFrom());
 
     LockClause lock = dialect.lock();
@@ -73,7 +81,9 @@ class SpannerR2dbcDialectTest {
   void testSimpleType() {
     SpannerR2dbcDialect dialect = new SpannerR2dbcDialect();
     SimpleTypeHolder simpleTypeHolder = dialect.getSimpleTypeHolder();
-    assertThat(simpleTypeHolder.isSimpleType(JsonWrapper.class)).isTrue();
+    assertTrue(
+        Stream.of(JsonWrapper.class, Timestamp.class, Date.class, ByteArray.class)
+            .allMatch(simpleTypeHolder::isSimpleType));
   }
 
   @Test
@@ -81,10 +91,15 @@ class SpannerR2dbcDialectTest {
     SpannerR2dbcDialect dialect = new SpannerR2dbcDialect();
     Collection<Object> converters = dialect.getConverters();
     assertTrue(
-        converters.stream()
-            .anyMatch(converter -> converter.getClass().equals(JsonToMapConverter.class)));
-    assertTrue(
-        converters.stream()
-            .anyMatch(converter -> converter.getClass().equals(MapToJsonConverter.class)));
+        Stream.of(
+                JsonToMapConverter.class,
+                MapToJsonConverter.class,
+                LocalDateToDateConverter.class,
+                DateToLocalDateConverter.class,
+                LocalDateTimeToTimestampConverter.class,
+                TimestampToLocalDateTimeConverter.class)
+            .allMatch(
+                clazz ->
+                    converters.stream().anyMatch(converter -> converter.getClass().equals(clazz))));
   }
 }
