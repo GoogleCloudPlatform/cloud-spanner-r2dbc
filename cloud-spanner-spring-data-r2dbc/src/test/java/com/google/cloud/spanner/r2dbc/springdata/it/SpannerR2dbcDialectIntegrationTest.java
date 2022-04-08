@@ -119,7 +119,7 @@ class SpannerR2dbcDialectIntegrationTest {
                 president.getName().equals("Bill Clinton")
                     && president.getStartYear() == 1992
                     && president.getStartDate() == LocalDate.parse("1992-01-01")
-                    && president.getCreatedAt() == LocalDateTime.parse("1992-01-01T00:00:00"))
+                    && president.getStartDate().equals(LocalDate.parse("1992-01-01")
         .verifyComplete();
   }
 
