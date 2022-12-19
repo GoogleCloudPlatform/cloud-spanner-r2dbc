@@ -38,9 +38,18 @@ create_settings_xml_file $MAVEN_SETTINGS_FILE
 ./mvnw clean deploy -B \
   -DskipTests=true \
   --settings ${MAVEN_SETTINGS_FILE} \
+  -DperformRelease=true \
   -Dgpg.executable=gpg \
   -Dgpg.passphrase=${GPG_PASSPHRASE} \
   -Dgpg.homedir=${GPG_HOMEDIR} \
   -P release
+
+if [[ -n "${AUTORELEASE_PR}" ]]
+then
+  ./mvnw nexus-staging:release -B \
+    --settings=settings.xml \
+    -DperformRelease=true \
+    -P release
+fi
 
 popd
