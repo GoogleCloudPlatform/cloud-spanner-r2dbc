@@ -58,7 +58,6 @@ import reactor.test.StepVerifier;
 /**
  * R2DBC TCK test implementation.
  */
-@Disabled ("Until missing SPI v0.9 functionality is implemented")
 public class SpannerClientLibraryTestKit implements TestKit<String> {
 
   private static final String DISABLE_UNSUPPORTED_FUNCTIONALITY =
