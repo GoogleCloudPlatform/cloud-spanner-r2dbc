@@ -336,6 +336,19 @@
       <modules>
         <module>cloud-spanner-r2dbc</module>
         <module>cloud-spanner-spring-data-r2dbc</module>
+      </modules>
+    </profile>
+
+    <profile>
+      <id>non-release</id>
+      <activation>
+        <property>
+          <name>!performRelease</name>
+        </property>
+      </activation>
+      <modules>
+        <module>cloud-spanner-r2dbc</module>
+        <module>cloud-spanner-spring-data-r2dbc</module>
         <module>cloud-spanner-r2dbc-samples</module>
       </modules>
     </profile>
