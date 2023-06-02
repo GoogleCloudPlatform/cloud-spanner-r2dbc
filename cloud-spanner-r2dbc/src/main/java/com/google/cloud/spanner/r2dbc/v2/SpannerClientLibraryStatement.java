@@ -44,7 +44,9 @@ class SpannerClientLibraryStatement extends AbstractSpannerClientLibraryStatemen
         .transform(
             rows ->
                 Mono.deferContextual(
-                    c -> Mono.just(new SpannerClientLibraryResult(rows.contextWrite(c), 0))))
+                    contextView ->
+                        Mono.just(
+                            new SpannerClientLibraryResult(rows.contextWrite(contextView), 0))))
         .single();
   }
 
