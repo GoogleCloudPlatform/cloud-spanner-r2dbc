@@ -81,7 +81,6 @@ class SpannerClientLibraryRowMetadata implements RowMetadata {
     return this.columnMetadatas;
   }
 
-  @Override
   public Collection<String> getColumnNames() {
     return this.columnNames;
   }

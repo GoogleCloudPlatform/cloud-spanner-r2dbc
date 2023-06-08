@@ -48,7 +48,7 @@ class SpannerClientLibraryDmlStatementTest {
     StepVerifier.create(
             Flux.from(dmlStatement.execute()).flatMap(result -> result.getRowsUpdated())
     )
-        .expectNext(0)
+        .expectNext(0L)
         .verifyComplete();
   }
 
@@ -68,7 +68,7 @@ class SpannerClientLibraryDmlStatementTest {
 
     StepVerifier.create(
             Flux.from(dmlStatement.execute()).flatMap(result -> result.getRowsUpdated()))
-        .expectNext(2, 5)
+        .expectNext(2L, 5L)
         .verifyComplete();
   }
 }

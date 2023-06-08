@@ -71,7 +71,7 @@ class SpannerClientLibraryConnectionTest {
         Flux.from(
             batch.add("UPDATE tbl SET col1=val1").execute()
         ).flatMap(r -> r.getRowsUpdated())
-    ).expectNext(35)
+    ).expectNext(35L)
     .verifyComplete();
 
     ArgumentCaptor<List<Statement>> argCaptor = ArgumentCaptor.forClass(List.class);

@@ -59,7 +59,7 @@ class SpannerClientLibraryDdlStatementTest {
 
     StepVerifier.create(
         statement.execute().flatMap((Result r) -> Mono.from(r.getRowsUpdated()))
-    ).expectNext(0)
+    ).expectNext(0L)
         .verifyComplete();
   }
 
