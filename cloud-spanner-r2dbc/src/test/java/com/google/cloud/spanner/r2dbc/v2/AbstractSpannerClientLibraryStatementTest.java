@@ -61,7 +61,7 @@ class AbstractSpannerClientLibraryStatementTest {
     FakeStatement statement = new FakeStatement(this.mockAdapter, query);
 
     StepVerifier.create(Flux.from(statement.execute()).flatMap(r -> r.getRowsUpdated()))
-        .expectNext(19)
+        .expectNext(19L)
         .verifyComplete();
 
     ArgumentCaptor<Statement> capturedStatement = ArgumentCaptor.forClass(Statement.class);
@@ -82,7 +82,7 @@ class AbstractSpannerClientLibraryStatementTest {
     statement.bind("three", "333");
 
     StepVerifier.create(Flux.from(statement.execute()).flatMap(r -> r.getRowsUpdated()))
-        .expectNext(19)
+        .expectNext(19L)
         .verifyComplete();
 
     ArgumentCaptor<Statement> capturedStatement = ArgumentCaptor.forClass(Statement.class);
@@ -108,7 +108,7 @@ class AbstractSpannerClientLibraryStatementTest {
     statement.add();
 
     StepVerifier.create(Flux.from(statement.execute()).flatMap(r -> r.getRowsUpdated()))
-        .expectNext(7, 11, 13)
+        .expectNext(7L, 11L, 13L)
         .verifyComplete();
 
     ArgumentCaptor<List<Statement>> params = ArgumentCaptor.forClass(List.class);
@@ -139,7 +139,7 @@ class AbstractSpannerClientLibraryStatementTest {
     statement.bind("three", "B333");
 
     StepVerifier.create(Flux.from(statement.execute()).flatMap(r -> r.getRowsUpdated()))
-        .expectNext(7, 11, 13)
+        .expectNext(7L, 11L, 13L)
         .verifyComplete();
 
     ArgumentCaptor<List<Statement>> params = ArgumentCaptor.forClass(List.class);
@@ -175,7 +175,7 @@ class AbstractSpannerClientLibraryStatementTest {
     statement.add();
 
     StepVerifier.create(Flux.from(statement.execute()).flatMap(r -> r.getRowsUpdated()))
-        .expectNext(7, 11, 13)
+        .expectNext(7L, 11L, 13L)
         .verifyComplete();
 
     ArgumentCaptor<List<Statement>> params = ArgumentCaptor.forClass(List.class);

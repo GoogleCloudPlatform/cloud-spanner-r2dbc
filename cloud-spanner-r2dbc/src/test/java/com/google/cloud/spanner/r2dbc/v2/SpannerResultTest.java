@@ -50,7 +50,7 @@ class SpannerResultTest {
   void getRowsUpdatedTest() {
     StepVerifier.create(
         ((Mono) new SpannerClientLibraryResult(this.resultSet, 2).getRowsUpdated()))
-        .expectNext(2)
+        .expectNext(2L)
         .verifyComplete();
   }
 

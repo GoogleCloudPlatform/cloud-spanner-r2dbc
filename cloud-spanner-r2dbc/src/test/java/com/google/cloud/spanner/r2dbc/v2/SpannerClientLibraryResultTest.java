@@ -41,7 +41,7 @@ class SpannerClientLibraryResultTest {
   void getRowsUpdatedReturnsCorrectNumber() {
     SpannerClientLibraryResult result = new SpannerClientLibraryResult(Flux.empty(), 42);
     StepVerifier.create(result.getRowsUpdated())
-        .expectNext(42)
+        .expectNext(42L)
         .verifyComplete();
   }
 

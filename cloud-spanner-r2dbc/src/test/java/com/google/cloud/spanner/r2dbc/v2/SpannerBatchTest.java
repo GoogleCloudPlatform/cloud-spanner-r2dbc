@@ -78,7 +78,7 @@ class SpannerBatchTest {
             batch.add("UPDATE tbl SET col1=val1")
                 .add("UPDATE tbl SET col2=val2").execute()
         ).flatMap(r -> r.getRowsUpdated())
-    ).expectNext(35, 47)
+    ).expectNext(35L, 47L)
         .verifyComplete();
 
     ArgumentCaptor<List<Statement>> argCaptor = ArgumentCaptor.forClass(List.class);
