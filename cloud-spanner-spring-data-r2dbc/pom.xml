@@ -13,6 +13,8 @@
   <artifactId>cloud-spanner-spring-data-r2dbc</artifactId>
 
   <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <spring-data-r2dbc.version>3.0.6</spring-data-r2dbc.version>
     <spring-test.version>5.3.27</spring-test.version>
   </properties>
