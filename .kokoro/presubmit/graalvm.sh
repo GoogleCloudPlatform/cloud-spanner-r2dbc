@@ -15,4 +15,7 @@
 
 set -eo pipefail
 
+dir=$(dirname "$0")
+pushd $dir/../../
 ./mvnw clean test -P native
+popd
