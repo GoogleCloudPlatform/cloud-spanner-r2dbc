@@ -17,9 +17,13 @@ set -eo pipefail
 
 dir=$(dirname "$0")
 pushd $dir/../../
+echo "listing source directory"
+ls /tmpfs/src
+echo "listing secret files"
+ls /tmpfs/src/gfile/secret_manager
+echo "secret content"
+cat /tmpfs/src/gfile/secret_manager/cloud-spanner-r2dbc-ci-sa-key
 echo "printing GOOGLE_APPLICATION_CREDENTIALS value"
 echo $GOOGLE_APPLICATION_CREDENTIALS
-echo "md5sum of secret file"
-md5sum $GOOGLE_APPLICATION_CREDENTIALS
 ./mvnw clean test -P native
 popd
