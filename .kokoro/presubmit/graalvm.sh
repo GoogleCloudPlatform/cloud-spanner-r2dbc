@@ -15,15 +15,12 @@
 
 set -eo pipefail
 
+# if GOOGLE_APPLICATION_CREDENTIALS is specified as a relative path, prepend Kokoro root directory onto it
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" && "${GOOGLE_APPLICATION_CREDENTIALS}" != /* ]]; then
+    export GOOGLE_APPLICATION_CREDENTIALS=$(realpath ${KOKORO_GFILE_DIR}/${GOOGLE_APPLICATION_CREDENTIALS})
+fi
+
 dir=$(dirname "$0")
 pushd $dir/../../
-echo "listing source directory"
-ls /tmpfs/src
-echo "listing secret files"
-ls /tmpfs/src/gfile/secret_manager
-echo "secret content"
-cat /tmpfs/src/gfile/secret_manager/cloud-spanner-r2dbc-ci-sa-key
-echo "printing GOOGLE_APPLICATION_CREDENTIALS value"
-echo $GOOGLE_APPLICATION_CREDENTIALS
 ./mvnw clean test -P native
 popd
