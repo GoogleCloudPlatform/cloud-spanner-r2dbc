@@ -20,6 +20,6 @@ pushd $dir/../../
 echo "printing GOOGLE_APPLICATION_CREDENTIALS value"
 echo $GOOGLE_APPLICATION_CREDENTIALS
 echo "md5sum of secret file"
-md5 $GOOGLE_APPLICATION_CREDENTIALS
+md5sum $GOOGLE_APPLICATION_CREDENTIALS
 ./mvnw clean test -P native
 popd
