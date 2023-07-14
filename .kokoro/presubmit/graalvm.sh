@@ -19,5 +19,7 @@ dir=$(dirname "$0")
 pushd $dir/../../
 echo "listing secret files"
 ls /tmpfs/src/gfile/secret_manager
+echo "printing GOOGLE_APPLICATION_CREDENTIALS value"
+echo $GOOGLE_APPLICATION_CREDENTIALS
 ./mvnw clean test -P native
 popd
