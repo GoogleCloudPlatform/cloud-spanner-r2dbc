@@ -17,5 +17,7 @@ set -eo pipefail
 
 dir=$(dirname "$0")
 pushd $dir/../../
+echo "listing secret files"
+ls /tmpfs/src/secret_manager
 ./mvnw clean test -P native
 popd
