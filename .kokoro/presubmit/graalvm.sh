@@ -17,6 +17,8 @@ set -eo pipefail
 
 dir=$(dirname "$0")
 pushd $dir/../../
+echo "listing source directory"
+ls /tmpfs/src
 echo "listing secret files"
 ls /tmpfs/src/gfile/secret_manager
 echo "printing GOOGLE_APPLICATION_CREDENTIALS value"
