@@ -22,5 +22,5 @@ fi
 
 dir=$(dirname "$0")
 pushd $dir/../../
-./mvnw clean test -P native
+./mvnw clean test -P native -ntp
 popd
