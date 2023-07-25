@@ -71,4 +71,5 @@ jobs:
           ./mvnw \
             clean \
             test  \
-            -P native
+            -P native \
+            -Dspanner.database=graalvm_test_db
