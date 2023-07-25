@@ -72,4 +72,5 @@ jobs:
             clean \
             test  \
             -P native \
+            -ntp \
             -Dspanner.database=graalvm_test_db
