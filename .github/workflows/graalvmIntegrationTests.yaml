@@ -71,5 +71,4 @@ jobs:
           ./mvnw \
             clean \
             test  \
-            -P native \
-            -ntp
+            -P native
