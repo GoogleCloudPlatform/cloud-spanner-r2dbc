@@ -11,11 +11,13 @@ jobs:
   graalvmIntegrationTests:
     if: github.repository == 'GoogleCloudPlatform/cloud-spanner-r2dbc'
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [11, 17]
     permissions:
       contents: 'read'
       id-token: 'write'
-    strategy:
-      fail-fast: true
     steps:
       - name: Get current date
         id: date
@@ -23,7 +25,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: 17
+          java-version: ${{ matrix.java }}
           version: '22.3.2'
       - uses: actions/cache@v3
         id: mvn-cache
