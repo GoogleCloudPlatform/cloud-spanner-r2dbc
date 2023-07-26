@@ -46,7 +46,7 @@ jobs:
       - name: Maven go offline
         id: mvn-offline
         if: steps.mvn-cache.outputs.cache-hit != 'true'
-        run: ./mvnw compile dependency:go-offline
+        run: ./mvnw compile dependency:go-offline -ntp
       - name: Mvn install # Need this when the directory/pom structure changes
         id: install1
         continue-on-error: true
@@ -56,7 +56,8 @@ jobs:
             --threads 1.5C \
             --define maven.test.skip=true \
             --define maven.javadoc.skip=true \
-            install
+            install \
+            -ntp
       - name: Retry install on failure
         id: install2
         if: steps.install1.outcome == 'failure'
@@ -66,7 +67,8 @@ jobs:
             --threads 1.5C \
             --define maven.test.skip=true \
             --define maven.javadoc.skip=true \
-            install
+            install \
+            -ntp
       - name: GraalVM Integration Tests
         id: intTest1
         continue-on-error: true
