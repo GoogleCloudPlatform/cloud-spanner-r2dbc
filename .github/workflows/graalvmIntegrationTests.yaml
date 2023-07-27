@@ -15,6 +15,14 @@ jobs:
       fail-fast: false
       matrix:
         java: ['11', '17', '17.0.7']
+        distribution: ['graalvm', '']
+        include:
+          - java: '11'
+            version: '22.3.2'
+          - java: '17'
+            version: '22.3.2'
+          - distribution: 'graalvm'
+            version: '17.0.7'
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -26,8 +34,8 @@ jobs:
       - uses: graalvm/setup-graalvm@v1
         with:
           java-version: ${{ matrix.java }}
-          version: '22.3.2'
-          distribution: 'graalvm'
+          version: ${{ matrix.version }}
+          distribution: ${{ matrix.distribution }}
       - name: Environment Info
         run: |
           echo "GRAALVM_HOME: $GRAALVM_HOME"
