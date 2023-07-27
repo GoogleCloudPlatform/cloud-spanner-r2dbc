@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [11, 17]
+        java: ['11', '17', '17.0.7']
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -27,6 +27,13 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
           version: '22.3.2'
+          distribution: 'graalvm'
+      - name: Environment Info
+        run: |
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
       - uses: actions/cache@v3
         id: mvn-cache
         with:
