@@ -28,6 +28,7 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Option;
 import java.util.Random;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -38,10 +39,13 @@ import reactor.core.publisher.Mono;
  */
 class TestDatabaseHelper {
 
+  private static final String SUFFIX = getTableSuffix();
+
+  public static final String BOOKS_TABLE = "BOOKS" + SUFFIX;
   private static final Logger LOGGER = LoggerFactory.getLogger(TestDatabaseHelper.class);
 
-  private static final String INSERT_DATA_QUERY = "INSERT BOOKS (UUID, TITLE, CATEGORY) "
-      + "VALUES (@uuid, @title, @category)";
+  private static final String INSERT_DATA_QUERY = String.format(
+      "INSERT %s (UUID, TITLE, CATEGORY)  VALUES (@uuid, @title, @category)", BOOKS_TABLE);
 
   private final Connection connection;
 
@@ -53,17 +57,18 @@ class TestDatabaseHelper {
   }
 
   public void dropTable() {
-    LOGGER.info("Dropping table BOOKS.");
+    LOGGER.info(String.format("Dropping table %s.", BOOKS_TABLE));
 
     try {
-      Mono.from(this.connection.createStatement("DROP TABLE BOOKS").execute()).block();
+      Mono.from(this.connection.createStatement(String.format("DROP TABLE %s", BOOKS_TABLE))
+          .execute()).block();
     } catch (Exception e) {
-      LOGGER.info("The BOOKS table doesn't exist", e);
+      LOGGER.info(String.format("The %s table doesn't exist", BOOKS_TABLE), e);
     }
   }
 
   public void createTableIfNecessary() {
-    boolean exists = tableExists("BOOKS");
+    boolean exists = tableExists(BOOKS_TABLE);
     if (exists && "false".equals(System.getProperty("it.recreate-ddl"))) {
       return;
     }
@@ -90,23 +95,23 @@ class TestDatabaseHelper {
   }
 
   private void createTable() {
-    LOGGER.info("Creating table BOOKS.");
+    LOGGER.info(String.format("Creating table %s.", BOOKS_TABLE));
     Mono.from(
         this.connection.createStatement(
-            "CREATE TABLE BOOKS ("
-                + "  UUID STRING(36) NOT NULL,"
-                + "  TITLE STRING(256) NOT NULL,"
-                + "  AUTHOR STRING(256),"
-                + "  SYNOPSIS STRING(MAX),"
-                + "  EDITIONS ARRAY<STRING(MAX)>,"
-                + "  AWARDS ARRAY<STRING(MAX)>,"
-                + "  FICTION BOOL,"
-                + "  PUBLISHED DATE,"
-                + "  WORDS_PER_SENTENCE FLOAT64,"
-                + "  CATEGORY INT64,"
-                + "  PRICE NUMERIC,"
-                + "  EXTRA JSON"
-                + ") PRIMARY KEY (UUID)")
+                "CREATE TABLE " + BOOKS_TABLE + " ("
+                    + "  UUID STRING(36) NOT NULL,"
+                    + "  TITLE STRING(256) NOT NULL,"
+                    + "  AUTHOR STRING(256),"
+                    + "  SYNOPSIS STRING(MAX),"
+                    + "  EDITIONS ARRAY<STRING(MAX)>,"
+                    + "  AWARDS ARRAY<STRING(MAX)>,"
+                    + "  FICTION BOOL,"
+                    + "  PUBLISHED DATE,"
+                    + "  WORDS_PER_SENTENCE FLOAT64,"
+                    + "  CATEGORY INT64,"
+                    + "  PRICE NUMERIC,"
+                    + "  EXTRA JSON"
+                    + ") PRIMARY KEY (UUID)")
             .execute())
         .block();
   }
@@ -143,13 +148,31 @@ class TestDatabaseHelper {
   public void clearTestData() {
 
     Mono.from(
-        this.connection.createStatement("DELETE FROM BOOKS WHERE true").execute())
+        this.connection.createStatement(String.format("DELETE FROM %s WHERE true", BOOKS_TABLE))
+            .execute())
         .flatMap(rs -> Mono.from(rs.getRowsUpdated()))
         .block();
   }
 
   public void close() {
     Mono.from(this.connection.close()).block();
+  }
+
+  public void dropTableIfUsingWithRandomSuffix() {
+    boolean useRandomSuffix = Boolean.parseBoolean(
+        System.getProperty("it.use-random-suffix", "false"));
+    if (useRandomSuffix) {
+      dropTable();
+    }
+  }
+
+  private static String getTableSuffix() {
+    boolean useRandomSuffix = Boolean.parseBoolean(
+        System.getProperty("it.use-random-suffix", "false"));
+    if (useRandomSuffix) {
+      return "_" + UUID.randomUUID().toString().split("-")[0];
+    }
+    return "";
   }
 
   public static void main(String[] args) {

@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc.it;
 
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
+import static com.google.cloud.spanner.r2dbc.it.TestDatabaseHelper.BOOKS_TABLE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
@@ -63,6 +64,7 @@ class SpannerDmlReactiveStreamVerification extends
 
   @AfterSuite
   static void closeConnectionFactory() {
+    dbHelper.dropTableIfUsingWithRandomSuffix();
     ((Closeable) connectionFactory).close();
   }
 
@@ -75,7 +77,8 @@ class SpannerDmlReactiveStreamVerification extends
     return Mono.from(connectionFactory.create())
         .flatMapMany(conn ->
             Flux.from(conn.createStatement(
-                "UPDATE BOOKS SET TITLE=\"book one updated\" WHERE CATEGORY=42 ").execute())
+                    String.format("UPDATE %s SET TITLE=\"book one updated\" WHERE CATEGORY=42 ",
+                        BOOKS_TABLE)).execute())
                 .flatMap(rs -> rs.getRowsUpdated())
                 .delayUntil(r -> conn.close())
         );
@@ -84,7 +87,8 @@ class SpannerDmlReactiveStreamVerification extends
   @Override
   public Publisher<Integer> createFailedPublisher() {
     return Mono.from(connectionFactory.create())
-        .flatMapMany(conn -> conn.createStatement("UPDATE BOOKS SET bad syntax ").execute())
+        .flatMapMany(conn -> conn.createStatement(
+            String.format("UPDATE %s SET bad syntax ", BOOKS_TABLE)).execute())
         .flatMap(rs -> rs.getRowsUpdated());
   }
 

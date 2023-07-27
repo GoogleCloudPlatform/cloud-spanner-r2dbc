@@ -12,7 +12,6 @@ jobs:
     if: github.repository == 'GoogleCloudPlatform/cloud-spanner-r2dbc'
     runs-on: ubuntu-20.04
     strategy:
-      max-parallel: 1
       fail-fast: false
       matrix:
         java: [11, 17]
@@ -56,4 +55,5 @@ jobs:
             test  \
             -P native \
             -ntp \
-            -Dspanner.database=graalvm_test_db
+            -Dspanner.database=graalvm_test_db \
+            -Dit.use-random-suffix=true

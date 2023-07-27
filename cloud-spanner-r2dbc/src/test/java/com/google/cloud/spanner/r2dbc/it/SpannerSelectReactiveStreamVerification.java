@@ -18,6 +18,7 @@ package com.google.cloud.spanner.r2dbc.it;
 
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.DRIVER_NAME;
 import static com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryProvider.INSTANCE;
+import static com.google.cloud.spanner.r2dbc.it.TestDatabaseHelper.BOOKS_TABLE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
@@ -61,6 +62,7 @@ class SpannerSelectReactiveStreamVerification extends
 
   @AfterSuite
   static void closeConnectionFactory() {
+    dbHelper.dropTableIfUsingWithRandomSuffix();
     ((Closeable) connectionFactory).close();
   }
 
@@ -73,7 +75,9 @@ class SpannerSelectReactiveStreamVerification extends
     return Mono.from(connectionFactory.create())
         .flatMapMany(conn ->
             Flux.from(
-                  conn.createStatement("SELECT * FROM BOOKS ORDER BY TITLE LIMIT " + l).execute())
+                  conn.createStatement(
+                      String.format("SELECT * FROM %s ORDER BY TITLE LIMIT %d",
+                          BOOKS_TABLE, l)).execute())
                 .flatMap(rs -> rs.map((r, rm) -> r), 1, /* turn off prefetch */ 1)
         // not closing connection to avoid changing demand (delayUntil uses buffer of 32)
         //.delayUntil(r -> conn.close())
