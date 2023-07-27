@@ -14,15 +14,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: ['11', '17', '17.0.7']
-        distribution: ['graalvm', '']
         include:
           - java: '11'
             version: '22.3.2'
           - java: '17'
             version: '22.3.2'
-          - distribution: 'graalvm'
-            version: '17.0.7'
+          - java: '17.0.7'
+            distribution: 'graalvm'
     permissions:
       contents: 'read'
       id-token: 'write'
