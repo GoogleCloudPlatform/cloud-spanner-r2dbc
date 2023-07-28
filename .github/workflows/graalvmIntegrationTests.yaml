@@ -39,7 +39,7 @@ jobs:
           echo "GRAALVM_HOME: $GRAALVM_HOME"
           echo "JAVA_HOME: $JAVA_HOME"
           java --version
-          native-image --version
+#          native-image --version
       - uses: actions/cache@v3
         id: mvn-cache
         with:
