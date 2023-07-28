@@ -17,8 +17,10 @@ jobs:
         include:
           - java: '11'
             version: '22.3.2'
+            components: 'native-image'
           - java: '17'
             version: '22.3.2'
+            components: 'native-image'
           - java: '17.0.7'
             distribution: 'graalvm'
     permissions:
@@ -34,12 +36,13 @@ jobs:
           java-version: ${{ matrix.java }}
           version: ${{ matrix.version }}
           distribution: ${{ matrix.distribution }}
+          components: ${{ matrix.components }}
       - name: Environment Info
         run: |
           echo "GRAALVM_HOME: $GRAALVM_HOME"
           echo "JAVA_HOME: $JAVA_HOME"
           java --version
-#          native-image --version
+          native-image --version
       - uses: actions/cache@v3
         id: mvn-cache
         with:
