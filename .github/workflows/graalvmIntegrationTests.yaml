@@ -64,7 +64,6 @@ jobs:
         run: ./mvnw compile dependency:go-offline -ntp
       - name: GraalVM Integration Tests
         id: intTest1
-        continue-on-error: true
         run: |
           ./mvnw \
             clean \
