@@ -9,7 +9,7 @@ on:
 
 jobs:
   graalvmIntegrationTests:
-    name: Java ${{ matrix.java }} | GraalVM ${{ matrix.version }}
+    name: ${{ matrix.name }}
     if: github.repository == 'GoogleCloudPlatform/cloud-spanner-r2dbc'
     runs-on: ubuntu-20.04
     strategy:
@@ -19,11 +19,17 @@ jobs:
           - java: '11'
             version: '22.3.2'
             components: 'native-image'
+            name: 'Java 11 | GraalVM 22.3.2'
           - java: '17'
             version: '22.3.2'
             components: 'native-image'
-          - java: '17.0.7'
+            name: 'Java 17 | GraalVM 22.3.2'
+          - java: '17.0.8'
             distribution: 'graalvm'
+            name: 'GraalVM for Java 17 | 17.0.8'
+          - java: '20.0.2'
+            distribution: 'graalvm'
+            name: 'GraalVM for Java 20 | 20.0.2'
     permissions:
       contents: 'read'
       id-token: 'write'
