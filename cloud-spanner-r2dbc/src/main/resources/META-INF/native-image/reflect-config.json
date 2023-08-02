@@ -74,10 +74,11 @@
   {
     "name":"com.google.rpc.RetryInfo$Builder",
     "methods":[{"name":"clearRetryDelay","parameterTypes":[] }, {"name":"getRetryDelay","parameterTypes":[] }, {"name":"getRetryDelayBuilder","parameterTypes":[] }, {"name":"hasRetryDelay","parameterTypes":[] }, {"name":"setRetryDelay","parameterTypes":["com.google.protobuf.Duration"] }]
-  },{
+  },
+  {
   "name":"com.google.protobuf.Duration",
   "methods":[{"name":"newBuilder","parameterTypes":[] }]
-},
+  },
   {
     "name":"com.google.protobuf.Empty",
     "methods":[{"name":"getDefaultInstance","parameterTypes":[] }]
