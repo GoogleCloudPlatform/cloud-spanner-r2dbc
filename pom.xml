@@ -477,8 +477,6 @@
               <buildArgs>
                 <buildArg>--no-fallback</buildArg>
                 <buildArg>--no-server</buildArg>
-<!-- Until https://github.com/googleapis/sdk-platform-java/pull/1892 is merged -->
-                <buildArg>-H:+RunReachabilityHandlersConcurrently</buildArg>
               </buildArgs>
               <systemProperties>
                 <spanner.database>graalvm_test_db</spanner.database>
