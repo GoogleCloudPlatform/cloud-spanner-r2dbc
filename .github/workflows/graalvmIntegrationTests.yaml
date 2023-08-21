@@ -1,0 +1,74 @@
+name: GraalVM Integration Tests
+
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
+    types: [synchronize]
+
+jobs:
+  graalvmIntegrationTests:
+    name: ${{ matrix.name }}
+    if: github.repository == 'GoogleCloudPlatform/cloud-spanner-r2dbc'
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - java: '11'
+            version: '22.3.2'
+            components: 'native-image'
+            name: 'Java 11 | GraalVM 22.3.2'
+          - java: '17'
+            version: '22.3.2'
+            components: 'native-image'
+            name: 'Java 17 | GraalVM 22.3.2'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d' --utc)" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v3
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ matrix.java }}
+          version: ${{ matrix.version }}
+          components: ${{ matrix.components }}
+      - name: Environment Info
+        run: |
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
+      - uses: actions/cache@v3
+        id: mvn-cache
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-unified-${{ steps.date.outputs.date }}
+      - name: Set Up Authentication
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.CLOUD_SPANNER_R2DBC_CI_SA_KEY }}
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: latest
+          project_id: cloud-spanner-r2dbc-ci
+          export_default_credentials: true
+      - name: Maven go offline
+        id: mvn-offline
+        if: steps.mvn-cache.outputs.cache-hit != 'true'
+        run: ./mvnw compile dependency:go-offline -ntp
+      - name: GraalVM Integration Tests
+        id: intTest1
+        run: |
+          ./mvnw \
+            clean \
+            test  \
+            -P native \
+            -ntp \
+            -Dspanner.database=graalvm_test_db \
+            -Dit.use-random-suffix=true

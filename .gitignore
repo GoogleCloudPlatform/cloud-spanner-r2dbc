@@ -7,3 +7,4 @@ target
 
 # binary files like maven-wrapper.jar
 *.jar
+**/.DS_Store
