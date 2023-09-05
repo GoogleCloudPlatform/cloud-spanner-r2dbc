@@ -148,7 +148,7 @@ class ClientLibraryBasedIntegrationTest {
                 .bind("price", new BigDecimal("123.99"))
                 .execute())
             .flatMapMany(rs -> rs.getRowsUpdated())
-    ).expectNext(1).verifyComplete();
+    ).expectNext(1L).verifyComplete();
 
     StepVerifier.create(
         Mono.from(conn.createStatement(
@@ -200,7 +200,7 @@ class ClientLibraryBasedIntegrationTest {
                 )
                 .execute())
             .flatMapMany(rs -> rs.getRowsUpdated())
-    ).expectNext(1).verifyComplete();
+    ).expectNext(1L).verifyComplete();
 
     StepVerifier.create(
             Mono.from(conn.createStatement(
@@ -251,7 +251,7 @@ class ClientLibraryBasedIntegrationTest {
                         .bind("extra", JsonWrapper.of("{\"b\":9,\"a\":true}"))
                         .execute())
                 .flatMapMany(rs -> rs.getRowsUpdated()))
-        .expectNext(1)
+        .expectNext(1L)
         .verifyComplete();
 
     StepVerifier.create(
@@ -481,7 +481,7 @@ class ClientLibraryBasedIntegrationTest {
                 ).flatMap(r -> r.getRowsUpdated())
             ))
 
-    ).expectNext(1, 1, 1).verifyComplete();
+    ).expectNext(1L, 1L, 1L).verifyComplete();
 
     StepVerifier.create(
         Mono.from(connectionFactory.create()).flatMapMany(
@@ -527,7 +527,7 @@ class ClientLibraryBasedIntegrationTest {
                 ).flatMap(r -> r.getRowsUpdated())
             ))
 
-    ).expectNext(1, 1, 1).verifyComplete();
+    ).expectNext(1L, 1L, 1L).verifyComplete();
 
     StepVerifier.create(
         Mono.from(connectionFactory.create()).flatMapMany(
@@ -570,7 +570,7 @@ class ClientLibraryBasedIntegrationTest {
                     .execute()
             )
                 .flatMap(rs -> rs.getRowsUpdated()))
-    ).expectNext(1, 1, 1).as("Row insert count matches").verifyComplete();
+    ).expectNext(1L, 1L, 1L).as("Row insert count matches").verifyComplete();
 
     StepVerifier.create(
         Mono.from(connectionFactory.create())
@@ -787,7 +787,7 @@ class ClientLibraryBasedIntegrationTest {
               .add(String.format("UPDATE %s SET CATEGORY=17 WHERE CATEGORY=29", BOOKS_TABLE))
               .execute()
           ).flatMap(r -> r.getRowsUpdated())
-    ).expectNext(1, 1, 2)
+    ).expectNext(1L, 1L, 2L)
         .verifyComplete();
 
     verifyIds(uuid1, uuid2);

@@ -37,7 +37,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 class SpannerDmlReactiveStreamVerification extends
-    PublisherVerification<Integer> {
+    PublisherVerification<Long> {
 
   private static ConnectionFactory connectionFactory;
 
@@ -73,7 +73,7 @@ class SpannerDmlReactiveStreamVerification extends
   }
 
   @Override
-  public Publisher<Integer> createPublisher(long l) {
+  public Publisher<Long> createPublisher(long l) {
     return Mono.from(connectionFactory.create())
         .flatMapMany(conn ->
             Flux.from(conn.createStatement(
@@ -85,7 +85,7 @@ class SpannerDmlReactiveStreamVerification extends
   }
 
   @Override
-  public Publisher<Integer> createFailedPublisher() {
+  public Publisher<Long> createFailedPublisher() {
     return Mono.from(connectionFactory.create())
         .flatMapMany(conn -> conn.createStatement(
             String.format("UPDATE %s SET bad syntax ", BOOKS_TABLE)).execute())

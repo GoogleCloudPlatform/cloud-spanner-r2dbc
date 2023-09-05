@@ -56,7 +56,7 @@ class SpannerClientLibraryStatementTest {
 
     StepVerifier.create(
         Flux.from(statement.execute()).flatMap(result -> result.getRowsUpdated()))
-        .expectNext(0)
+        .expectNext(0L)
         .verifyComplete();
 
     StepVerifier.create(

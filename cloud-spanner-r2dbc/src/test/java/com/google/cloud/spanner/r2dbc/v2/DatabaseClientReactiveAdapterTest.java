@@ -283,7 +283,7 @@ class DatabaseClientReactiveAdapterTest {
       this.adapter.runBatchDml(
           ImmutableList.of(Statement.of("UPDATE something"), Statement.of("UPDATE something else")))
         .flatMap(result -> result.getRowsUpdated())
-    ).expectNext(42, 81)
+    ).expectNext(42L, 81L)
         .verifyComplete();
   }
 
@@ -299,7 +299,7 @@ class DatabaseClientReactiveAdapterTest {
         this.adapter.runBatchDml(
             ImmutableList.of(Statement.of("UPDATE something")))
             .flatMap(result -> result.getRowsUpdated())
-    ).expectNext(Integer.MAX_VALUE)
+    ).expectNext(Long.valueOf(Integer.MAX_VALUE))
         .verifyComplete();
   }
 }

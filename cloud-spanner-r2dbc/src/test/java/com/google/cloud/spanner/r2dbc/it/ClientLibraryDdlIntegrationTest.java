@@ -79,7 +79,7 @@ class ClientLibraryDdlIntegrationTest {
             .execute())
             .log("Table" + tableName + " created")
             .flatMap(res -> Mono.from(res.getRowsUpdated()))
-    ).expectNext(0).as("DDL execution returns zero affected rows")
+    ).expectNext(0L).as("DDL execution returns zero affected rows")
         .verifyComplete();
 
     StepVerifier.create(

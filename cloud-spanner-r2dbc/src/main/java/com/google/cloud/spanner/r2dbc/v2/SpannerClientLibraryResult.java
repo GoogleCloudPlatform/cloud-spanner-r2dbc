@@ -31,18 +31,17 @@ class SpannerClientLibraryResult implements Result {
 
   private final Flux<SpannerClientLibraryRow> resultRows;
 
-  private final int numRowsUpdated;
+  private final long numRowsUpdated;
 
   private RowMetadata rowMetadata;
 
-  public SpannerClientLibraryResult(
-      Flux<SpannerClientLibraryRow> resultRows, int numRowsUpdated) {
+  public SpannerClientLibraryResult(Flux<SpannerClientLibraryRow> resultRows, long numRowsUpdated) {
     this.resultRows = Assert.requireNonNull(resultRows, "A non-null flux of rows is required.");
     this.numRowsUpdated = numRowsUpdated;
   }
 
   @Override
-  public Publisher<Integer> getRowsUpdated() {
+  public Publisher<Long> getRowsUpdated() {
     return Mono.just(this.numRowsUpdated);
   }
 
