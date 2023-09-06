@@ -87,10 +87,10 @@
     <google-cloud-bom.version>26.22.0</google-cloud-bom.version>
 
     <r2dbc.version>1.0.0.RELEASE</r2dbc.version>
-    <reactor.version>2022.0.9</reactor.version>
+    <reactor.version>2022.0.10</reactor.version>
 
     <mockito.version>4.9.0</mockito.version>
-    <slf4j.version>2.0.7</slf4j.version>
+    <slf4j.version>2.0.9</slf4j.version>
 
     <!-- Test dependencies -->
     <assertj.version>3.24.2</assertj.version>
@@ -462,7 +462,7 @@
           <plugin>
             <groupId>org.graalvm.buildtools</groupId>
             <artifactId>native-maven-plugin</artifactId>
-            <version>0.9.22</version>
+            <version>0.9.25</version>
             <extensions>true</extensions>
             <executions>
               <execution>
