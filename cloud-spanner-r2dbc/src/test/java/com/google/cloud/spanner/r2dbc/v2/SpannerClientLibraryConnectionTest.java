@@ -32,6 +32,7 @@ import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.util.TestTransactionDefinition;
 import io.r2dbc.spi.Batch;
+import io.r2dbc.spi.IsolationLevel;
 import io.r2dbc.spi.TransactionDefinition;
 import java.time.Duration;
 import java.util.List;
@@ -110,20 +111,20 @@ class SpannerClientLibraryConnectionTest {
 
   @Test
   void shouldBeginTransactionWithGivenTimestampBound() {
-    TimestampBound _5SecondTimestampBound = TimestampBound.ofExactStaleness(5L, TimeUnit.SECONDS);
+    TimestampBound fiveSecondTimestampBound = TimestampBound.ofExactStaleness(5L, TimeUnit.SECONDS);
 
     TestTransactionDefinition readWriteDefinition = new TestTransactionDefinition.Builder()
         .with(TransactionDefinition.READ_ONLY, true)
-        .with(SpannerConstants.TIMESTAMP_BOUND, _5SecondTimestampBound)
+        .with(SpannerConstants.TIMESTAMP_BOUND, fiveSecondTimestampBound)
         .build();
 
-    when(this.mockAdapter.beginReadonlyTransaction(_5SecondTimestampBound))
+    when(this.mockAdapter.beginReadonlyTransaction(fiveSecondTimestampBound))
         .thenReturn(Mono.empty());
 
     StepVerifier.create(this.connection.beginTransaction(readWriteDefinition))
         .verifyComplete();
 
-    verify(this.mockAdapter).beginReadonlyTransaction(_5SecondTimestampBound);
+    verify(this.mockAdapter).beginReadonlyTransaction(fiveSecondTimestampBound);
   }
 
   @Test
@@ -161,6 +162,25 @@ class SpannerClientLibraryConnectionTest {
     TestTransactionDefinition repeatableRead = builder.with(ISOLATION_LEVEL, REPEATABLE_READ)
         .build();
     StepVerifier.create(this.connection.beginTransaction(repeatableRead))
+        .expectError(UnsupportedOperationException.class)
+        .verify();
+  }
+
+  @Test
+  void shouldGetAndSetSerializationOnlyAsIsolationLevel() {
+    StepVerifier.create(this.connection.setTransactionIsolationLevel(SERIALIZABLE))
+        .verifyComplete();
+    assertThat(this.connection.getTransactionIsolationLevel()).isEqualTo(SERIALIZABLE);
+
+    StepVerifier.create(this.connection.beginTransaction(READ_COMMITTED))
+        .expectError(UnsupportedOperationException.class)
+        .verify();
+
+    StepVerifier.create(this.connection.beginTransaction(READ_UNCOMMITTED))
+        .expectError(UnsupportedOperationException.class)
+        .verify();
+
+    StepVerifier.create(this.connection.beginTransaction(REPEATABLE_READ))
         .expectError(UnsupportedOperationException.class)
         .verify();
 

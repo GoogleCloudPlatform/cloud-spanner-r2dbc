@@ -39,6 +39,8 @@ import io.r2dbc.spi.ValidationDepth;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -62,27 +64,16 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public Publisher<Void> beginTransaction(TransactionDefinition definition) {
-    return Mono.just(definition)
-        .flatMap(this::validateIsolation)
-        .flatMap(def -> {
-          boolean isReadOnly = TRUE.equals(def.getAttribute(READ_ONLY));
+    return validateIsolation(definition.getAttribute(ISOLATION_LEVEL))
+        .then(Mono.defer(() -> {
+          boolean isReadOnly = TRUE.equals(definition.getAttribute(READ_ONLY));
           if (isReadOnly) {
-            TimestampBound timestampBound = firstNonNull(def.getAttribute(TIMESTAMP_BOUND), TimestampBound.strong());
-            return this.clientLibraryAdapter.beginReadonlyTransaction(timestampBound);
+            TimestampBound timestampBound = firstNonNull(definition.getAttribute(TIMESTAMP_BOUND),
+                TimestampBound.strong());
+            return clientLibraryAdapter.beginReadonlyTransaction(timestampBound);
           }
-          return this.clientLibraryAdapter.beginTransaction();
-        });
-  }
-
-  private Mono<TransactionDefinition> validateIsolation(TransactionDefinition definition) {
-    List<IsolationLevel> unsupportedIsolationLevels = Arrays.asList(READ_COMMITTED, READ_UNCOMMITTED,
-        REPEATABLE_READ);
-    IsolationLevel currentIsolationLevel = definition.getAttribute(ISOLATION_LEVEL);
-    boolean valid = !unsupportedIsolationLevels.contains(currentIsolationLevel);
-    if (valid) {
-      return Mono.just(definition);
-    }
-    return Mono.error(new UnsupportedOperationException(String.format("%s isolation level not supported", currentIsolationLevel)));
+          return clientLibraryAdapter.beginTransaction();
+        }));
   }
 
   @Override
@@ -146,7 +137,7 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public IsolationLevel getTransactionIsolationLevel() {
-    throw new UnsupportedOperationException();
+    return IsolationLevel.SERIALIZABLE;
   }
 
   @Override
@@ -171,7 +162,7 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public Publisher<Void> setTransactionIsolationLevel(IsolationLevel isolationLevel) {
-    throw new UnsupportedOperationException();
+    return this.validateIsolation(isolationLevel);
   }
 
   @Override
@@ -190,5 +181,17 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   public boolean isInReadonlyTransaction() {
     return this.clientLibraryAdapter.isInReadonlyTransaction();
+  }
+
+  private Mono<Void> validateIsolation(IsolationLevel isolationLevel) {
+    List<IsolationLevel> unsupportedIsolationLevels = Arrays.asList(READ_COMMITTED,
+        READ_UNCOMMITTED,
+        REPEATABLE_READ);
+    boolean valid = !unsupportedIsolationLevels.contains(isolationLevel);
+    if (valid) {
+      return Mono.empty();
+    }
+    return Mono.error(new UnsupportedOperationException(
+        String.format("%s isolation level not supported", isolationLevel)));
   }
 }
