@@ -16,6 +16,15 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
+import static com.google.cloud.spanner.r2dbc.v2.SpannerConstants.TIMESTAMP_BOUND;
+import static com.google.common.base.MoreObjects.firstNonNull;
+import static io.r2dbc.spi.IsolationLevel.READ_COMMITTED;
+import static io.r2dbc.spi.IsolationLevel.READ_UNCOMMITTED;
+import static io.r2dbc.spi.IsolationLevel.REPEATABLE_READ;
+import static io.r2dbc.spi.TransactionDefinition.ISOLATION_LEVEL;
+import static io.r2dbc.spi.TransactionDefinition.READ_ONLY;
+import static java.lang.Boolean.TRUE;
+
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.api.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.statement.StatementParser;
@@ -28,6 +37,8 @@ import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.TransactionDefinition;
 import io.r2dbc.spi.ValidationDepth;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -51,7 +62,27 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public Publisher<Void> beginTransaction(TransactionDefinition definition) {
-    return Mono.error(new UnsupportedOperationException());
+    return Mono.just(definition)
+        .flatMap(this::validateIsolation)
+        .flatMap(def -> {
+          boolean isReadOnly = TRUE.equals(def.getAttribute(READ_ONLY));
+          if (isReadOnly) {
+            TimestampBound timestampBound = firstNonNull(def.getAttribute(TIMESTAMP_BOUND), TimestampBound.strong());
+            return this.clientLibraryAdapter.beginReadonlyTransaction(timestampBound);
+          }
+          return this.clientLibraryAdapter.beginTransaction();
+        });
+  }
+
+  private Mono<TransactionDefinition> validateIsolation(TransactionDefinition definition) {
+    List<IsolationLevel> unsupportedIsolationLevels = Arrays.asList(READ_COMMITTED, READ_UNCOMMITTED,
+        REPEATABLE_READ);
+    IsolationLevel currentIsolationLevel = definition.getAttribute(ISOLATION_LEVEL);
+    boolean valid = !unsupportedIsolationLevels.contains(currentIsolationLevel);
+    if (valid) {
+      return Mono.just(definition);
+    }
+    return Mono.error(new UnsupportedOperationException(String.format("%s isolation level not supported", currentIsolationLevel)));
   }
 
   @Override

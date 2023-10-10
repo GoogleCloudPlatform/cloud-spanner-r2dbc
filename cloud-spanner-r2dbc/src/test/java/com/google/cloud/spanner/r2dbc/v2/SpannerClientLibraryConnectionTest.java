@@ -16,6 +16,11 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
+import static io.r2dbc.spi.IsolationLevel.READ_COMMITTED;
+import static io.r2dbc.spi.IsolationLevel.READ_UNCOMMITTED;
+import static io.r2dbc.spi.IsolationLevel.REPEATABLE_READ;
+import static io.r2dbc.spi.IsolationLevel.SERIALIZABLE;
+import static io.r2dbc.spi.TransactionDefinition.ISOLATION_LEVEL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -25,10 +30,12 @@ import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.TimestampBound;
+import com.google.cloud.spanner.r2dbc.util.TestTransactionDefinition;
 import io.r2dbc.spi.Batch;
-import io.r2dbc.spi.IsolationLevel;
+import io.r2dbc.spi.TransactionDefinition;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -61,6 +68,105 @@ class SpannerClientLibraryConnectionTest {
   }
 
   @Test
+  void shouldBeginTransactionInReadOnlyMode() {
+    TestTransactionDefinition readOnlyDefinition = new TestTransactionDefinition.Builder()
+        .with(TransactionDefinition.READ_ONLY, true)
+        .build();
+
+    when(this.mockAdapter.beginReadonlyTransaction(any())).thenReturn(Mono.empty());
+
+    StepVerifier.create(this.connection.beginTransaction(readOnlyDefinition))
+        .verifyComplete();
+
+    verify(this.mockAdapter).beginReadonlyTransaction(TimestampBound.strong());
+  }
+
+  @Test
+  void shouldBeginTransactionInReadWriteMode() {
+    TestTransactionDefinition readWriteDefinition = new TestTransactionDefinition.Builder()
+        .with(TransactionDefinition.READ_ONLY, false)
+        .build();
+
+    when(this.mockAdapter.beginTransaction()).thenReturn(Mono.empty());
+
+    StepVerifier.create(this.connection.beginTransaction(readWriteDefinition))
+        .verifyComplete();
+
+    verify(this.mockAdapter).beginTransaction();
+  }
+
+  @Test
+  void shouldBeginTransactionInReadWriteModeByDefault() {
+    TestTransactionDefinition readWriteDefinition = new TestTransactionDefinition.Builder()
+        .build();   // absence of attribute indicates read write transaction
+
+    when(this.mockAdapter.beginTransaction()).thenReturn(Mono.empty());
+
+    StepVerifier.create(this.connection.beginTransaction(readWriteDefinition))
+        .verifyComplete();
+
+    verify(this.mockAdapter).beginTransaction();
+  }
+
+  @Test
+  void shouldBeginTransactionWithGivenTimestampBound() {
+    TimestampBound _5SecondTimestampBound = TimestampBound.ofExactStaleness(5L, TimeUnit.SECONDS);
+
+    TestTransactionDefinition readWriteDefinition = new TestTransactionDefinition.Builder()
+        .with(TransactionDefinition.READ_ONLY, true)
+        .with(SpannerConstants.TIMESTAMP_BOUND, _5SecondTimestampBound)
+        .build();
+
+    when(this.mockAdapter.beginReadonlyTransaction(_5SecondTimestampBound))
+        .thenReturn(Mono.empty());
+
+    StepVerifier.create(this.connection.beginTransaction(readWriteDefinition))
+        .verifyComplete();
+
+    verify(this.mockAdapter).beginReadonlyTransaction(_5SecondTimestampBound);
+  }
+
+  @Test
+  void shouldThrowErrorWhenBeginTransactionWithOtherThanDefaultOrSerializable() {
+    when(this.mockAdapter.beginTransaction()).thenReturn(Mono.empty());
+    TestTransactionDefinition.Builder builder = new TestTransactionDefinition.Builder();
+
+    // default isolation
+    TestTransactionDefinition defaultIsolation = builder.with(ISOLATION_LEVEL, null)
+        .build();
+    StepVerifier.create(this.connection.beginTransaction(defaultIsolation))
+        .verifyComplete();
+
+    // SERIALIZABLE isolation
+    TestTransactionDefinition serializable = builder.with(ISOLATION_LEVEL, SERIALIZABLE)
+        .build();
+    StepVerifier.create(this.connection.beginTransaction(serializable))
+        .verifyComplete();
+
+    // READ_COMMITTED isolation
+    TestTransactionDefinition readCommitted = builder.with(ISOLATION_LEVEL, READ_COMMITTED)
+        .build();
+    StepVerifier.create(this.connection.beginTransaction(readCommitted))
+        .expectError(UnsupportedOperationException.class)
+        .verify();
+
+    // READ_UNCOMMITTED isolation
+    TestTransactionDefinition readUncommitted = builder.with(ISOLATION_LEVEL, READ_UNCOMMITTED)
+        .build();
+    StepVerifier.create(this.connection.beginTransaction(readUncommitted))
+        .expectError(UnsupportedOperationException.class)
+        .verify();
+
+    // REPEATABLE_READ isolation
+    TestTransactionDefinition repeatableRead = builder.with(ISOLATION_LEVEL, REPEATABLE_READ)
+        .build();
+    StepVerifier.create(this.connection.beginTransaction(repeatableRead))
+        .expectError(UnsupportedOperationException.class)
+        .verify();
+
+  }
+
+  @Test
   void batchUsesCorrectAdapter() {
     Batch batch = this.connection.createBatch();
     when(this.mockAdapter.runBatchDml(anyList()))
@@ -79,13 +185,6 @@ class SpannerClientLibraryConnectionTest {
     List<Statement> args = argCaptor.getValue();
     assertThat(args).hasSize(1);
     assertThat(args.get(0).getSql()).isEqualTo("UPDATE tbl SET col1=val1");
-  }
-
-  @Test
-  void beginTransactionCustomDefinitionNotSupported() {
-    StepVerifier.create(
-        this.connection.beginTransaction(IsolationLevel.SERIALIZABLE)
-    ).verifyError(UnsupportedOperationException.class);
   }
 
   @Test
