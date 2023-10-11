@@ -39,8 +39,6 @@ import io.r2dbc.spi.ValidationDepth;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -70,9 +68,9 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
           if (isReadOnly) {
             TimestampBound timestampBound = firstNonNull(definition.getAttribute(TIMESTAMP_BOUND),
                 TimestampBound.strong());
-            return clientLibraryAdapter.beginReadonlyTransaction(timestampBound);
+            return this.clientLibraryAdapter.beginReadonlyTransaction(timestampBound);
           }
-          return clientLibraryAdapter.beginTransaction();
+          return this.clientLibraryAdapter.beginTransaction();
         }));
   }
 
