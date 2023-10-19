@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.spanner.r2dbc.util;
+package com.google.cloud.spanner.r2dbc.v2;
 
 import io.r2dbc.spi.Option;
 import io.r2dbc.spi.TransactionDefinition;
@@ -22,13 +22,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * An implementation of {@link TransactionDefinition} for test purposes.
+ * An implementation of {@link TransactionDefinition} for Spanner Database.
  */
-public class TestTransactionDefinition implements TransactionDefinition {
+public class SpannerTransactionDefinition implements TransactionDefinition {
 
   private final Map<Option<?>, Object> internalMap;
 
-  TestTransactionDefinition(Map<Option<?>, Object> internalMap) {
+  SpannerTransactionDefinition(Map<Option<?>, Object> internalMap) {
     this.internalMap = internalMap;
   }
 
@@ -39,7 +39,7 @@ public class TestTransactionDefinition implements TransactionDefinition {
 
 
   /**
-   * A builder class for {@link TestTransactionDefinition}.
+   * A builder class for {@link SpannerTransactionDefinition}.
    */
   public static class Builder {
     private final Map<Option<?>, Object> internalMap;
@@ -53,8 +53,8 @@ public class TestTransactionDefinition implements TransactionDefinition {
       return this;
     }
 
-    public TestTransactionDefinition build() {
-      return new TestTransactionDefinition(this.internalMap);
+    public SpannerTransactionDefinition build() {
+      return new SpannerTransactionDefinition(this.internalMap);
     }
   }
 }

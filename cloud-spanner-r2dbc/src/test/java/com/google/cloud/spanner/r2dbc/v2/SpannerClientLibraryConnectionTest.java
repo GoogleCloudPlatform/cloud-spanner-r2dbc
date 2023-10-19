@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.TimestampBound;
-import com.google.cloud.spanner.r2dbc.util.TestTransactionDefinition;
+import com.google.cloud.spanner.r2dbc.v2.SpannerTransactionDefinition;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.TransactionDefinition;
 import java.time.Duration;
@@ -69,7 +69,7 @@ class SpannerClientLibraryConnectionTest {
 
   @Test
   void shouldBeginTransactionInReadOnlyMode() {
-    TestTransactionDefinition readOnlyDefinition = new TestTransactionDefinition.Builder()
+    SpannerTransactionDefinition readOnlyDefinition = new SpannerTransactionDefinition.Builder()
         .with(TransactionDefinition.READ_ONLY, true)
         .build();
 
@@ -83,7 +83,7 @@ class SpannerClientLibraryConnectionTest {
 
   @Test
   void shouldBeginTransactionInReadWriteMode() {
-    TestTransactionDefinition readWriteDefinition = new TestTransactionDefinition.Builder()
+    SpannerTransactionDefinition readWriteDefinition = new SpannerTransactionDefinition.Builder()
         .with(TransactionDefinition.READ_ONLY, false)
         .build();
 
@@ -97,7 +97,7 @@ class SpannerClientLibraryConnectionTest {
 
   @Test
   void shouldBeginTransactionInReadWriteModeByDefault() {
-    TestTransactionDefinition readWriteDefinition = new TestTransactionDefinition.Builder()
+    SpannerTransactionDefinition readWriteDefinition = new SpannerTransactionDefinition.Builder()
         .build();   // absence of attribute indicates read write transaction
 
     when(this.mockAdapter.beginTransaction()).thenReturn(Mono.empty());
@@ -112,7 +112,7 @@ class SpannerClientLibraryConnectionTest {
   void shouldBeginTransactionWithGivenTimestampBound() {
     TimestampBound fiveSecondTimestampBound = TimestampBound.ofExactStaleness(5L, TimeUnit.SECONDS);
 
-    TestTransactionDefinition readWriteDefinition = new TestTransactionDefinition.Builder()
+    SpannerTransactionDefinition readWriteDefinition = new SpannerTransactionDefinition.Builder()
         .with(TransactionDefinition.READ_ONLY, true)
         .with(SpannerConstants.TIMESTAMP_BOUND, fiveSecondTimestampBound)
         .build();
@@ -129,36 +129,36 @@ class SpannerClientLibraryConnectionTest {
   @Test
   void shouldThrowErrorWhenBeginTransactionWithOtherThanDefaultOrSerializable() {
     when(this.mockAdapter.beginTransaction()).thenReturn(Mono.empty());
-    TestTransactionDefinition.Builder builder = new TestTransactionDefinition.Builder();
+    SpannerTransactionDefinition.Builder builder = new SpannerTransactionDefinition.Builder();
 
     // default isolation
-    TestTransactionDefinition defaultIsolation = builder.with(ISOLATION_LEVEL, null)
+    SpannerTransactionDefinition defaultIsolation = builder.with(ISOLATION_LEVEL, null)
         .build();
     StepVerifier.create(this.connection.beginTransaction(defaultIsolation))
         .verifyComplete();
 
     // SERIALIZABLE isolation
-    TestTransactionDefinition serializable = builder.with(ISOLATION_LEVEL, SERIALIZABLE)
+    SpannerTransactionDefinition serializable = builder.with(ISOLATION_LEVEL, SERIALIZABLE)
         .build();
     StepVerifier.create(this.connection.beginTransaction(serializable))
         .verifyComplete();
 
     // READ_COMMITTED isolation
-    TestTransactionDefinition readCommitted = builder.with(ISOLATION_LEVEL, READ_COMMITTED)
+    SpannerTransactionDefinition readCommitted = builder.with(ISOLATION_LEVEL, READ_COMMITTED)
         .build();
     StepVerifier.create(this.connection.beginTransaction(readCommitted))
         .expectError(UnsupportedOperationException.class)
         .verify();
 
     // READ_UNCOMMITTED isolation
-    TestTransactionDefinition readUncommitted = builder.with(ISOLATION_LEVEL, READ_UNCOMMITTED)
+    SpannerTransactionDefinition readUncommitted = builder.with(ISOLATION_LEVEL, READ_UNCOMMITTED)
         .build();
     StepVerifier.create(this.connection.beginTransaction(readUncommitted))
         .expectError(UnsupportedOperationException.class)
         .verify();
 
     // REPEATABLE_READ isolation
-    TestTransactionDefinition repeatableRead = builder.with(ISOLATION_LEVEL, REPEATABLE_READ)
+    SpannerTransactionDefinition repeatableRead = builder.with(ISOLATION_LEVEL, REPEATABLE_READ)
         .build();
     StepVerifier.create(this.connection.beginTransaction(repeatableRead))
         .expectError(UnsupportedOperationException.class)
