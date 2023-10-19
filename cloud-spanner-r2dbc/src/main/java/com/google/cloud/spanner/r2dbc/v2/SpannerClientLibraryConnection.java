@@ -24,6 +24,7 @@ import static io.r2dbc.spi.IsolationLevel.REPEATABLE_READ;
 import static io.r2dbc.spi.TransactionDefinition.ISOLATION_LEVEL;
 import static io.r2dbc.spi.TransactionDefinition.READ_ONLY;
 import static java.lang.Boolean.TRUE;
+import static java.util.Arrays.asList;
 
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.api.SpannerConnection;
@@ -37,13 +38,12 @@ import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.TransactionDefinition;
 import io.r2dbc.spi.ValidationDepth;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 class SpannerClientLibraryConnection implements Connection, SpannerConnection {
-  private final static List<IsolationLevel> UNSUPPORTED_ISOLATION_LEVELS = Arrays.asList(READ_COMMITTED,
+  private static final List<IsolationLevel> UNSUPPORTED_ISOLATION_LEVELS = asList(READ_COMMITTED,
       READ_UNCOMMITTED,
       REPEATABLE_READ);
 
@@ -192,7 +192,7 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
     boolean invalid = UNSUPPORTED_ISOLATION_LEVELS.contains(isolationLevel);
     if (invalid) {
       return Mono.error(new UnsupportedOperationException(
-          String.format("%s isolation level not supported", isolationLevel)));
+          String.format("'%s' isolation level not supported", isolationLevel.asSql())));
     }
     return Mono.empty();
   }
