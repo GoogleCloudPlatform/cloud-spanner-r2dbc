@@ -171,18 +171,21 @@ class SpannerClientLibraryConnectionTest {
         .verifyComplete();
     assertThat(this.connection.getTransactionIsolationLevel()).isEqualTo(SERIALIZABLE);
 
-    StepVerifier.create(this.connection.beginTransaction(READ_COMMITTED))
+    StepVerifier.create(this.connection.setTransactionIsolationLevel(READ_COMMITTED))
         .expectError(UnsupportedOperationException.class)
         .verify();
 
-    StepVerifier.create(this.connection.beginTransaction(READ_UNCOMMITTED))
+    StepVerifier.create(this.connection.setTransactionIsolationLevel(READ_UNCOMMITTED))
         .expectError(UnsupportedOperationException.class)
         .verify();
 
-    StepVerifier.create(this.connection.beginTransaction(REPEATABLE_READ))
+    StepVerifier.create(this.connection.setTransactionIsolationLevel(REPEATABLE_READ))
         .expectError(UnsupportedOperationException.class)
         .verify();
 
+    StepVerifier.create(this.connection.setTransactionIsolationLevel(null))
+        .expectError(IllegalArgumentException.class)
+        .verify();
   }
 
   @Test

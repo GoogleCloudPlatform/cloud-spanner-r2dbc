@@ -43,6 +43,9 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 class SpannerClientLibraryConnection implements Connection, SpannerConnection {
+  private final static List<IsolationLevel> UNSUPPORTED_ISOLATION_LEVELS = Arrays.asList(READ_COMMITTED,
+      READ_UNCOMMITTED,
+      REPEATABLE_READ);
 
   private final DatabaseClientReactiveAdapter clientLibraryAdapter;
 
@@ -160,6 +163,10 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public Publisher<Void> setTransactionIsolationLevel(IsolationLevel isolationLevel) {
+    if (isolationLevel == null) {
+      return Mono.error(new IllegalArgumentException("IsolationLevel can't be null."));
+    }
+
     return this.validateIsolation(isolationLevel);
   }
 
@@ -182,14 +189,11 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
   }
 
   private Mono<Void> validateIsolation(IsolationLevel isolationLevel) {
-    List<IsolationLevel> unsupportedIsolationLevels = Arrays.asList(READ_COMMITTED,
-        READ_UNCOMMITTED,
-        REPEATABLE_READ);
-    boolean valid = !unsupportedIsolationLevels.contains(isolationLevel);
-    if (valid) {
-      return Mono.empty();
+    boolean invalid = UNSUPPORTED_ISOLATION_LEVELS.contains(isolationLevel);
+    if (invalid) {
+      return Mono.error(new UnsupportedOperationException(
+          String.format("%s isolation level not supported", isolationLevel)));
     }
-    return Mono.error(new UnsupportedOperationException(
-        String.format("%s isolation level not supported", isolationLevel)));
+    return Mono.empty();
   }
 }
