@@ -54,13 +54,13 @@ class SpannerClientLibraryConnectionTest {
   public void setUpMocks() {
     this.mockAdapter = mock(DatabaseClientReactiveAdapter.class);
     this.connection = new SpannerClientLibraryConnection(this.mockAdapter);
+
+    when(this.mockAdapter.beginReadonlyTransaction(any())).thenReturn(Mono.empty());
+    when(this.mockAdapter.beginTransaction()).thenReturn(Mono.empty());
   }
 
   @Test
   void beginReadonlyTransactionUsesStrongConsistencyByDefault() {
-
-    when(this.mockAdapter.beginReadonlyTransaction(any())).thenReturn(Mono.empty());
-
     StepVerifier.create(this.connection.beginReadonlyTransaction())
         .verifyComplete();
 
@@ -72,8 +72,6 @@ class SpannerClientLibraryConnectionTest {
     SpannerTransactionDefinition readOnlyDefinition = new SpannerTransactionDefinition.Builder()
         .with(TransactionDefinition.READ_ONLY, true)
         .build();
-
-    when(this.mockAdapter.beginReadonlyTransaction(any())).thenReturn(Mono.empty());
 
     StepVerifier.create(this.connection.beginTransaction(readOnlyDefinition))
         .verifyComplete();
@@ -87,8 +85,6 @@ class SpannerClientLibraryConnectionTest {
         .with(TransactionDefinition.READ_ONLY, false)
         .build();
 
-    when(this.mockAdapter.beginTransaction()).thenReturn(Mono.empty());
-
     StepVerifier.create(this.connection.beginTransaction(readWriteDefinition))
         .verifyComplete();
 
@@ -99,8 +95,6 @@ class SpannerClientLibraryConnectionTest {
   void shouldBeginTransactionInReadWriteModeByDefault() {
     SpannerTransactionDefinition readWriteDefinition = new SpannerTransactionDefinition.Builder()
         .build();   // absence of attribute indicates read write transaction
-
-    when(this.mockAdapter.beginTransaction()).thenReturn(Mono.empty());
 
     StepVerifier.create(this.connection.beginTransaction(readWriteDefinition))
         .verifyComplete();
@@ -117,9 +111,6 @@ class SpannerClientLibraryConnectionTest {
         .with(SpannerConstants.TIMESTAMP_BOUND, fiveSecondTimestampBound)
         .build();
 
-    when(this.mockAdapter.beginReadonlyTransaction(fiveSecondTimestampBound))
-        .thenReturn(Mono.empty());
-
     StepVerifier.create(this.connection.beginTransaction(readWriteDefinition))
         .verifyComplete();
 
@@ -128,7 +119,6 @@ class SpannerClientLibraryConnectionTest {
 
   @Test
   void shouldThrowErrorWhenBeginTransactionWithOtherThanDefaultOrSerializable() {
-    when(this.mockAdapter.beginTransaction()).thenReturn(Mono.empty());
     SpannerTransactionDefinition.Builder builder = new SpannerTransactionDefinition.Builder();
 
     // default isolation

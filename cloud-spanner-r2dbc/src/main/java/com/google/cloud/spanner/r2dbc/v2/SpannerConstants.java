@@ -23,6 +23,6 @@ import io.r2dbc.spi.Option;
  * Spanner Constants.
  */
 public class SpannerConstants {
-  public static Option<TimestampBound> TIMESTAMP_BOUND = Option.valueOf("timestampBound");
+  public static final Option<TimestampBound> TIMESTAMP_BOUND = Option.valueOf("timestampBound");
 
 }
