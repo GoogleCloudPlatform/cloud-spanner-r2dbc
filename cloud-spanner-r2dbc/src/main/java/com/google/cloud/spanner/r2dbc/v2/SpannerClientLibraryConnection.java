@@ -183,7 +183,7 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   private Mono<Void> validateIsolation(IsolationLevel isolationLevel) {
     boolean valid = isolationLevel == null || isolationLevel == SERIALIZABLE;
-    return valid ? Mono.empty(): Mono.error(new UnsupportedOperationException(
+    return valid ? Mono.empty() : Mono.error(new UnsupportedOperationException(
         String.format("'%s' isolation level not supported", isolationLevel.asSql())));
   }
 }
