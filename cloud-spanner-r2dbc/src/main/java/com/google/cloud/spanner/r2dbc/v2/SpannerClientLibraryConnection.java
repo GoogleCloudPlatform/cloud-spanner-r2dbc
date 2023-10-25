@@ -18,13 +18,10 @@ package com.google.cloud.spanner.r2dbc.v2;
 
 import static com.google.cloud.spanner.r2dbc.v2.SpannerConstants.TIMESTAMP_BOUND;
 import static com.google.common.base.MoreObjects.firstNonNull;
-import static io.r2dbc.spi.IsolationLevel.READ_COMMITTED;
-import static io.r2dbc.spi.IsolationLevel.READ_UNCOMMITTED;
-import static io.r2dbc.spi.IsolationLevel.REPEATABLE_READ;
+import static io.r2dbc.spi.IsolationLevel.SERIALIZABLE;
 import static io.r2dbc.spi.TransactionDefinition.ISOLATION_LEVEL;
 import static io.r2dbc.spi.TransactionDefinition.READ_ONLY;
 import static java.lang.Boolean.TRUE;
-import static java.util.Arrays.asList;
 
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.api.SpannerConnection;
@@ -38,15 +35,10 @@ import io.r2dbc.spi.Statement;
 import io.r2dbc.spi.TransactionDefinition;
 import io.r2dbc.spi.ValidationDepth;
 import java.time.Duration;
-import java.util.List;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 class SpannerClientLibraryConnection implements Connection, SpannerConnection {
-
-  private static final List<IsolationLevel> UNSUPPORTED_ISOLATION_LEVELS = asList(READ_COMMITTED,
-      READ_UNCOMMITTED,
-      REPEATABLE_READ);
 
   private final DatabaseClientReactiveAdapter clientLibraryAdapter;
 
@@ -190,12 +182,8 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
   }
 
   private Mono<Void> validateIsolation(IsolationLevel isolationLevel) {
-    boolean invalid =
-        isolationLevel != null && UNSUPPORTED_ISOLATION_LEVELS.contains(isolationLevel);
-    if (invalid) {
-      return Mono.error(new UnsupportedOperationException(
-          String.format("'%s' isolation level not supported", isolationLevel.asSql())));
-    }
-    return Mono.empty();
+    boolean valid = isolationLevel == null || isolationLevel == SERIALIZABLE;
+    return valid ? Mono.empty(): Mono.error(new UnsupportedOperationException(
+        String.format("'%s' isolation level not supported", isolationLevel.asSql())));
   }
 }
