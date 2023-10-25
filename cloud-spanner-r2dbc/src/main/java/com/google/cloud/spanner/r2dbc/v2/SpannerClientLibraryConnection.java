@@ -58,7 +58,9 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public Publisher<Void> beginTransaction(TransactionDefinition definition) {
-    return validateIsolation(definition.getAttribute(ISOLATION_LEVEL))
+    IsolationLevel isolationLevel = firstNonNull(definition.getAttribute(ISOLATION_LEVEL),
+        SERIALIZABLE);
+    return validateIsolation(isolationLevel)
         .then(Mono.defer(() -> {
           boolean isReadOnly = TRUE.equals(definition.getAttribute(READ_ONLY));
           if (isReadOnly) {
@@ -154,12 +156,9 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
     return this.clientLibraryAdapter.setAutoCommit(autoCommit);
   }
 
+
   @Override
   public Publisher<Void> setTransactionIsolationLevel(IsolationLevel isolationLevel) {
-    if (isolationLevel == null) {
-      return Mono.error(new IllegalArgumentException("IsolationLevel can't be null."));
-    }
-
     return this.validateIsolation(isolationLevel);
   }
 
@@ -182,8 +181,11 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
   }
 
   private Mono<Void> validateIsolation(IsolationLevel isolationLevel) {
-    boolean valid = isolationLevel == null || isolationLevel == SERIALIZABLE;
-    return valid ? Mono.empty() : Mono.error(new UnsupportedOperationException(
-        String.format("'%s' isolation level not supported", isolationLevel.asSql())));
+    if (isolationLevel == null) {
+      return Mono.error(new IllegalArgumentException("IsolationLevel can't be null."));
+    }
+    return isolationLevel == SERIALIZABLE ? Mono.empty()
+        : Mono.error(new UnsupportedOperationException(
+            String.format("'%s' isolation level not supported", isolationLevel.asSql())));
   }
 }
