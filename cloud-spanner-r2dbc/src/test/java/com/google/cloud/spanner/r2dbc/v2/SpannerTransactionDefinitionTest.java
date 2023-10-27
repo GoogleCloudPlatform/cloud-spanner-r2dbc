@@ -30,10 +30,15 @@ class SpannerTransactionDefinitionTest {
 
   @Test
   void shouldThrowExceptionIfTimeStampBoundIsConfiguredWithReadWriteTransaction() {
-    SpannerTransactionDefinition.Builder builder = new SpannerTransactionDefinition.Builder()
+    SpannerTransactionDefinition.Builder builder1 = new SpannerTransactionDefinition.Builder()
         .with(TIMESTAMP_BOUND, TimestampBound.ofExactStaleness(5, TimeUnit.SECONDS))
         .with(READ_ONLY, false);
 
-    assertThrows(IllegalArgumentException.class, builder::build);
+    // absence of READ_ONLY attribute indicates read write transaction
+    SpannerTransactionDefinition.Builder builder2 = new SpannerTransactionDefinition.Builder()
+        .with(TIMESTAMP_BOUND, TimestampBound.ofExactStaleness(5, TimeUnit.SECONDS));
+
+    assertThrows(IllegalArgumentException.class, builder1::build);
+    assertThrows(IllegalArgumentException.class, builder2::build);
   }
 }
