@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.TimestampBound;
-import com.google.cloud.spanner.r2dbc.v2.SpannerTransactionDefinition;
 import io.r2dbc.spi.Batch;
 import io.r2dbc.spi.TransactionDefinition;
 import java.time.Duration;
@@ -106,12 +105,13 @@ class SpannerClientLibraryConnectionTest {
   void shouldBeginTransactionWithGivenTimestampBound() {
     TimestampBound fiveSecondTimestampBound = TimestampBound.ofExactStaleness(5L, TimeUnit.SECONDS);
 
-    SpannerTransactionDefinition readWriteDefinition = new SpannerTransactionDefinition.Builder()
-        .with(TransactionDefinition.READ_ONLY, true)
-        .with(SpannerConstants.TIMESTAMP_BOUND, fiveSecondTimestampBound)
-        .build();
+    SpannerTransactionDefinition staleTransactionDefinition =
+        new SpannerTransactionDefinition.Builder()
+            .with(TransactionDefinition.READ_ONLY, true)
+            .with(SpannerConstants.TIMESTAMP_BOUND, fiveSecondTimestampBound)
+            .build();
 
-    StepVerifier.create(this.connection.beginTransaction(readWriteDefinition))
+    StepVerifier.create(this.connection.beginTransaction(staleTransactionDefinition))
         .verifyComplete();
 
     verify(this.mockAdapter).beginReadonlyTransaction(fiveSecondTimestampBound);

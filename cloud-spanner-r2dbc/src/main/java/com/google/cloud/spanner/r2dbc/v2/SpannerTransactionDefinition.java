@@ -16,6 +16,9 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
+import static com.google.cloud.spanner.r2dbc.v2.SpannerConstants.TIMESTAMP_BOUND;
+import static java.lang.Boolean.FALSE;
+
 import io.r2dbc.spi.Option;
 import io.r2dbc.spi.TransactionDefinition;
 import java.util.HashMap;
@@ -29,7 +32,15 @@ public class SpannerTransactionDefinition implements TransactionDefinition {
   private final Map<Option<?>, Object> internalMap;
 
   SpannerTransactionDefinition(Map<Option<?>, Object> internalMap) {
+    validate(internalMap);
     this.internalMap = internalMap;
+  }
+
+  private void validate(Map<Option<?>, Object> internalMap) {
+    if (FALSE.equals(internalMap.get(READ_ONLY)) && internalMap.containsKey(TIMESTAMP_BOUND)) {
+      throw new IllegalArgumentException("TIMESTAMP_BOUND can only be configured for"
+          + " read only transactions.");
+    }
   }
 
   @Override
