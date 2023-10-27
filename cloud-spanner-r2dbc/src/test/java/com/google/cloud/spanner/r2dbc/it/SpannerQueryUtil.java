@@ -43,10 +43,10 @@ class SpannerQueryUtil {
   /**
    * Executes a DML query and returns the rows updated.
    */
-  static int executeDmlQuery(Connection connection, String sql) {
+  static long executeDmlQuery(Connection connection, String sql) {
 
     Mono.from(connection.beginTransaction()).block();
-    int rowsUpdated = Mono.from(connection.createStatement(sql).execute())
+    long rowsUpdated = Mono.from(connection.createStatement(sql).execute())
         .flatMap(result -> Mono.from(result.getRowsUpdated()))
         .block();
     Mono.from(connection.commitTransaction()).block();
