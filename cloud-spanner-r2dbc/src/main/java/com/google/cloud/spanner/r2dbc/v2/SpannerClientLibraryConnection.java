@@ -16,6 +16,13 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
+import static com.google.cloud.spanner.r2dbc.v2.SpannerConstants.TIMESTAMP_BOUND;
+import static com.google.common.base.MoreObjects.firstNonNull;
+import static io.r2dbc.spi.IsolationLevel.SERIALIZABLE;
+import static io.r2dbc.spi.TransactionDefinition.ISOLATION_LEVEL;
+import static io.r2dbc.spi.TransactionDefinition.READ_ONLY;
+import static java.lang.Boolean.TRUE;
+
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.r2dbc.api.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.statement.StatementParser;
@@ -51,7 +58,18 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public Publisher<Void> beginTransaction(TransactionDefinition definition) {
-    return Mono.error(new UnsupportedOperationException());
+    IsolationLevel isolationLevel = firstNonNull(definition.getAttribute(ISOLATION_LEVEL),
+        SERIALIZABLE);
+    return validateIsolation(isolationLevel)
+        .then(Mono.defer(() -> {
+          boolean isReadOnly = TRUE.equals(definition.getAttribute(READ_ONLY));
+          if (isReadOnly) {
+            TimestampBound timestampBound = firstNonNull(definition.getAttribute(TIMESTAMP_BOUND),
+                TimestampBound.strong());
+            return this.clientLibraryAdapter.beginReadonlyTransaction(timestampBound);
+          }
+          return this.clientLibraryAdapter.beginTransaction();
+        }));
   }
 
   @Override
@@ -115,7 +133,7 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public IsolationLevel getTransactionIsolationLevel() {
-    throw new UnsupportedOperationException();
+    return IsolationLevel.SERIALIZABLE;
   }
 
   @Override
@@ -138,9 +156,10 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
     return this.clientLibraryAdapter.setAutoCommit(autoCommit);
   }
 
+
   @Override
   public Publisher<Void> setTransactionIsolationLevel(IsolationLevel isolationLevel) {
-    throw new UnsupportedOperationException();
+    return this.validateIsolation(isolationLevel);
   }
 
   @Override
@@ -159,5 +178,15 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   public boolean isInReadonlyTransaction() {
     return this.clientLibraryAdapter.isInReadonlyTransaction();
+  }
+
+  private Mono<Void> validateIsolation(IsolationLevel isolationLevel) {
+    if (isolationLevel == null) {
+      return Mono.error(new IllegalArgumentException("IsolationLevel can't be null."));
+    }
+    return isolationLevel == SERIALIZABLE ? Mono.empty()
+        : Mono.error(new UnsupportedOperationException(
+            String.format("Unsupported '%s' isolation level, Only SERIALIZABLE is supported.",
+                isolationLevel.asSql())));
   }
 }
