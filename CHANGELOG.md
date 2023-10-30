@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/compare/v1.2.2...v1.3.0) (2023-10-30)
+
+
+### Features
+
+* Implementing Connection#beginTransaction(TransactionDefinition) to support @Transactional annotation ([#738](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/issues/738)) ([bee69c1](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/commit/bee69c1e5a8c57969bc004d54bb9df79a441a16e))
+* Native image support for R2DBC driver ([#715](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/issues/715)) ([44463cf](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/commit/44463cf11da5c4cee261e3dd6c49d9a124eb5d43))
+* R2DBC SPI upgrade to 1.0.0.RELEASE ([#726](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/issues/726)) ([5ee8788](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/commit/5ee8788f56994996231a039d9bee4c2f2c1753f8))
+
 ## [1.2.2](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/compare/v1.2.1...v1.2.2) (2023-06-02)
 
 
