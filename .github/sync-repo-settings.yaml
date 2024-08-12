@@ -1,0 +1,25 @@
+rebaseMergeAllowed: false
+squashMergeAllowed: true
+mergeCommitAllowed: false
+branchProtectionRules:
+  - pattern: main
+    isAdminEnforced: true
+    requiredApprovingReviewCount: 1
+    requiresCodeOwnerReviews: true
+    requiresStrictStatusChecks: false
+    requiredStatusCheckContexts:
+      - units (8)
+      - units (11)
+      - units (17)
+      - cla/google
+      - integrationTests
+      - Java 11 | GraalVM 22.3.2
+      - Java 17 | GraalVM 22.3
+      - Build with Sonar
+permissionRules:
+  - team: yoshi-admins
+    permission: admin
+  - team: yoshi-java-admins
+    permission: admin
+  - team: yoshi-java
+    permission: push
