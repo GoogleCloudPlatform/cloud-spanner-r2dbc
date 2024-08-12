@@ -15,6 +15,7 @@ branchProtectionRules:
       - integrationTests
       - Java 11 | GraalVM 22.3.2
       - Java 17 | GraalVM 22.3
+      - Build with Sonar
 permissionRules:
   - team: yoshi-admins
     permission: admin
