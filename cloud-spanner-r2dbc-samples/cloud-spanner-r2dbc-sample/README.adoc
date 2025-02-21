@@ -21,7 +21,7 @@ Run the example `main` method in `SampleApplication.java`, passing in three prop
 For example, to run from command line, you could run the following:
 
 ----
-./mvnw clean install exec:java -DskipTests -f cloud-spanner-r2dbc-sample/ -Dgcp.project=[PROJECT_ID] -Dspanner.instance=[INSTANCE] -Dspanner.database=[DATABASE]
+./mvnw clean install exec:java -DskipTests -Dgcp.project=[PROJECT_ID] -Dspanner.instance=[INSTANCE] -Dspanner.database=[DATABASE]
 ----
 
 The example creates a table named `BOOKS`.
