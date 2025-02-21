@@ -44,7 +44,7 @@ public class SampleApplication {
 
     LOGGER.info(
         "Performing Cloud Spanner operations on:\n\tProject:{}\n\tInstance:{}\n\tDatabase:{}",
-        INSTANCE, DATABASE, PROJECT);
+        PROJECT, INSTANCE, DATABASE);
 
     BookExampleApp bookExampleApp = new BookExampleApp(INSTANCE, DATABASE, PROJECT);
 
