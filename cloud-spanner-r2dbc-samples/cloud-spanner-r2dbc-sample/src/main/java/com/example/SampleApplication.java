@@ -43,8 +43,8 @@ public class SampleApplication {
     Validate.notNull(PROJECT, "Please provide gcp.project property");
 
     LOGGER.info(
-        "Performing Cloud Spanner operations on:\n\tProject:{}\n\tInstance:{}\n\tDatabase:{}",
-        INSTANCE, DATABASE, PROJECT);
+            "Performing Cloud Spanner operations on:\n\tProject:{}\n\tInstance:{}\n\tDatabase:{}",
+            PROJECT, INSTANCE, DATABASE);
 
     BookExampleApp bookExampleApp = new BookExampleApp(INSTANCE, DATABASE, PROJECT);
 

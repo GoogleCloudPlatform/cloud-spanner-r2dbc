@@ -22,6 +22,8 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
 import com.google.cloud.spanner.r2dbc.v2.JsonWrapper;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.instrumentation.r2dbc.v1_0.R2dbcTelemetry;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -38,9 +40,9 @@ import reactor.core.publisher.Mono;
  */
 public class BookExampleApp {
 
-  private final ConnectionFactory connectionFactory;
-
   private final Connection connection;
+
+  private ConnectionFactoryOptions options;
 
   /**
    * Constructor.
@@ -50,15 +52,26 @@ public class BookExampleApp {
    * @param sampleProjectId the sample project to use.
    */
   public BookExampleApp(String sampleInstance, String sampleDatabase,
-      String sampleProjectId) {
-    this.connectionFactory = ConnectionFactories.get(ConnectionFactoryOptions.builder()
-        .option(Option.valueOf("project"), sampleProjectId)
-        .option(DRIVER, DRIVER_NAME)
-        .option(INSTANCE, sampleInstance)
-        .option(DATABASE, sampleDatabase)
-        .build());
+                        String sampleProjectId) {
+    this.options = ConnectionFactoryOptions.builder()
+            .option(Option.valueOf("project"), sampleProjectId)
+            .option(DRIVER, DRIVER_NAME)
+            .option(INSTANCE, sampleInstance)
+            .option(DATABASE, sampleDatabase).build();
 
-    this.connection = Mono.from(this.connectionFactory.create()).block();
+    ConnectionFactory originalFactory
+            = ConnectionFactories.get(options);
+
+    // Create R2dbcTelemetry instance
+    R2dbcTelemetry r2dbcTelemetry = R2dbcTelemetry.create(GlobalOpenTelemetry.get());
+
+    // Wrap with OpenTelemetry
+    ConnectionFactory wrappedFactory = r2dbcTelemetry.wrapConnectionFactory(
+            originalFactory, options
+    );
+
+    // Use the wrapped factory
+    this.connection = Mono.from(wrappedFactory.create()).block();
   }
 
   public void cleanup() {
@@ -70,12 +83,12 @@ public class BookExampleApp {
    */
   public void createTable() {
     Mono.from(this.connection.createStatement("CREATE TABLE BOOKS ("
-            + "  ID STRING(20) NOT NULL,"
-            + "  TITLE STRING(MAX) NOT NULL,"
-            + "  EXTRADETAILS JSON"
-            + ") PRIMARY KEY (ID)").execute())
-        .doOnSuccess(x -> System.out.println("Table creation completed."))
-        .block();
+                    + "  ID STRING(20) NOT NULL,"
+                    + "  TITLE STRING(MAX) NOT NULL,"
+                    + "  EXTRADETAILS JSON"
+                    + ") PRIMARY KEY (ID)").execute())
+            .doOnSuccess(x -> System.out.println("Table creation completed."))
+            .block();
   }
 
   /**
@@ -83,34 +96,34 @@ public class BookExampleApp {
    */
   public void saveBooks() {
     Statement statement = this.connection.createStatement(
-        "INSERT BOOKS "
-            + "(ID, TITLE)"
-            + " VALUES "
-            + "(@id, @title)")
-        .bind("id", "book1")
-        .bind("title", "Book One")
-        .add()
-        .bind("id", "book2")
-        .bind("title", "Book Two");
+                    "INSERT BOOKS "
+                            + "(ID, TITLE)"
+                            + " VALUES "
+                            + "(@id, @title)")
+            .bind("id", "book1")
+            .bind("title", "Book One")
+            .add()
+            .bind("id", "book2")
+            .bind("title", "Book Two");
 
 
     Statement statement2 = this.connection.createStatement(
-            "INSERT BOOKS "
-                    + "(ID, TITLE, EXTRADETAILS)"
-                    + " VALUES "
-                    + "(@id, @title, @extradetails)")
+                    "INSERT BOOKS "
+                            + "(ID, TITLE, EXTRADETAILS)"
+                            + " VALUES "
+                            + "(@id, @title, @extradetails)")
             .bind("id", "book3")
             .bind("title", "Book Three")
             .bind("extradetails", new JsonWrapper("{\"rating\":9,\"series\":true}"));
 
     Flux.concat(
-            this.connection.beginTransaction(),
-            Flux.concat(statement.execute(), statement2.execute())
-                .flatMapSequential(r -> Mono.from(r.getRowsUpdated()))
-                .then(),
-            this.connection.commitTransaction())
-        .doOnComplete(() -> System.out.println("Insert books transaction committed."))
-        .blockLast();
+                    this.connection.beginTransaction(),
+                    Flux.concat(statement.execute(), statement2.execute())
+                            .flatMapSequential(r -> Mono.from(r.getRowsUpdated()))
+                            .then(),
+                    this.connection.commitTransaction())
+            .doOnComplete(() -> System.out.println("Insert books transaction committed."))
+            .blockLast();
   }
 
   /**
@@ -118,13 +131,13 @@ public class BookExampleApp {
    */
   public void retrieveBooks() {
     Flux.from(this.connection.createStatement("SELECT * FROM books").execute())
-        .flatMap(
-            spannerResult ->
-                spannerResult.map(
-                    (Row r, RowMetadata meta) -> describeBook(r)))
-        .doOnNext(System.out::println)
-        .collectList()
-        .block();
+            .flatMap(
+                    spannerResult ->
+                            spannerResult.map(
+                                    (Row r, RowMetadata meta) -> describeBook(r)))
+            .doOnNext(System.out::println)
+            .collectList()
+            .block();
   }
 
   /**
@@ -133,8 +146,8 @@ public class BookExampleApp {
   public void dropTableIfPresent() {
     try {
       Mono.from(this.connection.createStatement("DROP TABLE BOOKS").execute())
-          .doOnNext(x -> System.out.println("Table drop completed."))
-          .block();
+              .doOnNext(x -> System.out.println("Table drop completed."))
+              .block();
     } catch (Exception e) {
       System.out.println("Table wasn't found, so no action was taken.");
     }
@@ -146,14 +159,14 @@ public class BookExampleApp {
   public String describeBook(Row r) {
     StringBuilder stringBuilder = new StringBuilder();
     stringBuilder
-        .append("Retrieved book: ")
-        .append(r.get("ID", String.class))
-        .append("; Title: ")
-        .append(r.get("TITLE", String.class));
+            .append("Retrieved book: ")
+            .append(r.get("ID", String.class))
+            .append("; Title: ")
+            .append(r.get("TITLE", String.class));
     if (r.get("EXTRADETAILS", JsonWrapper.class) != null) {
       stringBuilder
-          .append("; Extra Details: ")
-          .append(r.get("EXTRADETAILS", JsonWrapper.class).toString());
+              .append("; Extra Details: ")
+              .append(r.get("EXTRADETAILS", JsonWrapper.class).toString());
     }
     return stringBuilder.toString();
   }
