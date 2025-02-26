@@ -24,6 +24,7 @@ import static io.r2dbc.spi.TransactionDefinition.READ_ONLY;
 import static java.lang.Boolean.TRUE;
 
 import com.google.cloud.spanner.TimestampBound;
+import com.google.cloud.spanner.r2dbc.SpannerConnectionMetadata;
 import com.google.cloud.spanner.r2dbc.api.SpannerConnection;
 import com.google.cloud.spanner.r2dbc.statement.StatementParser;
 import com.google.cloud.spanner.r2dbc.statement.StatementType;
@@ -41,6 +42,7 @@ import reactor.core.publisher.Mono;
 class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   private final DatabaseClientReactiveAdapter clientLibraryAdapter;
+  private final ConnectionMetadata metadata = SpannerConnectionMetadata.INSTANCE;
 
   /**
    * Cloud Spanner implementation of R2DBC Connection SPI.
@@ -128,7 +130,7 @@ class SpannerClientLibraryConnection implements Connection, SpannerConnection {
 
   @Override
   public ConnectionMetadata getMetadata() {
-    throw new UnsupportedOperationException();
+    return this.metadata;
   }
 
   @Override
