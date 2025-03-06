@@ -28,7 +28,7 @@ jobs:
   build:
     if: github.repository == 'GoogleCloudPlatform/cloud-spanner-r2dbc' # Only run on upstream branch
     name: Build with Sonar
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -38,12 +38,12 @@ jobs:
         with:
           java-version: 17
       - name: Cache SonarCloud packages
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
