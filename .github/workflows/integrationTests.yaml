@@ -27,7 +27,7 @@ on:
 jobs:
   integrationTests:
     if: github.repository == 'GoogleCloudPlatform/cloud-spanner-r2dbc'
-    runs-on: ubuntu-20.04
+    runs-on: 'ubuntu-24.04'
     permissions:
       contents: 'read'
       id-token: 'write'
