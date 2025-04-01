@@ -26,7 +26,7 @@ jobs:
   graalvmIntegrationTests:
     name: ${{ matrix.name }}
     if: github.repository == 'GoogleCloudPlatform/cloud-spanner-r2dbc'
-    runs-on: ubuntu-20.04
+    runs-on: 'ubuntu-24.04'
     strategy:
       fail-fast: false
       matrix:
