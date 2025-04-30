@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/compare/v1.4.0...v1.4.1) (2025-04-30)
+
+
+### Bug Fixes
+
+* rollback could return session to pool twice ([#888](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/issues/888)) ([d284a78](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/commit/d284a78de8169599107183d2902164995bfb5a19))
+
 ## [1.4.0](https://github.com/GoogleCloudPlatform/cloud-spanner-r2dbc/compare/v1.3.0...v1.4.0) (2025-03-06)
 
 
