@@ -28,6 +28,7 @@ import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionFactoryMetadata;
 import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -35,7 +36,7 @@ import reactor.test.StepVerifier;
 class SpannerClientLibraryConnectionFactoryTest {
 
   SpannerConnectionConfiguration.Builder configBuilder =
-      new SpannerConnectionConfiguration.Builder()
+      new SpannerConnectionConfiguration.Builder(mock(ConnectionFactoryOptions.class))
         .setProjectId("test-project")
         .setInstanceName("test-instance")
         .setDatabaseName("test-database")

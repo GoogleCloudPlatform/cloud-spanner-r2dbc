@@ -48,11 +48,13 @@ import com.google.spanner.v1.StructType;
 import com.google.spanner.v1.StructType.Field;
 import com.google.spanner.v1.Type;
 import com.google.spanner.v1.TypeCode;
+import io.r2dbc.spi.Closeable;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 
 /**
  * Unit test for {@link SpannerConnectionFactoryProvider}.
@@ -101,6 +103,8 @@ class SpannerConnectionFactoryProviderTest {
         this.spannerConnectionFactoryProvider.create(SPANNER_OPTIONS);
     assertThat(spannerConnectionFactory).isNotNull();
     assertThat(spannerConnectionFactory).isInstanceOf(SpannerClientLibraryConnectionFactory.class);
+
+    Flux.from(((Closeable) spannerConnectionFactory).close()).blockLast();
   }
 
   @Test
@@ -111,6 +115,8 @@ class SpannerConnectionFactoryProviderTest {
     assertThat(spannerConnectionFactory)
         .isNotNull()
         .isInstanceOf(SpannerClientLibraryConnectionFactory.class);
+
+    Flux.from(((Closeable) spannerConnectionFactory).close()).blockLast();
   }
 
   @Test
@@ -121,6 +127,8 @@ class SpannerConnectionFactoryProviderTest {
     assertThat(spannerConnectionFactory)
         .isNotNull()
         .isInstanceOf(SpannerClientLibraryConnectionFactory.class);
+
+    Flux.from(((Closeable) spannerConnectionFactory).close()).blockLast();
   }
 
   @Test
@@ -138,6 +146,8 @@ class SpannerConnectionFactoryProviderTest {
     assertThat(spannerConnectionFactory)
         .isNotNull()
         .isInstanceOf(SpannerClientLibraryConnectionFactory.class);
+
+    Flux.from(((Closeable) spannerConnectionFactory).close()).blockLast();
   }
 
   @Test

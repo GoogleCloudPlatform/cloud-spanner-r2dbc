@@ -22,7 +22,6 @@ import static com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration.FQDN
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.cloud.NoCredentials;
 import com.google.cloud.spanner.r2dbc.util.Assert;
@@ -68,7 +67,7 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   /**
    * Option specifying the already-instantiated credentials object.
    */
-  public static final Option<GoogleCredentials> GOOGLE_CREDENTIALS =
+  public static final Option<OAuth2Credentials> GOOGLE_CREDENTIALS =
       Option.valueOf("google_credentials");
 
   public static final Option<Boolean> AUTOCOMMIT = Option.valueOf(AUTOCOMMIT_PROPERTY_NAME);
@@ -117,7 +116,8 @@ public class SpannerConnectionFactoryProvider implements ConnectionFactoryProvid
   SpannerConnectionConfiguration createConfiguration(
       ConnectionFactoryOptions options) {
 
-    SpannerConnectionConfiguration.Builder config = new SpannerConnectionConfiguration.Builder();
+    SpannerConnectionConfiguration.Builder config =
+        new SpannerConnectionConfiguration.Builder(options);
 
     // Directly passed URL is supported for backwards compatibility. R2DBC SPI does not provide
     // the original URL when creating connection through ConnectionFactories.get(String).

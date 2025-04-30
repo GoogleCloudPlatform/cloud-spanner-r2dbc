@@ -29,6 +29,7 @@ import com.google.cloud.spanner.ReadContext;
 import com.google.cloud.spanner.ReadOnlyTransaction;
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.TransactionContext;
+import com.google.cloud.spanner.TransactionManager.TransactionState;
 import com.google.cloud.spanner.r2dbc.TransactionInProgressException;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -108,7 +109,9 @@ class DatabaseClientTransactionManager {
     ApiFuture<Void> returnFuture = ApiFutures.immediateFuture(null);
 
     if (this.transactionManager != null) {
-      returnFuture = this.transactionManager.closeAsync();
+      if (this.transactionManager.getState() != TransactionState.ROLLED_BACK) {
+        returnFuture = this.transactionManager.closeAsync();
+      }
       this.transactionManager = null;
     }
 

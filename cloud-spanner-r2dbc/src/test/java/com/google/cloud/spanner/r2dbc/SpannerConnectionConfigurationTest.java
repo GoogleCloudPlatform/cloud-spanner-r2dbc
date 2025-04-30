@@ -18,21 +18,22 @@ package com.google.cloud.spanner.r2dbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.NoCredentials;
 import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration.Builder;
+import io.r2dbc.spi.ConnectionFactoryOptions;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 /**
  * Test for {@link SpannerConnectionConfiguration}.
  */
 class SpannerConnectionConfigurationTest {
 
-  GoogleCredentials mockCredentials = Mockito.mock(GoogleCredentials.class);
+  GoogleCredentials mockCredentials = mock(GoogleCredentials.class);
 
   SpannerConnectionConfiguration.Builder configurationBuilder;
 
@@ -41,13 +42,15 @@ class SpannerConnectionConfigurationTest {
    */
   @BeforeEach
   public void setUpMockCredentials() {
-    this.configurationBuilder = new SpannerConnectionConfiguration.Builder()
+    this.configurationBuilder = new SpannerConnectionConfiguration.Builder(
+        mock(ConnectionFactoryOptions.class))
         .setCredentials(this.mockCredentials);
   }
 
   @Test
   void missingInstanceNameTriggersException() {
-    Builder builder = new SpannerConnectionConfiguration.Builder()
+    Builder builder = new SpannerConnectionConfiguration.Builder(
+        mock(ConnectionFactoryOptions.class))
         .setProjectId("project1")
         .setDatabaseName("db")
         .setCredentials(NoCredentials.getInstance());
@@ -59,7 +62,8 @@ class SpannerConnectionConfigurationTest {
 
   @Test
   void missingDatabaseNameTriggersException() {
-    Builder builder = new SpannerConnectionConfiguration.Builder()
+    Builder builder = new SpannerConnectionConfiguration.Builder(
+        mock(ConnectionFactoryOptions.class))
         .setProjectId("project1")
         .setInstanceName("an-instance")
         .setCredentials(NoCredentials.getInstance());
@@ -71,7 +75,8 @@ class SpannerConnectionConfigurationTest {
 
   @Test
   void missingProjectIdTriggersException() {
-    Builder builder = new SpannerConnectionConfiguration.Builder()
+    Builder builder = new SpannerConnectionConfiguration.Builder(
+        mock(ConnectionFactoryOptions.class))
         .setInstanceName("an-instance")
         .setDatabaseName("db")
         .setCredentials(NoCredentials.getInstance());
