@@ -45,6 +45,7 @@ import com.google.cloud.spanner.r2dbc.SpannerConnectionConfiguration;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.spanner.v1.ExecuteSqlRequest.QueryOptions;
+import io.r2dbc.spi.ConnectionFactoryOptions;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterEach;
@@ -74,7 +75,7 @@ class DatabaseClientReactiveAdapterTest {
   @BeforeEach
   void setup() throws Exception {
     this.config =
-        new SpannerConnectionConfiguration.Builder()
+        new SpannerConnectionConfiguration.Builder(mock(ConnectionFactoryOptions.class))
             .setFullyQualifiedDatabaseName("projects/p/instances/i/databases/d")
             .setCredentials(mock(GoogleCredentials.class))
             .build();
@@ -148,7 +149,8 @@ class DatabaseClientReactiveAdapterTest {
 
   @Test
   void unsetQueryOptimizerResultsInDefaultQueryOptions() {
-    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
+    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder(
+        mock(ConnectionFactoryOptions.class))
         .setFullyQualifiedDatabaseName("projects/p/instances/i/databases/d")
         .setCredentials(mock(GoogleCredentials.class))
         .build();
@@ -160,7 +162,8 @@ class DatabaseClientReactiveAdapterTest {
 
   @Test
   void queryOptimizerPropagatesToQueryOptions() {
-    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder()
+    SpannerConnectionConfiguration config = new SpannerConnectionConfiguration.Builder(
+        mock(ConnectionFactoryOptions.class))
         .setFullyQualifiedDatabaseName("projects/p/instances/i/databases/d")
         .setCredentials(mock(GoogleCredentials.class))
         .setOptimizerVersion("2")

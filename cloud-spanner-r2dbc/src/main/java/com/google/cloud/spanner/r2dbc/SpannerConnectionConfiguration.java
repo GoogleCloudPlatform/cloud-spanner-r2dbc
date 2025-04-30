@@ -20,6 +20,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.cloud.spanner.SpannerOptions;
 import com.google.cloud.spanner.r2dbc.util.Assert;
+import io.grpc.ManagedChannelBuilder;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.R2dbcNonTransientResourceException;
 import java.io.IOException;
@@ -51,11 +52,13 @@ public class SpannerConnectionConfiguration {
   // TODO: check how to handle full URL (it gets parsed by SPI, we only get pieces)
   private final String fullyQualifiedDbName;
 
-  private String projectId;
+  private final ConnectionFactoryOptions options;
 
-  private String instanceName;
+  private final String projectId;
 
-  private String databaseName;
+  private final String instanceName;
+
+  private final String databaseName;
 
   private final OAuth2Credentials credentials;
 
@@ -82,6 +85,7 @@ public class SpannerConnectionConfiguration {
    * @param credentials GCP credentials to authenticate service calls with.
    */
   private SpannerConnectionConfiguration(
+      ConnectionFactoryOptions options,
       String projectId,
       String instanceName,
       String databaseName,
@@ -91,6 +95,7 @@ public class SpannerConnectionConfiguration {
     Assert.requireNonNull(instanceName, "instanceName must not be null");
     Assert.requireNonNull(databaseName, "databaseName must not be null");
 
+    this.options = Assert.requireNonNull(options, "options must not be null");
     this.projectId = projectId;
     this.instanceName = instanceName;
     this.databaseName = databaseName;
@@ -189,12 +194,23 @@ public class SpannerConnectionConfiguration {
   public SpannerOptions buildSpannerOptions() {
     SpannerOptions.Builder optionsBuilder = SpannerOptions.newBuilder();
 
+    if (this.options.hasOption(ConnectionFactoryOptions.HOST)) {
+      int port = 443;
+      if (this.options.hasOption(ConnectionFactoryOptions.PORT)) {
+        port = (Integer) Objects.requireNonNull(
+            this.options.getValue(ConnectionFactoryOptions.PORT));
+      }
+      String host = String.format("http://%s:%d", this.options.getValue(ConnectionFactoryOptions.HOST), port);
+      optionsBuilder.setHost(host);
+    }
     if (this.projectId != null) {
       optionsBuilder.setProjectId(this.projectId);
     }
-
     if (this.credentials != null) {
       optionsBuilder.setCredentials(this.credentials);
+    }
+    if (this.usePlainText) {
+      optionsBuilder.setChannelConfigurator(ManagedChannelBuilder::usePlaintext);
     }
 
     optionsBuilder.setHeaderProvider(() ->
@@ -210,6 +226,7 @@ public class SpannerConnectionConfiguration {
    * Builder for the enclosing class.
    */
   public static class Builder {
+    private final ConnectionFactoryOptions options;
 
     private String fullyQualifiedDatabaseName;
 
@@ -234,6 +251,10 @@ public class SpannerConnectionConfiguration {
     private boolean readonly = false;
 
     private boolean autocommit = true;
+
+    public Builder(ConnectionFactoryOptions options) {
+      this.options = Assert.requireNonNull(options, "options must not be null");
+    }
 
     /**
      * R2DBC SPI does not provide the full URL to drivers after parsing the connection string.
@@ -359,7 +380,7 @@ public class SpannerConnectionConfiguration {
       }
 
       SpannerConnectionConfiguration configuration = new SpannerConnectionConfiguration(
-            this.projectId, this.instanceName, this.databaseName, this.credentials);
+            this.options, this.projectId, this.instanceName, this.databaseName, this.credentials);
 
       configuration.partialResultSetFetchSize = this.partialResultSetFetchSize;
       configuration.ddlOperationTimeout = this.ddlOperationTimeout;

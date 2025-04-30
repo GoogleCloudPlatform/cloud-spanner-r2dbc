@@ -29,6 +29,7 @@ import com.google.cloud.spanner.ReadContext;
 import com.google.cloud.spanner.ReadOnlyTransaction;
 import com.google.cloud.spanner.TimestampBound;
 import com.google.cloud.spanner.TransactionContext;
+import com.google.cloud.spanner.TransactionManager.TransactionState;
 import com.google.cloud.spanner.r2dbc.TransactionInProgressException;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -108,7 +109,13 @@ class DatabaseClientTransactionManager {
     ApiFuture<Void> returnFuture = ApiFutures.immediateFuture(null);
 
     if (this.transactionManager != null) {
-      returnFuture = this.transactionManager.closeAsync();
+      // We don't close the transaction manager here if it has already been rolled back.
+      // Rolling back a transaction manager automatically also closes it, and returns the underlying
+      // session to the pool. Closing it a second time here, would cause it to be added to the pool
+      // a second time.
+      if (this.transactionManager.getState() != TransactionState.ROLLED_BACK) {
+        returnFuture = this.transactionManager.closeAsync();
+      }
       this.transactionManager = null;
     }
 
