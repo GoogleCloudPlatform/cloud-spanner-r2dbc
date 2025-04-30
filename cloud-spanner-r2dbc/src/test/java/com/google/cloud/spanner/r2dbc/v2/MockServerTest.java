@@ -20,9 +20,11 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.cloud.NoCredentials;
+import com.google.cloud.spanner.AbortedException;
 import com.google.cloud.spanner.MockSpannerServiceImpl;
 import com.google.cloud.spanner.MockSpannerServiceImpl.StatementResult;
 import com.google.cloud.spanner.Statement;
@@ -240,6 +242,29 @@ public class MockServerTest {
     }
     assertEquals(1, mockSpanner.countRequestsOfType(RollbackRequest.class));
     assertEquals(0, mockSpanner.countRequestsOfType(CommitRequest.class));
+  }
+
+  @Test
+  public void testAbortedTransaction() {
+    String sql = "insert into foo (id) values (1)";
+    mockSpanner.putStatementResult(StatementResult.update(Statement.of(sql), 1L));
+
+    ConnectionFactory connectionFactory = createConnectionFactory();
+    Publisher<? extends Connection> connectionPublisher = connectionFactory.create();
+    Connection connection = Mono.from(connectionPublisher).block();
+
+    mockSpanner.abortNextTransaction();
+    assertThrows(AbortedException.class, () -> Flux.concat(
+        connection.beginTransaction(),
+        connection.createStatement(sql).execute(),
+        connection.commitTransaction()
+    ).blockLast());
+
+    Mono.from(((Closeable) connectionFactory).close()).subscribe();
+
+    assertEquals(1, mockSpanner.countRequestsOfType(ExecuteSqlRequest.class));
+    assertEquals(0, mockSpanner.countRequestsOfType(RollbackRequest.class));
+    assertEquals(1, mockSpanner.countRequestsOfType(CommitRequest.class));
   }
 
   @Test
