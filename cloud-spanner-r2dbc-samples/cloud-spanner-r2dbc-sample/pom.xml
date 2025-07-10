@@ -33,7 +33,7 @@
 
   <properties>
     <apache-commons-io.version>2.15.0</apache-commons-io.version>
-    <apache-commons-lang.version>3.13.0</apache-commons-lang.version>
+    <apache-commons-lang.version>3.18.0</apache-commons-lang.version>
   </properties>
 
   <dependencies>
