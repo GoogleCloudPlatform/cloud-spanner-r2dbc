@@ -110,7 +110,7 @@
     <slf4j.version>2.0.11</slf4j.version>
 
     <!-- Test dependencies -->
-    <assertj.version>3.25.2</assertj.version>
+    <assertj.version>3.27.5</assertj.version>
     <junit.version>5.10.0</junit.version>
     <surefire-failsafe.version>3.2.5</surefire-failsafe.version>
     <testng.version>7.5</testng.version>
