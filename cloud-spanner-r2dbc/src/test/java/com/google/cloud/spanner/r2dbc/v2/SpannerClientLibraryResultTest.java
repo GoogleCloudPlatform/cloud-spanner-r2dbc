@@ -46,6 +46,15 @@ class SpannerClientLibraryResultTest {
   }
 
   @Test
+  void getRowsUpdatedPropagatesResultRowsError() {
+    SpannerClientLibraryResult result =
+        new SpannerClientLibraryResult(
+            Flux.error(new IllegalStateException("Syntax error")), 0);
+    StepVerifier.create(result.getRowsUpdated())
+        .verifyErrorMessage("Syntax error");
+  }
+
+  @Test
   void mapGeneratesMetadataOnlyOnFirstCall() {
     SpannerClientLibraryRow mockRow1 = mock(SpannerClientLibraryRow.class);
     when(mockRow1.get("col")).thenReturn("value1");

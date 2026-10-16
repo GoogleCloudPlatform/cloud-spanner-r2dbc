@@ -42,7 +42,7 @@ class SpannerClientLibraryResult implements Result {
 
   @Override
   public Publisher<Long> getRowsUpdated() {
-    return Mono.just(this.numRowsUpdated);
+    return this.resultRows.then(Mono.just(this.numRowsUpdated));
   }
 
   @Override
