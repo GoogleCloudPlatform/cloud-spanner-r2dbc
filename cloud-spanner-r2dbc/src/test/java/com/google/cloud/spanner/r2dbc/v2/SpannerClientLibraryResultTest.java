@@ -16,6 +16,7 @@
 
 package com.google.cloud.spanner.r2dbc.v2;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.r2dbc.spi.RowMetadata;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -43,6 +45,40 @@ class SpannerClientLibraryResultTest {
     StepVerifier.create(result.getRowsUpdated())
         .expectNext(42L)
         .verifyComplete();
+  }
+
+  @Test
+  void getRowsUpdatedReturnsCountAfterDrainingRows() {
+    SpannerClientLibraryRow mockRow = mock(SpannerClientLibraryRow.class);
+    SpannerClientLibraryResult result =
+        new SpannerClientLibraryResult(Flux.just(mockRow), 7);
+    StepVerifier.create(result.getRowsUpdated())
+        .expectNext(7L)
+        .verifyComplete();
+  }
+
+  @Test
+  void getRowsUpdatedSubscribesToRowsOnce() {
+    AtomicInteger subscriptions = new AtomicInteger();
+    SpannerClientLibraryResult result =
+        new SpannerClientLibraryResult(
+            Flux.defer(() -> {
+              subscriptions.incrementAndGet();
+              return Flux.empty();
+            }), 3);
+    StepVerifier.create(result.getRowsUpdated())
+        .expectNext(3L)
+        .verifyComplete();
+    assertThat(subscriptions.get()).isEqualTo(1);
+  }
+
+  @Test
+  void getRowsUpdatedPropagatesQueryError() {
+    SpannerClientLibraryResult result =
+        new SpannerClientLibraryResult(
+            Flux.error(new IllegalStateException("syntax error")), 0);
+    StepVerifier.create(result.getRowsUpdated())
+        .verifyError(IllegalStateException.class);
   }
 
   @Test
