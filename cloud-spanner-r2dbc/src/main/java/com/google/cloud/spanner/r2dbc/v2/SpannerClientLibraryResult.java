@@ -40,9 +40,17 @@ class SpannerClientLibraryResult implements Result {
     this.numRowsUpdated = numRowsUpdated;
   }
 
+  /**
+   * Returns the update count. The result rows are subscribed to first, so any error from the
+   * underlying query (e.g. a syntax error) is propagated instead of reporting zero rows updated.
+   *
+   * <p>Because the row publisher is cold, this subscribes to it, which drains any rows of a query
+   * result and executes the query. Calling {@link #map} afterwards re-executes the query, since
+   * the rows are not cached.
+   */
   @Override
   public Publisher<Long> getRowsUpdated() {
-    return Mono.just(this.numRowsUpdated);
+    return this.resultRows.then(Mono.just(this.numRowsUpdated));
   }
 
   @Override
